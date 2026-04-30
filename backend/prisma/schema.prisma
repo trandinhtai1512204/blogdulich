@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  password       String
+  name           String?
+  role           Role      @default(user)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  isVerified     Boolean   @default(false)
+  verifyToken    String?
+  verifyTokenExp DateTime?
+  bookings       Booking[]
+  reviews        Review[]
+
+  @@map("users")
+}
+
+model City {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  country     String
+  image       String?
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  categories  Category[]
+  hotels      Hotel[]
+  posts       Post[]
+
+  @@map("cities")
+}
+
+model Hotel {
+  id             String    @id @default(cuid())
+  name           String
+  slug           String    @unique
+  address        String
+  price          Float
+  images         String[]
+  description    String?
+  availableRooms Int       @default(0)
+  cityId         String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  bookings       Booking[]
+  city           City      @relation(fields: [cityId], references: [id])
+  reviews        Review[]
+
+  @@index([cityId])
+  @@index([price])
+  @@map("hotels")
+}
+
+model Category {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  createdAt DateTime     @default(now())
+  cityId    String?
+  parentId  String?
+  type      CategoryType @default(destination)
+  city      City?        @relation(fields: [cityId], references: [id])
+  parent    Category?    @relation("CategoryParent", fields: [parentId], references: [id])
+  children  Category[]   @relation("CategoryParent")
+  posts     Post[]
+
+  @@index([type])
+  @@index([cityId])
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Post {
+  id         String    @id @default(cuid())
+  title      String
+  slug       String    @unique
+  content    String
+  excerpt    String?
+  thumbnail  String?
+  published  Boolean   @default(false)
+  cityId     String?
+  categoryId String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  category   Category? @relation(fields: [categoryId], references: [id])
+  city       City?     @relation(fields: [cityId], references: [id])
+
+  @@index([cityId])
+  @@index([categoryId])
+  @@map("posts")
+}
+
+model Booking {
+  id         String        @id @default(cuid())
+  userId     String
+  hotelId    String
+  checkIn    DateTime
+  checkOut   DateTime
+  totalPrice Float
+  status     BookingStatus @default(pending)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  expiresAt  DateTime?
+  hotel      Hotel         @relation(fields: [hotelId], references: [id])
+  user       User          @relation(fields: [userId], references: [id])
+  payment    Payment?
+
+  @@index([userId])
+  @@index([hotelId])
+  @@index([checkIn, checkOut])
+  @@map("bookings")
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  bookingId     String        @unique
+  provider      String        @default("stripe")
+  transactionId String?
+  amount        Float
+  status        PaymentStatus @default(pending)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  currency      String        @default("usd")
+  booking       Booking       @relation(fields: [bookingId], references: [id])
+
+  @@map("payments")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  hotelId   String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, hotelId])
+  @@index([hotelId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+enum Role {
+  admin
+  user
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  cancelled
+  failed
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+}
+
+enum CategoryType {
+  about
+  destination
+  itinerary
+  cost
+  review
+  experience
+}
