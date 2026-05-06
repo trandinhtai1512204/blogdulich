@@ -1,12 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?><comments xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:xr="http://schemas.microsoft.com/office/spreadsheetml/2014/revision"><authors><author></author></authors><commentList><comment authorId="0" ref="D34"><text><t xml:space="preserve">Giá trị  -	Ý nghĩa kỹ thuật -	Ý nghĩa hình ảnh
-0	- Horizontal Offset (Độ lệch ngang)	-  Bóng không bị lệch sang trái hoặc phải. Bóng nằm ngay bên dưới vật thể.
-
-2px -	Vertical Offset (Độ lệch dọc) -	Bóng đổ xuống phía dưới vật thể 2 pixel. Tạo cảm giác phần tử hơi nhấc lên khỏi nền một chút.
-
-10px -	Blur Radius (Độ mờ) -	Bóng được làm mờ đi 10 pixel. Độ mờ càng lớn, bóng càng trông mềm mại và tự nhiên.
-
-rgba(...) -	Màu sắc của bóng -	Đây là màu sắc của cái bóng:
-
-- 14, 134, 187 -	Mã màu RGB	-   Đây là màu xanh nhạt (Light Blue) tương đồng với màu thương hiệu.
-
-- 0.25 -	Alpha (Độ trong suốt) -	Bóng chỉ trong suốt 25% (khá mờ). Điều này giúp bóng nhẹ nhàng, không bị quá tối hoặc gây mất tập trung.</t></text></comment></commentList></comments>

@@ -41,7 +41,7 @@ export default function RegisterPage() {
         </div>
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-linear-to-br from-violet-500 to-purple-700 flex items-center justify-center">
               <span className="text-white text-sm">✈</span>
             </div>
             <span className="text-white text-xl font-bold">tripviet</span>
@@ -52,13 +52,13 @@ export default function RegisterPage() {
               Bắt đầu hành trình<br />của bạn 🌏
             </h2>
             <p className="text-white/60 text-lg">
-              Tạo tài khoản miễn phí và khám phá hàng trăm khách sạn tốt nhất Việt Nam.
+              Tạo tài khoản miễn phí để theo dõi bài viết và khám phá điểm đến trên khắp Việt Nam.
             </p>
             <div className="mt-8 space-y-3">
               {[
-                '✓ Đặt phòng nhanh chóng, thanh toán an toàn',
-                '✓ Quản lý booking dễ dàng',
-                '✓ Hỗ trợ 24/7',
+                '✓ Cập nhật bài viết du lịch mới mỗi ngày',
+                '✓ Lưu lại lịch trình và điểm đến yêu thích',
+                '✓ Chia sẻ kinh nghiệm cùng cộng đồng',
               ].map((item) => (
                 <p key={item} className="text-white/70 text-sm">{item}</p>
               ))}
@@ -71,7 +71,7 @@ export default function RegisterPage() {
       <div className="flex-1 flex items-center justify-center px-6 py-12 bg-gray-50">
         <div className="w-full max-w-md">
           <Link href="/" className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-linear-to-br from-violet-500 to-purple-700 flex items-center justify-center">
               <span className="text-white text-sm">✈</span>
             </div>
             <span className="text-gray-900 text-xl font-bold">tripviet</span>

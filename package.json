@@ -1,1 +1,13 @@
-{}
+{
+  "name": "blogdulich",
+  "version": "1.0.0",
+  "description": "![Next.js](https://img.shields.io/badge/Next.js-000?logo=next.js)\r ![NestJS](https://img.shields.io/badge/NestJS-red?logo=nestjs)\r ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-blue?logo=postgresql)",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -62,13 +62,6 @@ export default function Header() {
 
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                  <Link
-                    href="/my-bookings"
-                    onClick={() => setMenuOpen(false)}
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    📋 Booking của tôi
-                  </Link>
                   {user.role === 'admin' && (
                     <Link
                       href="/admin"

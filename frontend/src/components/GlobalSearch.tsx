@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Search, MapPin, Hotel, FileText, X, ArrowRight, Loader2 } from 'lucide-react';
 import api from '@/lib/axios';
 
+
 interface SearchResult {
   type: 'city' | 'hotel' | 'post';
   id: string;
@@ -12,6 +13,7 @@ interface SearchResult {
   slug: string;
   sub?: string;
   image?: string;
+  categorySlug?: string;
 }
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -82,6 +84,7 @@ export function GlobalSearch({ placeholder = 'Tìm kiếm thành phố, khách s
 
       const posts = (postsRes.data.data as any[]).slice(0, 3).map((p) => ({
         type: 'post' as const, id: p.id, name: p.title, slug: p.slug, sub: p.city?.name, image: p.thumbnail,
+        categorySlug: p.category?.slug as string | undefined,
       }));
 
       const combined = [...cities, ...hotels, ...posts];
@@ -91,9 +94,9 @@ export function GlobalSearch({ placeholder = 'Tìm kiếm thành phố, khách s
   }, [debouncedQuery]);
 
   const getHref = (r: SearchResult) => {
-    if (r.type === 'city') return `/cities/${r.slug}`;
+    if (r.type === 'city') return `/${r.slug}`;
     if (r.type === 'hotel') return `/hotels/${r.slug}`;
-    return `/posts/${r.slug}`;
+    return r.categorySlug ? `/${r.categorySlug}/${r.slug}` : `/posts/${r.slug}`;
   };
 
   const handleSelect = (result: SearchResult) => {
@@ -197,92 +200,93 @@ export function GlobalSearch({ placeholder = 'Tìm kiếm thành phố, khách s
         className="
         absolute top-full mt-3
         w-full max-w-[640px]
-        
         bg-white/10
         backdrop-blur-2xl
-        
         border border-white/20
         rounded-2xl
-        
         shadow-[0_20px_60px_rgba(0,0,0,0.5)]
-        
         z-[100]
         overflow-hidden
       "
       >
-        {(Object.entries(grouped) as Array<[SearchResult['type'], SearchResult[]]>)
-          .filter(([, items]) => items.length > 0)
-          .map(([type, items]) => {
-            const cfg = TYPE_CONFIG[type];
-            const Icon = cfg.icon;
+        {/* Scrollable results area */}
+        <div
+          className="max-h-[340px] overflow-y-auto"
+          style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}
+        >
+          {(Object.entries(grouped) as Array<[SearchResult['type'], SearchResult[]]>)
+            .filter(([, items]) => items.length > 0)
+            .map(([type, items]) => {
+              const cfg = TYPE_CONFIG[type];
+              const Icon = cfg.icon;
 
-            return (
-              <div key={type}>
-                {/* HEADER */}
-                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border-b border-white/10">
-                  <Icon size={12} className="text-white/70" />
-                  <span className="text-xs font-semibold text-white/60 uppercase">
-                    {cfg.label}
-                  </span>
-                </div>
+              return (
+                <div key={type}>
+                  {/* HEADER — sticky within scroll */}
+                  <div className="sticky top-0 flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-sm border-b border-white/10">
+                    <Icon size={12} className="text-white/70" />
+                    <span className="text-xs font-semibold text-white/60 uppercase">
+                      {cfg.label}
+                    </span>
+                  </div>
 
-                {/* ITEMS */}
-                {items.map((result) => {
-                  globalIdx++;
-                  const idx = globalIdx;
-                  const isActive = activeIdx === idx;
+                  {/* ITEMS */}
+                  {items.map((result) => {
+                    globalIdx++;
+                    const idx = globalIdx;
+                    const isActive = activeIdx === idx;
 
-                  return (
-                    <button
-                      key={result.id}
-                      onMouseEnter={() => setActiveIdx(idx)}
-                      onClick={() => handleSelect(result)}
-                      className={`
-                        w-full flex items-center gap-3 px-4 py-3 text-left
-                        transition-all
-                        
-                        ${isActive ? 'bg-white/20' : 'hover:bg-white/10'}
-                      `}
-                    >
-                      {/* IMAGE */}
-                      <div className="w-9 h-9 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center">
-                        {result.image ? (
-                          <img
-                            src={result.image}
-                            alt={result.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <Icon size={15} className="text-white/70" />
-                        )}
-                      </div>
+                    return (
+                      <button
+                        key={result.id}
+                        onMouseEnter={() => setActiveIdx(idx)}
+                        onClick={() => handleSelect(result)}
+                        className={`
+                          w-full flex items-center gap-3 px-4 py-3 text-left
+                          transition-all
+                          ${isActive ? 'bg-white/20' : 'hover:bg-white/10'}
+                        `}
+                      >
+                        {/* IMAGE */}
+                        <div className="w-9 h-9 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center shrink-0">
+                          {result.image ? (
+                            <img
+                              src={result.image}
+                              alt={result.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Icon size={15} className="text-white/70" />
+                          )}
+                        </div>
 
-                      {/* TEXT */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">
-                          {result.name}
-                        </p>
-                        {result.sub && (
-                          <p className="text-xs text-white/60 flex items-center gap-1">
-                            <MapPin size={10} /> {result.sub}
+                        {/* TEXT */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">
+                            {result.name}
                           </p>
-                        )}
-                      </div>
+                          {result.sub && (
+                            <p className="text-xs text-white/60 flex items-center gap-1">
+                              <MapPin size={10} /> {result.sub}
+                            </p>
+                          )}
+                        </div>
 
-                      <ArrowRight
-                        size={13}
-                        className={`transition ${
-                          isActive ? 'opacity-100 text-white' : 'opacity-0'
-                        }`}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })}
+                        <ArrowRight
+                          size={13}
+                          className={`transition ${
+                            isActive ? 'opacity-100 text-white' : 'opacity-0'
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
+        </div>
 
-        {/* FOOTER */}
+        {/* FOOTER — nằm ngoài scroll, luôn hiện */}
         <div className="border-t border-white/10 px-4 py-2">
           <button
             onClick={handleSubmit as any}

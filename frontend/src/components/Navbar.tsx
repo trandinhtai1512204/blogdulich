@@ -23,7 +23,7 @@ export function Navbar() {
     
     { label: 'Điểm đến ', href: '/diem-den', icon: <MapPin size={15} /> },
     { label: 'Lịch trình ', href: '/lich-trinh-du-lich', icon: <Route size={15} /> },
-    { label: 'Chi phí ', href: '/chi-phi-du-lich', icon: <Wallet size={15} /> },
+    // { label: 'Chi phí ', href: '/chi-phi-du-lich', icon: <Wallet size={15} /> },
     { label: 'Review', href: '/review', icon: <Star size={15} /> },
     { label: 'Kinh nghiệm', href: '/kinh-nghiem', icon: <BookOpen size={15} /> },
   ];

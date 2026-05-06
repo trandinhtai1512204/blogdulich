@@ -5,13 +5,13 @@ import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, X, Tag } from 'lucide-react';
 import api from '@/lib/axios';
 
-type CategoryType = 'about' | 'destination' | 'itinerary' | 'cost' | 'review' | 'experience';
+type CategoryType = 'about' | 'destination' | 'itinerary' | 'review' | 'experience';
 
 interface Category {
   id: string;
   name: string;
   slug: string;
-  type?: CategoryType;
+  type?: CategoryType | 'cost' | string;
   cityId?: string | null;
   parentId?: string | null;
   createdAt: string;
@@ -26,13 +26,21 @@ const TYPE_LABELS: Record<CategoryType, string> = {
   about: 'Giới thiệu',
   destination: 'Điểm đến hấp dẫn',
   itinerary: 'Lịch trình du lịch',
-  cost: 'Chi phí du lịch',
   review: 'Review',
   experience: 'Kinh nghiệm du lịch',
 };
-const SYSTEM_MENU: CategoryType[] = ['destination', 'itinerary', 'cost', 'review', 'experience'];
+const SYSTEM_MENU: CategoryType[] = ['destination', 'itinerary', 'review', 'experience'];
+const LEGACY_TYPE_LABELS: Record<string, string> = {
+  cost: 'Chi phí du lịch (đã tạm dừng)',
+};
 
-const ROOT_SLUGS = ['about', 'diem-den', 'lich-trinh-du-lich', 'chi-phi-du-lich', 'review', 'kinh-nghiem'] as const;
+const getTypeLabel = (type?: string) => {
+  if (!type) return TYPE_LABELS.destination;
+  if (type in TYPE_LABELS) return TYPE_LABELS[type as CategoryType];
+  return LEGACY_TYPE_LABELS[type] ?? type;
+};
+
+const ROOT_SLUGS = ['about', 'diem-den', 'lich-trinh-du-lich', 'review', 'kinh-nghiem'] as const;
 
 const EMPTY = { name: '', slug: '', cityId: '', parentId: '' };
 
@@ -103,8 +111,8 @@ export default function AdminCategoriesPage() {
   };
 
   const sortedCategories = [...categories].sort((a, b) => {
-    const typeA = TYPE_LABELS[a.type ?? 'destination'];
-    const typeB = TYPE_LABELS[b.type ?? 'destination'];
+    const typeA = getTypeLabel(a.type);
+    const typeB = getTypeLabel(b.type);
     if (typeA !== typeB) return typeA.localeCompare(typeB, 'vi');
     return a.name.localeCompare(b.name, 'vi');
   });
@@ -238,7 +246,7 @@ export default function AdminCategoriesPage() {
               </div>
               <p className="font-semibold text-gray-800 text-sm">{cat.name}</p>
               <p className="text-xs text-gray-400 font-mono mt-0.5">{cat.slug}</p>
-              <p className="text-[11px] text-violet-700 mt-1">{TYPE_LABELS[cat.type ?? 'destination']}</p>
+              <p className="text-[11px] text-violet-700 mt-1">{getTypeLabel(cat.type)}</p>
               {cat.parentId && (
                 <p className="text-[11px] text-gray-500 mt-1">
                   Cấp {getCategoryDepth(cat, categoryMap) + 1} - {getCategoryPathLabel(cat, categoryMap)}
@@ -311,7 +319,7 @@ export default function AdminCategoriesPage() {
                     </option>
                   ))}
                 </select>
-                {!editingIsRoot && <p className="text-[11px] text-gray-500 mt-1">Chuyên mục mới phải nằm dưới 1 trong 6 danh mục trụ cột.</p>}
+                {!editingIsRoot && <p className="text-[11px] text-gray-500 mt-1">Chuyên mục mới phải nằm dưới 1 trong 5 danh mục trụ cột.</p>}
               </div>
             </div>
             <div className="flex gap-3 p-5 border-t border-gray-100">

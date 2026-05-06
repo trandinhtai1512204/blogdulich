@@ -12,16 +12,24 @@ export class TaxonomyService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Resolve a path like:
-   * - /ha-noi
-   * - /ha-noi/bao-tang
-   * - /ha-noi/bao-tang/van-mieu
-   * - /review-tour/tieu-muc-1/tieu-muc-con-1
+   * Resolve a URL path to one of: city landing, category landing, post, or not_found.
    *
-   * Rules:
-   * - First slug may be a City slug. If it is, categories can optionally be scoped to that city.
-   * - Remaining slugs (except maybe last) are treated as a Category chain (parent -> child).
-   * - If an extra last slug remains after resolving categories, treat it as a Post.slug and validate it belongs to the last category/city (when set).
+   * Supported patterns:
+   *   /ha-noi                                      → city
+   *   /ha-noi/bao-tang                             → city + category
+   *   /ha-noi/bao-tang/bai-viet                    → city + category + post
+   *   /review-khach-san                            → category (non-root parentId, found via fallback)
+   *   /review-khach-san/ha-noi/tieu-muc-1          → category chain 3 levels deep
+   *   /lich-trinh-du-lich-ha-noi/3-ngay-2-dem      → category + post
+   *
+   * Resolution rules:
+   * 1. If the first slug matches a City, consume it and resolve the rest as categories/post.
+   * 2. For each remaining slug, find a Category with (slug, parentId). parentId starts null.
+   * 3. If the first segment fails the strict (slug + parentId) query, fall back to finding any
+   *    Category with that slug (ignoring parentId). This allows non-root categories — e.g.
+   *    review-khach-san (child of "review") — to serve as URL anchors. Subsequent segments
+   *    then resolve normally using that category's id as the new parentId.
+   * 4. Any single leftover slug after the category chain is treated as a Post slug.
    */
   async resolve(slugs: string[]): Promise<ResolveResult> {
     if (!slugs.length) return { kind: 'not_found' };
@@ -34,41 +42,40 @@ export class TaxonomyService {
 
     const rest = city ? slugs.slice(1) : slugs.slice(0);
 
-    // City-only landing
     if (city && rest.length === 0) {
       return { kind: 'city', city };
     }
 
-    // Resolve category chain from rest
     const chain: any[] = [];
     let parentId: string | null = null;
     let lastCategory: any | null = null;
 
-    // Try to resolve as many segments as categories (greedy), leave last as potential post slug.
     for (let i = 0; i < rest.length; i++) {
       const slug = rest[i];
 
-      const cat = await this.prisma.category.findFirst({
+      let cat = await this.prisma.category.findFirst({
         where: {
           slug,
           parentId,
           ...(city ? { OR: [{ cityId: null }, { cityId: city.id }] } : {}),
         },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          type: true,
-          parentId: true,
-          cityId: true,
-        },
+        select: { id: true, name: true, slug: true, type: true, parentId: true, cityId: true },
       });
 
-      if (!cat) {
-        // If we haven't resolved any category yet, maybe first slug itself is a category
-        // (this only happens when city is null; handled by starting rest=slugs above).
-        break;
+      // First segment only: if strict (slug + parentId=null) fails, try any category with
+      // this slug. This lets non-root categories (e.g. review-khach-san, lich-trinh-du-lich-ha-noi)
+      // act as URL anchors without requiring parentId=null in the DB.
+      if (!cat && i === 0) {
+        cat = await this.prisma.category.findFirst({
+          where: {
+            slug,
+            ...(city ? { OR: [{ cityId: null }, { cityId: city.id }] } : {}),
+          },
+          select: { id: true, name: true, slug: true, type: true, parentId: true, cityId: true },
+        });
       }
+
+      if (!cat) break;
 
       chain.push(cat);
       lastCategory = cat;
@@ -78,23 +85,10 @@ export class TaxonomyService {
     const consumedCategories = chain.length;
     const remainingAfterCategories = rest.slice(consumedCategories);
 
-    // If no categories resolved and city is null, attempt: single category slug (index)
-    if (!city && chain.length === 0) {
-      const cat = await this.prisma.category.findUnique({
-        where: { slug: first },
-        select: { id: true, name: true, slug: true, type: true, parentId: true, cityId: true },
-      });
-      if (cat) {
-        return { kind: 'category', city: null, category: cat, chain: [cat] };
-      }
-    }
-
-    // Category landing (no post)
     if (remainingAfterCategories.length === 0 && lastCategory) {
       return { kind: 'category', city: city ?? null, category: lastCategory, chain };
     }
 
-    // If exactly one slug remains, treat as post slug
     if (remainingAfterCategories.length === 1) {
       const postSlug = remainingAfterCategories[0];
       const post = await this.prisma.post.findUnique({
@@ -106,20 +100,10 @@ export class TaxonomyService {
       });
 
       if (!post || !post.published) return { kind: 'not_found' };
-
-      // Validate city match if path is city-scoped
       if (city && post.cityId && post.cityId !== city.id) return { kind: 'not_found' };
-
-      // Validate category match if path provides categories
       if (lastCategory && post.categoryId && post.categoryId !== lastCategory.id) return { kind: 'not_found' };
 
-      return {
-        kind: 'post',
-        city: city ?? null,
-        category: lastCategory,
-        chain,
-        post,
-      };
+      return { kind: 'post', city: city ?? null, category: lastCategory, chain, post };
     }
 
     return { kind: 'not_found' };

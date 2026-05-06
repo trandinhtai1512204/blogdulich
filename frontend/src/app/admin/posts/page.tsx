@@ -8,6 +8,7 @@ import api from '@/lib/axios';
 interface Post {
   id: string; title: string; slug: string; content: string;
   excerpt?: string; thumbnail?: string; published: boolean;
+  location?: string; latitude?: number; longitude?: number;
   cityId?: string; categoryId?: string; createdAt: string;
   city?: { id: string; name: string }; category?: { id: string; name: string };
 }
@@ -21,7 +22,19 @@ interface Category {
   parentId?: string | null;
 }
 
-const EMPTY = { title: '', slug: '', content: '', excerpt: '', thumbnail: '', published: false, cityId: '', categoryId: '' };
+const EMPTY = {
+  title: '',
+  slug: '',
+  content: '',
+  excerpt: '',
+  thumbnail: '',
+  location: '',
+  latitude: '',
+  longitude: '',
+  published: false,
+  cityId: '',
+  categoryId: '',
+};
 const ROOT_SLUGS = ['about', 'diem-den', 'lich-trinh-du-lich', 'chi-phi-du-lich', 'review', 'kinh-nghiem'] as const;
 const SYSTEM_MENU = [
   { type: 'destination', label: 'Điểm đến hấp dẫn' },
@@ -71,17 +84,39 @@ export default function AdminPostsPage() {
   const openCreate = () => { setEditing(null); setForm(EMPTY); setSelectedRootId(''); setError(''); setShowModal(true); };
   const openEdit = (p: Post) => {
     setEditing(p);
-    setForm({ title: p.title, slug: p.slug, content: p.content, excerpt: p.excerpt || '',
-      thumbnail: p.thumbnail || '', published: p.published, cityId: p.cityId || '', categoryId: p.categoryId || '' });
+    setForm({
+      title: p.title,
+      slug: p.slug,
+      content: p.content,
+      excerpt: p.excerpt || '',
+      thumbnail: p.thumbnail || '',
+      location: p.location || '',
+      latitude: p.latitude != null ? String(p.latitude) : '',
+      longitude: p.longitude != null ? String(p.longitude) : '',
+      published: p.published,
+      cityId: p.cityId || p.city?.id || '',
+      categoryId: p.categoryId || p.category?.id || '',
+    });
     setSelectedRootId('');
     setError(''); setShowModal(true);
   };
 
   const handleSave = async () => {
     if (!form.title || !form.slug || !form.content) { setError('Điền đầy đủ tiêu đề, slug và nội dung'); return; }
+    if ((form.latitude && !form.longitude) || (!form.latitude && form.longitude)) {
+      setError('Vui lòng nhập đầy đủ cả latitude và longitude');
+      return;
+    }
     setSaving(true); setError('');
     try {
-      const payload = { ...form, cityId: form.cityId || undefined, categoryId: form.categoryId || undefined };
+      const payload = {
+        ...form,
+        cityId: form.cityId || undefined,
+        categoryId: form.categoryId || undefined,
+        location: form.location || undefined,
+        latitude: form.latitude ? Number(form.latitude) : undefined,
+        longitude: form.longitude ? Number(form.longitude) : undefined,
+      };
       if (editing) await api.patch(`/posts/${editing.id}`, payload);
       else await api.post('/posts', payload);
       setShowModal(false); fetchData();
@@ -229,26 +264,26 @@ export default function AdminPostsPage() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50/50">
-              {['Bài viết', 'Thành phố', 'Trạng thái', 'Ngày tạo', 'Thao tác'].map((h) => (
+              {['Bài viết', 'Thành phố', 'Bản đồ', 'Trạng thái', 'Ngày tạo', 'Thao tác'].map((h) => (
                 <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-5 py-3">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {loading ? [...Array(5)].map((_, i) => (
-              <tr key={i}>{[...Array(5)].map((_, j) => (
+              <tr key={i}>{[...Array(6)].map((_, j) => (
                 <td key={j} className="px-5 py-4"><div className="h-4 bg-gray-100 rounded animate-pulse" /></td>
               ))}</tr>
             )) : filteredPosts.length === 0 ? (
-              <tr><td colSpan={5} className="text-center py-12 text-gray-400 text-sm">Chưa có bài viết nào</td></tr>
+              <tr><td colSpan={6} className="text-center py-12 text-gray-400 text-sm">Chưa có bài viết nào</td></tr>
             ) : filteredPosts.map((post) => (
               <tr key={post.id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
                     {post.thumbnail ? (
-                      <img src={post.thumbnail} alt={post.title} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                      <img src={post.thumbnail} alt={post.title} className="w-10 h-10 rounded-lg object-cover shrink-0" />
                     ) : (
-                      <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0 text-lg">📝</div>
+                      <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center shrink-0 text-lg">📝</div>
                     )}
                     <div>
                       <p className="font-semibold text-gray-800 text-sm max-w-[240px] truncate">{post.title}</p>
@@ -258,6 +293,15 @@ export default function AdminPostsPage() {
                 </td>
                 <td className="px-5 py-4">
                   <span className="text-sm text-gray-600">{post.city?.name || '—'}</span>
+                </td>
+                <td className="px-5 py-4">
+                  {typeof post.latitude === 'number' && typeof post.longitude === 'number' ? (
+                    <span className="text-xs font-semibold px-2 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
+                      Có tọa độ
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                  )}
                 </td>
                 <td className="px-5 py-4">
                   <button onClick={() => togglePublish(post)}
@@ -383,6 +427,39 @@ export default function AdminPostsPage() {
                 <input value={form.thumbnail} onChange={(e) => setForm({ ...form, thumbnail: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
                   placeholder="https://images.unsplash.com/..." />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Địa điểm hiển thị map</label>
+                  <input
+                    value={form.location}
+                    onChange={(e) => setForm({ ...form, location: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+                    placeholder="Hồ Gươm, Hà Nội"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Latitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={form.latitude}
+                    onChange={(e) => setForm({ ...form, latitude: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+                    placeholder="21.028511"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Longitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={form.longitude}
+                    onChange={(e) => setForm({ ...form, longitude: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+                    placeholder="105.804817"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Nội dung *</label>

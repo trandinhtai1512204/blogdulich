@@ -7,7 +7,7 @@ import { Navbar } from '@/components/Navbar';
 import { HeroSection } from '@/components/HeroSection';
 import api from '@/lib/axios';
 
-type CategoryType = 'destination' | 'itinerary' | 'cost' | 'review' | 'experience';
+type CategoryType = 'destination' | 'itinerary' | 'review' | 'experience';
 
 interface Category {
   id: string;
@@ -47,13 +47,6 @@ const MAIN_CATEGORIES: Array<{
     emoji: '🧭',
   },
   {
-    type: 'cost',
-    label: 'Chi phí du lịch',
-    href: '/chi-phi-du-lich',
-    description: 'Tham khảo ngân sách và cách tối ưu chi phí.',
-    emoji: '💸',
-  },
-  {
     type: 'review',
     label: 'Review',
     href: '/review',
@@ -73,7 +66,6 @@ export default function HomePage() {
   const [typeCounts, setTypeCounts] = useState<Record<CategoryType, number>>({
     destination: 0,
     itinerary: 0,
-    cost: 0,
     review: 0,
     experience: 0,
   });
@@ -81,14 +73,12 @@ export default function HomePage() {
   const [postsByType, setPostsByType] = useState<Record<CategoryType, Post[]>>({
     destination: [],
     itinerary: [],
-    cost: [],
     review: [],
     experience: [],
   });
   const rowRefs = useRef<Record<CategoryType, HTMLDivElement | null>>({
     destination: null,
     itinerary: null,
-    cost: null,
     review: null,
     experience: null,
   });
@@ -101,7 +91,6 @@ export default function HomePage() {
         const counts: Record<CategoryType, number> = {
           destination: 0,
           itinerary: 0,
-          cost: 0,
           review: 0,
           experience: 0,
         };
@@ -116,7 +105,6 @@ export default function HomePage() {
         const grouped: Record<CategoryType, Post[]> = {
           destination: [],
           itinerary: [],
-          cost: [],
           review: [],
           experience: [],
         };
@@ -193,7 +181,7 @@ export default function HomePage() {
                     {posts.map((post) => (
                       <Link
                         key={post.id}
-                        href={`/posts/${post.slug}`}
+                        href={post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`}
                         className="shrink-0 w-[88vw] max-w-[340px] rounded-2xl overflow-hidden border border-gray-200 hover:shadow-sm transition-all bg-white"
                         style={{ scrollSnapAlign: 'start' }}
                       >
@@ -248,7 +236,7 @@ export default function HomePage() {
             </div>
             {Object.entries({
               'Công ty': ['Về chúng tôi', 'Tuyển dụng', 'Blog', 'Liên hệ'],
-              'Chuyên mục': ['Điểm đến', 'Lịch trình', 'Chi phí', 'Review'],
+              'Chuyên mục': ['Điểm đến', 'Lịch trình', 'Review', 'Kinh nghiệm'],
               'Hỗ trợ': ['Trung tâm hỗ trợ', 'Chính sách hủy', 'An toàn', 'Liên hệ'],
               'Pháp lý': ['Chính sách BM', 'Điều khoản', 'Cookie', 'Trợ năng'],
             }).map(([section, links]) => (

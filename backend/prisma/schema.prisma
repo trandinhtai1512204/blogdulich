@@ -87,6 +87,9 @@ model Post {
   content    String
   excerpt    String?
   thumbnail  String?
+  location   String?
+  latitude   Float?
+  longitude  Float?
   published  Boolean   @default(false)
   cityId     String?
   categoryId String?

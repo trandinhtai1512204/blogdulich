@@ -3,8 +3,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowUpRight, Clock, BookOpen, MapPin, ChevronRight } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
+import { PostLocationMap } from '@/components/PostLocationMap';
 import api from '@/lib/axios';
+
+const CITY_IMAGES: Record<string, string> = {
+  'ha-noi': 'https://images.unsplash.com/photo-1601108644994-1e450e786d3d?w=1200&q=80',
+  'sai-gon': 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=1200&q=80',
+  'hoi-an': 'https://images.unsplash.com/photo-1660562925534-3f6948ac654f?w=1200&q=80',
+  'da-nang': 'https://images.unsplash.com/photo-1696993545232-2b2717676c40?w=1200&q=80',
+  'nha-trang': 'https://images.unsplash.com/photo-1508009603885-50cf7c8dd0d5?w=1200&q=80',
+  'phu-quoc': 'https://images.unsplash.com/photo-1559494007-9f5847c49d94?w=1200&q=80',
+  'sa-pa': 'https://images.unsplash.com/photo-1528127269322-539801943592?w=1200&q=80',
+  'ha-long': 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1200&q=80',
+  'vung-tau': 'https://images.unsplash.com/photo-1573790387438-4da905039392?w=1200&q=80',
+};
+const DEFAULT_HERO = 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1200&q=80';
 
 type ResolveResult =
   | { kind: 'city'; city: { id: string; name: string; slug: string } }
@@ -13,13 +28,14 @@ type ResolveResult =
   | { kind: 'not_found' };
 
 type Category = { id: string; name: string; slug: string; type?: string; cityId?: string | null; parentId?: string | null };
-type PostListItem = { id: string; title: string; slug: string; excerpt?: string; createdAt: string };
+type PostListItem = { id: string; title: string; slug: string; excerpt?: string; createdAt: string; thumbnail?: string; category?: { id: string; name: string; slug: string } };
 
 const formatPostContent = (content: string) => {
   if (!content) return '';
   const hasHtmlTag = /<[^>]+>/.test(content);
   return hasHtmlTag ? content : content.replace(/\n/g, '<br/>');
 };
+
 
 export default function CatchAllPage() {
   const params = useParams();
@@ -47,14 +63,28 @@ export default function CatchAllPage() {
         setResolved(data);
 
         if (data.kind === 'city') {
-          // City landing: show top-level destination categories for this city (if any) + latest posts
+          // Fetch ALL categories for this city (no parentId filter — city subcats
+          // may have a parentId pointing to a system-level category with cityId=null)
           const [catsRes, postsRes] = await Promise.all([
-            api.get(`/categories?cityId=${data.city.id}&parentId=`),
-            api.get(`/posts?cityId=${data.city.id}&limit=12`),
+            api.get(`/categories?cityId=${data.city.id}`),
+            api.get(`/posts?cityId=${data.city.id}&limit=100`),
           ]);
           if (!mounted) return;
-          setChildren(catsRes.data ?? []);
-          setPosts(postsRes.data.data ?? []);
+
+          const allCats: Category[] = catsRes.data ?? [];
+
+          // Nav: only destination-type categories for this city
+          const navCats = allCats.filter((c) => c.type === 'destination');
+          const destCatIds = new Set(navCats.map((c) => c.id));
+
+          // Posts: only those belonging to a destination category of this city
+          const allPosts: PostListItem[] = postsRes.data.data ?? [];
+          const destPosts = allPosts
+            .filter((p) => p.category?.id && destCatIds.has(p.category.id))
+            .slice(0, 12);
+
+          setChildren(navCats);
+          setPosts(destPosts);
         }
 
         if (data.kind === 'category') {
@@ -219,6 +249,13 @@ export default function CatchAllPage() {
               style={{ lineHeight: 1.8 }}
               dangerouslySetInnerHTML={{ __html: formatPostContent(String(resolved.post.content || '')) }}
             />
+
+            <PostLocationMap
+              title={resolved.post.title}
+              location={resolved.post.location}
+              latitude={resolved.post.latitude}
+              longitude={resolved.post.longitude}
+            />
           </div>
         </div>
       </div>
@@ -226,73 +263,163 @@ export default function CatchAllPage() {
   }
 
   // City or Category landing
-  const title =
-    resolved.kind === 'city' ? resolved.city.name : resolved.category?.name;
+  const isCity = resolved.kind === 'city';
+  const citySlug = isCity ? resolved.city.slug : resolved.kind === 'category' ? resolved.city?.slug : undefined;
+  const heroImage = citySlug ? (CITY_IMAGES[citySlug] ?? DEFAULT_HERO) : DEFAULT_HERO;
+  const heroTitle = isCity ? resolved.city.name : resolved.category?.name ?? '';
+
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
       <Navbar />
-      <div className="pt-[72px]">
-        <div className="max-w-[1100px] mx-auto px-6 py-10">
-          <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-4">
-            {fullBreadcrumb.map((b, idx) => {
-              const isLast = idx === fullBreadcrumb.length - 1;
-              return (
-                <div key={b.href} className="flex items-center gap-2">
-                  {!isLast ? (
-                    <Link href={b.href} className="hover:text-violet-600 transition-colors">
-                      {b.label}
-                    </Link>
-                  ) : (
-                    <span className="text-gray-700 font-medium">{b.label}</span>
-                  )}
-                  {!isLast && <span className="text-gray-300">/</span>}
-                </div>
-              );
-            })}
-          </nav>
 
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-2" style={{ letterSpacing: '-0.03em' }}>
-            {title}
-          </h1>
-          <p className="text-gray-500 mb-8">
-            URL: <code className="font-mono bg-gray-100 px-1 rounded">/{path}</code>
-          </p>
+      {/* ── COMPACT HERO (bo góc giống diem-den) ── */}
+      <div className="bg-white px-3 pt-3 pb-0">
+        <section
+          className="relative w-full flex flex-col justify-end overflow-hidden"
+          style={{ height: '42vh', minHeight: 300, borderRadius: 20 }}
+        >
+          <img
+            src={heroImage}
+            alt={heroTitle}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/30 to-black/15" />
 
-          {children.length > 0 && (
-            <>
-              <h2 className="text-lg font-extrabold text-gray-900 mb-3">Mục con</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+          <div className="relative z-10 px-6 md:px-10 pb-7">
+            {/* Breadcrumb */}
+            <nav className="flex flex-wrap items-center gap-1.5 text-white/65 text-xs mb-3">
+              {fullBreadcrumb.map((b, idx) => {
+                const isLast = idx === fullBreadcrumb.length - 1;
+                return (
+                  <span key={b.href} className="flex items-center gap-1.5">
+                    {!isLast ? (
+                      <Link href={b.href} className="hover:text-white transition-colors">{b.label}</Link>
+                    ) : (
+                      <span className="text-white/90 font-medium">{b.label}</span>
+                    )}
+                    {!isLast && <ChevronRight size={11} className="text-white/40" />}
+                  </span>
+                );
+              })}
+            </nav>
+
+            <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-2">
+              {heroTitle}
+            </h1>
+            <div className="flex items-center gap-3 text-white/65 text-xs">
+              {children.length > 0 && (
+                <span className="flex items-center gap-1"><MapPin size={11} /> {children.length} chuyên mục</span>
+              )}
+              {children.length > 0 && posts.length > 0 && <span>•</span>}
+              {posts.length > 0 && (
+                <span className="flex items-center gap-1"><BookOpen size={11} /> {posts.length} bài viết</span>
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div className="max-w-[1180px] mx-auto px-4 md:px-6">
+
+        {/* ── DESTINATION SUBCATEGORY NAV ── */}
+        {children.length > 0 && (
+          <div className="pt-6 pb-2">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+              Chuyên mục
+            </p>
+            {children.length <= 6 ? (
+              /* Few categories: show as grid cards */
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {children.map((c) => (
                   <Link
                     key={c.id}
-                    href={`/${[...slugs, c.slug].join('/')}`}
-                    className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-all"
+                    href={`/${slugs[0]}/${c.slug}`}
+                    className="group flex items-center justify-between gap-2 bg-gray-50 hover:bg-violet-50 border border-gray-100 hover:border-violet-200 rounded-xl px-4 py-3 transition-all"
                   >
-                    <p className="font-semibold text-gray-900">{c.name}</p>
-                    <p className="text-xs text-gray-400 font-mono mt-1">/{[...slugs, c.slug].join('/')}</p>
+                    <span className="font-medium text-gray-800 text-sm group-hover:text-violet-700 transition-colors line-clamp-1">
+                      {c.name}
+                    </span>
+                    <ChevronRight size={14} className="text-gray-300 group-hover:text-violet-400 shrink-0 transition-colors" />
                   </Link>
                 ))}
               </div>
-            </>
-          )}
+            ) : (
+              /* Many categories: horizontal scrollable chip menu */
+              <div className="relative">
+                <div className="flex gap-2 overflow-x-auto pb-2"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                  {children.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/${slugs[0]}/${c.slug}`}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-violet-400 hover:text-violet-600 hover:bg-violet-50 transition-all"
+                    >
+                      {c.name}
+                    </Link>
+                  ))}
+                </div>
+                <div className="pointer-events-none absolute right-0 top-0 bottom-2 w-12 bg-linear-to-l from-white to-transparent" />
+              </div>
+            )}
+          </div>
+        )}
 
-          <h2 className="text-lg font-extrabold text-gray-900 mb-3">Bài viết</h2>
+        {/* ── POSTS ── */}
+        <div className="py-8">
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-lg font-extrabold text-gray-900">
+              {children.length > 0 ? 'Bài viết mới nhất' : 'Bài viết'}
+            </p>
+          </div>
+
           {posts.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-500">
-              Chưa có bài viết cho mục này.
+            <div className="bg-gray-50 rounded-2xl border border-gray-100 p-10 text-center">
+              <p className="text-gray-600 font-semibold">Chưa có bài viết cho mục này.</p>
+              <Link href="/" className="inline-flex mt-4 text-sm font-semibold text-violet-600 hover:text-violet-700">
+                Về trang chủ
+              </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {posts.map((p) => (
                 <Link
                   key={p.id}
-                  href={`/${[...slugs, p.slug].join('/')}`}
-                  className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-all"
+                  href={p.category?.slug ? `/${p.category.slug}/${p.slug}` : `/posts/${p.slug}`}
+                  className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:border-violet-200 transition-all duration-200"
                 >
-                  <p className="font-semibold text-gray-900 line-clamp-2">{p.title}</p>
-                  {p.excerpt && <p className="text-sm text-gray-500 mt-2 line-clamp-2">{p.excerpt}</p>}
+                  <div className="h-44 overflow-hidden bg-gray-100">
+                    {p.thumbnail ? (
+                      <img
+                        src={p.thumbnail}
+                        alt={p.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen size={28} className="text-gray-300" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <p className="font-bold text-gray-900 line-clamp-2 leading-snug mb-2 group-hover:text-violet-700 transition-colors">
+                      {p.title}
+                    </p>
+                    {p.excerpt && (
+                      <p className="text-xs text-gray-500 line-clamp-2 mb-3">{p.excerpt}</p>
+                    )}
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-400 flex items-center gap-1">
+                        <Clock size={11} /> {formatDate(p.createdAt)}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-violet-600 font-semibold">
+                        Đọc <ArrowUpRight size={12} />
+                      </span>
+                    </div>
+                  </div>
                 </Link>
               ))}
             </div>

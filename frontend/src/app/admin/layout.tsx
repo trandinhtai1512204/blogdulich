@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   LayoutDashboard, Hotel, MapPin, FileText,
-  Users, CreditCard, LogOut, ChevronRight,
+  Users, LogOut, ChevronRight,
   Tag, Menu, X, TrendingUp
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
@@ -17,7 +17,6 @@ const NAV_ITEMS = [
   { href: '/admin/posts', label: 'Bài viết', icon: FileText },
   { href: '/admin/categories', label: 'Chuyên mục', icon: Tag },
   { href: '/admin/users', label: 'Người dùng', icon: Users },
-  { href: '/admin/bookings', label: 'Bookings', icon: CreditCard },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -40,7 +39,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Logo */}
       <div className="px-5 py-5 border-b border-gray-100">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-linear-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-sm">
             <span className="text-white text-xs font-bold">✈</span>
           </div>
           <div>
@@ -72,7 +71,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* User */}
       <div className="px-3 pb-4 border-t border-gray-100 pt-3">
         <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gray-50 mb-2">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center flex-shrink-0">
+          <div className="w-7 h-7 rounded-full bg-linear-to-br from-violet-500 to-purple-700 flex items-center justify-center shrink-0">
             <span className="text-white text-xs font-bold">
               {(user.name || user.email)[0].toUpperCase()}
             </span>

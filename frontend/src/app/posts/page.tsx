@@ -114,7 +114,7 @@ export default function PostsPage() {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {posts.map((post, index) => (
-                <Link key={post.id} href={`/posts/${post.slug}`}
+                <Link key={post.id} href={post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`}
                   className={`bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group ${
                     index === 0 ? 'md:col-span-2 lg:col-span-1' : ''
                   }`}>

@@ -159,48 +159,42 @@ useEffect(() => {
 
   return (
     <div className="bg-white px-3 pt-3 pb-0">
-      <section className="relative w-full h-[680px] flex flex-col overflow-hidden flex items-center justify-center"
-      style={{
-          height: '92vh',
-          borderRadius: '24px',
-        }}>
-      <div className="absolute inset-0">
-  {HERO_IMAGES.map((img, index) => (
-    <div
-      key={img.url}
-      className="absolute inset-0 transition-opacity duration-1000"
-      style={{ opacity: index === currentSlide ? 1 : 0 }}
-    >
-      <img
-        src={img.url}
-        alt={img.location}
-        className="w-full h-full object-cover"
-      />
-    </div>
-  ))}
-  <div className="absolute bottom-6 right-8 z-10 flex items-center gap-3 text-white/90 text-xs">
-  <span className="flex items-center gap-1.5">
-    <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
-    {HERO_IMAGES[currentSlide].location}
-  </span>
-  {/* Dot indicators */}
-  <div className="flex gap-1.5">
-    {HERO_IMAGES.map((_, i) => (
-      <button
-        key={i}
-        onClick={() => setCurrentSlide(i)}
-        className={`transition-all duration-300 rounded-full ${
-          i === currentSlide
-            ? 'w-5 h-1.5 bg-white'
-            : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/60'
-        }`}
-      />
-    ))}
-  </div>
-</div>
-</div>
+      <section className="relative w-full flex flex-col items-center justify-center"
+        style={{ height: '92vh', borderRadius: '24px' }}>
 
-      <div className="relative z-10 w-full max-w-lg px-6">
+        {/* Background — overflow-hidden chỉ để clip ảnh vào bo góc */}
+        <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: '24px' }}>
+          {HERO_IMAGES.map((img, index) => (
+            <div
+              key={img.url}
+              className="absolute inset-0 transition-opacity duration-1000"
+              style={{ opacity: index === currentSlide ? 1 : 0 }}
+            >
+              <img src={img.url} alt={img.location} className="w-full h-full object-cover" />
+            </div>
+          ))}
+          {/* Dot indicators */}
+          <div className="absolute bottom-6 right-8 z-10 flex items-center gap-3 text-white/90 text-xs">
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
+              {HERO_IMAGES[currentSlide].location}
+            </span>
+            <div className="flex gap-1.5">
+              {HERO_IMAGES.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentSlide(i)}
+                  className={`transition-all duration-300 rounded-full ${
+                    i === currentSlide ? 'w-5 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/60'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Content — không overflow-hidden, dropdown thoát tự do */}
+        <div className="relative z-10 w-full max-w-lg px-6">
   <div className="relative w-full">
     
     {/* Search input */}
