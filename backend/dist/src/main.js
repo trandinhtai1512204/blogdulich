@@ -45,8 +45,15 @@ async function bootstrap() {
         forbidNonWhitelisted: true,
         transform: true,
     }));
+    const allowedOrigins = [
+        'http://localhost:3000',
+        process.env.CLIENT_URL,
+        'https://blogdulich.vn',
+        'https://www.blogdulich.vn',
+        'https://frontend-gilt-two-35.vercel.app',
+    ].filter(Boolean);
     app.enableCors({
-        origin: process.env.CLIENT_URL || 'http://localhost:3000',
+        origin: allowedOrigins,
         credentials: true,
     });
     app.setGlobalPrefix('api');
