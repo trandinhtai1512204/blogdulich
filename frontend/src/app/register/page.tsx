@@ -152,7 +152,7 @@ export default function RegisterPage() {
   </div>
 </div>
  
-<a href="http://localhost:3001/api/auth/google"
+<a href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/auth/google`}
   className="flex items-center justify-center gap-3 w-full py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
   <svg width="18" height="18" viewBox="0 0 18 18">
     <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.05-.66-.15-1.18z"/>

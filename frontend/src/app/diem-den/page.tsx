@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Search, MapPin, ArrowUpRight, Clock, BookOpen } from 'lucide-react';
+import { Search, MapPin, ArrowUpRight, Clock, BookOpen, X } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import api from '@/lib/axios';
 
