@@ -21,14 +21,40 @@ const CITY_IMAGES: Record<string, string> = {
 };
 const DEFAULT_HERO = 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1200&q=80';
 
+const SITE_ORIGIN = 'https://blogdulich.vn';
+
+// Virtual breadcrumb root mapped from category root type.
+// Display layer only — does NOT affect URL structure.
+const VIRTUAL_ROOT: Record<string, { label: string; href: string }> = {
+  destination: { label: 'Điểm đến hấp dẫn', href: '/diem-den' },
+  itinerary: { label: 'Lịch trình', href: '/lich-trinh-du-lich' },
+  review: { label: 'Review', href: '/review' },
+  experience: { label: 'Kinh nghiệm', href: '/kinh-nghiem' },
+};
+const SYSTEM_ROOT_SLUGS = new Set([
+  'diem-den', 'lich-trinh-du-lich', 'review', 'kinh-nghiem',
+]);
+
+// Per sitemap, the L2 review subtype landing pages list CITIES (L3), not
+// child categories. Detect these to switch the listing UI to city pills.
+const REVIEW_SUBTYPE_SLUGS = new Set([
+  'review-tour', 'review-khach-san', 'review-combo',
+  'review-resort', 'review-du-thuyen', 'review-nha-hang',
+]);
+
+type CategoryNode = { id: string; name: string; slug: string; type?: string; cityId?: string | null; parentId?: string | null };
+type CityNode = { id: string; name: string; slug: string };
 type ResolveResult =
-  | { kind: 'city'; city: { id: string; name: string; slug: string } }
-  | { kind: 'category'; city?: { id: string; name: string; slug: string } | null; category: any; chain: any[] }
-  | { kind: 'post'; city?: { id: string; name: string; slug: string } | null; category?: any | null; chain: any[]; post: any }
+  | { kind: 'city'; city: CityNode; canonicalPath: string }
+  | { kind: 'category'; city: CityNode | null; category: CategoryNode; chain: CategoryNode[]; canonicalPath: string }
+  | { kind: 'post'; city: CityNode | null; category: CategoryNode | null; chain: CategoryNode[]; post: any; canonicalPath: string }
   | { kind: 'not_found' };
 
-type Category = { id: string; name: string; slug: string; type?: string; cityId?: string | null; parentId?: string | null };
-type PostListItem = { id: string; title: string; slug: string; excerpt?: string; createdAt: string; thumbnail?: string; category?: { id: string; name: string; slug: string } };
+type PostListItem = {
+  id: string; title: string; slug: string; excerpt?: string; createdAt: string; thumbnail?: string;
+  category?: { id: string; name: string; slug: string };
+  canonicalUrl?: string;
+};
 
 const formatPostContent = (content: string) => {
   if (!content) return '';
@@ -36,16 +62,15 @@ const formatPostContent = (content: string) => {
   return hasHtmlTag ? content : content.replace(/\n/g, '<br/>');
 };
 
-
 export default function CatchAllPage() {
   const params = useParams();
-  const slugs = (params.slug as string[]) ?? [];
-
+  const slugs = useMemo(() => (params.slug as string[]) ?? [], [params.slug]);
   const path = useMemo(() => slugs.join('/'), [slugs]);
 
   const [loading, setLoading] = useState(true);
   const [resolved, setResolved] = useState<ResolveResult | null>(null);
-  const [children, setChildren] = useState<Category[]>([]);
+  const [children, setChildren] = useState<CategoryNode[]>([]);
+  const [cityPills, setCityPills] = useState<CityNode[]>([]);
   const [posts, setPosts] = useState<PostListItem[]>([]);
   const [thumbnailError, setThumbnailError] = useState(false);
 
@@ -53,6 +78,7 @@ export default function CatchAllPage() {
     let mounted = true;
     setLoading(true);
     setChildren([]);
+    setCityPills([]);
     setPosts([]);
     setThumbnailError(false);
 
@@ -63,43 +89,62 @@ export default function CatchAllPage() {
         setResolved(data);
 
         if (data.kind === 'city') {
-          // Fetch ALL categories for this city (no parentId filter — city subcats
-          // may have a parentId pointing to a system-level category with cityId=null)
           const [catsRes, postsRes] = await Promise.all([
             api.get(`/categories?cityId=${data.city.id}`),
             api.get(`/posts?cityId=${data.city.id}&limit=100`),
           ]);
           if (!mounted) return;
-
-          const allCats: Category[] = catsRes.data ?? [];
-
-          // Nav: only destination-type categories for this city
+          const allCats: CategoryNode[] = catsRes.data ?? [];
           const navCats = allCats.filter((c) => c.type === 'destination');
           const destCatIds = new Set(navCats.map((c) => c.id));
-
-          // Posts: only those belonging to a destination category of this city
           const allPosts: PostListItem[] = postsRes.data.data ?? [];
           const destPosts = allPosts
             .filter((p) => p.category?.id && destCatIds.has(p.category.id))
             .slice(0, 12);
-
           setChildren(navCats);
           setPosts(destPosts);
         }
 
         if (data.kind === 'category') {
           const catId = data.category.id;
+          const cityId = data.city?.id;
+          const citySlug = data.city?.slug;
+
+          // L2 review subtype landing (no city scope): list cities as primary nav
+          // per sitemap convention (L2 → L3 = subtype → city).
+          const isReviewSubtypeL2 =
+            REVIEW_SUBTYPE_SLUGS.has(data.category.slug) && !data.city;
+
+          if (isReviewSubtypeL2) {
+            const [citiesRes, postsRes] = await Promise.all([
+              api.get('/cities'),
+              api.get(`/posts?categoryId=${catId}&limit=12`),
+            ]);
+            if (!mounted) return;
+            setCityPills(citiesRes.data ?? []);
+            setChildren([]);
+            setPosts(postsRes.data.data ?? []);
+            return;
+          }
+
+          const postsUrl = cityId
+            ? `/posts?categoryId=${catId}&cityId=${cityId}&limit=12`
+            : `/posts?categoryId=${catId}&limit=12`;
           const [catsRes, postsRes] = await Promise.all([
             api.get(`/categories?parentId=${catId}`),
-            api.get(`/posts?categoryId=${catId}&limit=12`),
+            api.get(postsUrl),
           ]);
           if (!mounted) return;
-          setChildren(catsRes.data ?? []);
+          // City-scoped landing: only show children either un-scoped or scoped to current city.
+          // Drop child whose slug == city slug (it's the city marker, not a real subcat).
+          const allChildren: CategoryNode[] = catsRes.data ?? [];
+          const filteredChildren = cityId
+            ? allChildren.filter(
+                (c) => (c.cityId == null || c.cityId === cityId) && c.slug !== citySlug,
+              )
+            : allChildren;
+          setChildren(filteredChildren);
           setPosts(postsRes.data.data ?? []);
-        }
-
-        if (data.kind === 'post') {
-          // Nothing extra
         }
       })
       .catch(() => mounted && setResolved({ kind: 'not_found' }))
@@ -108,37 +153,89 @@ export default function CatchAllPage() {
     return () => { mounted = false; };
   }, [path]);
 
-  const breadcrumb = useMemo(() => {
-    if (!resolved || resolved.kind === 'not_found') return [];
-    if (resolved.kind === 'city') return [{ label: resolved.city.name, href: `/${resolved.city.slug}` }];
-    if (resolved.kind === 'category') {
-      const items: { label: string; href: string }[] = [];
-      if (resolved.city?.slug) items.push({ label: resolved.city.name, href: `/${resolved.city.slug}` });
-      const base = resolved.city?.slug ? `/${resolved.city.slug}` : '';
-      resolved.chain.forEach((c: any, idx: number) => {
-        const href = `${base}/${resolved.chain.slice(0, idx + 1).map((x: any) => x.slug).join('/')}`;
-        items.push({ label: c.name, href });
-      });
-      return items;
-    }
-    if (resolved.kind === 'post') {
-      const items: { label: string; href: string }[] = [];
-      if (resolved.city?.slug) items.push({ label: resolved.city.name, href: `/${resolved.city.slug}` });
-      const base = resolved.city?.slug ? `/${resolved.city.slug}` : '';
-      resolved.chain.forEach((c: any, idx: number) => {
-        const href = `${base}/${resolved.chain.slice(0, idx + 1).map((x: any) => x.slug).join('/')}`;
-        items.push({ label: c.name, href });
-      });
-      items.push({ label: resolved.post.title, href: `/${path}` });
-      return items;
-    }
-    return [];
-  }, [resolved, path]);
+  const canonicalPath = (resolved && resolved.kind !== 'not_found') ? resolved.canonicalPath : `/${path}`;
 
-  const fullBreadcrumb = useMemo(
-    () => [{ label: 'Trang chủ', href: '/' }, ...breadcrumb],
-    [breadcrumb],
-  );
+  // Set <title>, <meta description>, canonical in <head>
+  useEffect(() => {
+    if (!canonicalPath) return;
+    const href = `${SITE_ORIGIN}${canonicalPath}`;
+    let el = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!el) {
+      el = document.createElement('link');
+      el.rel = 'canonical';
+      document.head.appendChild(el);
+    }
+    el.href = href;
+  }, [canonicalPath]);
+
+  useEffect(() => {
+    if (!resolved || resolved.kind === 'not_found') return;
+    const name =
+      resolved.kind === 'post'
+        ? resolved.post.title
+        : resolved.kind === 'city'
+        ? resolved.city.name
+        : resolved.category.name;
+    document.title = `${name} | BlogDuLich.vn`;
+    let meta = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'description';
+      document.head.appendChild(meta);
+    }
+    const desc =
+      resolved.kind === 'post' && resolved.post.excerpt
+        ? resolved.post.excerpt
+        : `Khám phá ${name} trên BlogDuLich.vn`;
+    meta.content = desc.slice(0, 160);
+  }, [resolved]);
+
+  // Build breadcrumb by walking the URL slugs and matching against resolved entities.
+  // URL is the source of truth; breadcrumb is pure display.
+  const fullBreadcrumb = useMemo(() => {
+    const home = { label: 'Trang chủ', href: '/' };
+    if (!resolved || resolved.kind === 'not_found') return [home];
+
+    const items: { label: string; href: string }[] = [home];
+
+    const chain = resolved.kind === 'city' ? [] : resolved.chain ?? [];
+    const city = resolved.kind === 'city' ? resolved.city : resolved.city;
+
+    // Inject virtual root (display only)
+    let virtualType: string | null = null;
+    if (chain.length > 0 && !SYSTEM_ROOT_SLUGS.has(chain[0].slug)) {
+      virtualType = chain[0].type ?? null;
+    } else if (resolved.kind === 'city') {
+      virtualType = 'destination';
+    }
+    if (virtualType && VIRTUAL_ROOT[virtualType]) {
+      items.push(VIRTUAL_ROOT[virtualType]);
+    }
+
+    // Walk URL segments, matching each to chain/city/post
+    let chainIdx = 0;
+    let cumulative = '';
+    for (let i = 0; i < slugs.length; i++) {
+      const slug = slugs[i];
+      cumulative += '/' + slug;
+
+      if (city && slug === city.slug) {
+        items.push({ label: city.name, href: cumulative });
+        continue;
+      }
+      if (chainIdx < chain.length && slug === chain[chainIdx].slug) {
+        items.push({ label: chain[chainIdx].name, href: cumulative });
+        chainIdx++;
+        continue;
+      }
+      if (resolved.kind === 'post' && i === slugs.length - 1) {
+        items.push({ label: resolved.post.title, href: cumulative });
+        continue;
+      }
+    }
+
+    return items;
+  }, [resolved, slugs]);
 
   const breadcrumbJsonLd = useMemo(
     () =>
@@ -149,7 +246,7 @@ export default function CatchAllPage() {
           '@type': 'ListItem',
           position: idx + 1,
           name: item.label,
-          item: `https://blogdulich.vn${item.href}`,
+          item: `${SITE_ORIGIN}${item.href}`,
         })),
       }),
     [fullBreadcrumb],
@@ -187,7 +284,7 @@ export default function CatchAllPage() {
     return (
       <div className="min-h-screen bg-white">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
-        <Navbar />
+        <Navbar opaque />
         <div className="pt-[72px]">
           {resolved.post.thumbnail && !thumbnailError && (
             <div className="px-4 md:px-6 pt-6">
@@ -208,7 +305,7 @@ export default function CatchAllPage() {
               {fullBreadcrumb.map((b, idx) => {
                 const isLast = idx === fullBreadcrumb.length - 1;
                 return (
-                  <div key={b.href} className="flex items-center gap-2">
+                  <div key={`${b.href}-${idx}`} className="flex items-center gap-2">
                     {!isLast ? (
                       <Link href={b.href} className="hover:text-violet-600 transition-colors">
                         {b.label}
@@ -232,7 +329,7 @@ export default function CatchAllPage() {
             )}
 
             <div
-              className="max-w-none text-gray-700 leading-relaxed 
+              className="max-w-none text-gray-700 leading-relaxed
                 [&_p]:my-4 [&_p]:leading-8
                 [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-gray-900
                 [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-gray-900
@@ -264,9 +361,24 @@ export default function CatchAllPage() {
 
   // City or Category landing
   const isCity = resolved.kind === 'city';
-  const citySlug = isCity ? resolved.city.slug : resolved.kind === 'category' ? resolved.city?.slug : undefined;
+  const citySlug = isCity ? resolved.city.slug : resolved.city?.slug;
   const heroImage = citySlug ? (CITY_IMAGES[citySlug] ?? DEFAULT_HERO) : DEFAULT_HERO;
-  const heroTitle = isCity ? resolved.city.name : resolved.category?.name ?? '';
+  const heroTitle = isCity ? resolved.city.name : resolved.category.name;
+
+  // Child link: descend from current canonical URL.
+  const buildChildHref = (childSlug: string) => `/${path}/${childSlug}`;
+
+  // Post link: use the canonicalUrl returned by the posts API (computed from
+  // sitemap URL convention based on category type + city scope). This avoids
+  // cumulative path nesting bugs when navigating deep category trees.
+  const buildPostHref = (p: PostListItem) => {
+    if (p.canonicalUrl) return p.canonicalUrl;
+    // Fallback (post API didn't return canonicalUrl, e.g. legacy):
+    if (isCity) {
+      return p.category?.slug ? `/${path}/${p.category.slug}/${p.slug}` : `/posts/${p.slug}`;
+    }
+    return `/${path}/${p.slug}`;
+  };
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -276,7 +388,6 @@ export default function CatchAllPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
       <Navbar />
 
-      {/* ── COMPACT HERO (bo góc giống diem-den) ── */}
       <div className="bg-white px-3 pt-3 pb-0">
         <section
           className="relative w-full flex flex-col justify-end overflow-hidden"
@@ -290,12 +401,11 @@ export default function CatchAllPage() {
           <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/30 to-black/15" />
 
           <div className="relative z-10 px-6 md:px-10 pb-7">
-            {/* Breadcrumb */}
             <nav className="flex flex-wrap items-center gap-1.5 text-white/65 text-xs mb-3">
               {fullBreadcrumb.map((b, idx) => {
                 const isLast = idx === fullBreadcrumb.length - 1;
                 return (
-                  <span key={b.href} className="flex items-center gap-1.5">
+                  <span key={`${b.href}-${idx}`} className="flex items-center gap-1.5">
                     {!isLast ? (
                       <Link href={b.href} className="hover:text-white transition-colors">{b.label}</Link>
                     ) : (
@@ -324,20 +434,36 @@ export default function CatchAllPage() {
       </div>
 
       <div className="max-w-[1180px] mx-auto px-4 md:px-6">
-
-        {/* ── DESTINATION SUBCATEGORY NAV ── */}
+        {cityPills.length > 0 && (
+          <div className="pt-6 pb-2">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+              Chọn tỉnh thành
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-2"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {cityPills.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/${path}/${c.slug}`}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-violet-400 hover:text-violet-600 hover:bg-violet-50 transition-all"
+                >
+                  {c.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
         {children.length > 0 && (
           <div className="pt-6 pb-2">
             <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
               Chuyên mục
             </p>
             {children.length <= 6 ? (
-              /* Few categories: show as grid cards */
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {children.map((c) => (
                   <Link
                     key={c.id}
-                    href={`/${slugs[0]}/${c.slug}`}
+                    href={buildChildHref(c.slug)}
                     className="group flex items-center justify-between gap-2 bg-gray-50 hover:bg-violet-50 border border-gray-100 hover:border-violet-200 rounded-xl px-4 py-3 transition-all"
                   >
                     <span className="font-medium text-gray-800 text-sm group-hover:text-violet-700 transition-colors line-clamp-1">
@@ -348,14 +474,13 @@ export default function CatchAllPage() {
                 ))}
               </div>
             ) : (
-              /* Many categories: horizontal scrollable chip menu */
               <div className="relative">
                 <div className="flex gap-2 overflow-x-auto pb-2"
                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                   {children.map((c) => (
                     <Link
                       key={c.id}
-                      href={`/${slugs[0]}/${c.slug}`}
+                      href={buildChildHref(c.slug)}
                       className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-violet-400 hover:text-violet-600 hover:bg-violet-50 transition-all"
                     >
                       {c.name}
@@ -368,7 +493,6 @@ export default function CatchAllPage() {
           </div>
         )}
 
-        {/* ── POSTS ── */}
         <div className="py-8">
           <div className="flex items-center justify-between mb-5">
             <p className="text-lg font-extrabold text-gray-900">
@@ -388,7 +512,7 @@ export default function CatchAllPage() {
               {posts.map((p) => (
                 <Link
                   key={p.id}
-                  href={p.category?.slug ? `/${p.category.slug}/${p.slug}` : `/posts/${p.slug}`}
+                  href={buildPostHref(p)}
                   className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:border-violet-200 transition-all duration-200"
                 >
                   <div className="h-44 overflow-hidden bg-gray-100">
@@ -429,4 +553,3 @@ export default function CatchAllPage() {
     </div>
   );
 }
-

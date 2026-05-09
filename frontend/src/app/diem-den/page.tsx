@@ -17,6 +17,7 @@ interface Post {
   thumbnail?: string;
   category?: { id: string; name: string; slug: string; type?: string };
   city?: { id: string; name: string; slug: string };
+  canonicalUrl?: string;
 }
 
 const HERO_IMAGE =
@@ -240,7 +241,7 @@ export default function DestinationsPage() {
             {posts.map((post) => (
               <Link
                 key={post.id}
-                href={post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`}
+                href={post.canonicalUrl ?? (post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`)}
                 className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:border-violet-200 transition-all duration-200"
               >
                 {post.thumbnail ? (

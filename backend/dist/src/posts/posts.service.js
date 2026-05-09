@@ -11,7 +11,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PostsService = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../prisma/prisma.service");
+const post_canonical_1 = require("./post-canonical");
 let PostsService = class PostsService {
     prisma;
     constructor(prisma) {
@@ -53,36 +55,69 @@ let PostsService = class PostsService {
                     categoryId: true,
                     createdAt: true,
                     city: { select: { id: true, name: true, slug: true } },
-                    category: { select: { id: true, name: true, slug: true } },
+                    category: { select: post_canonical_1.CATEGORY_WITH_ANCESTORS_SELECT },
                 },
             }),
             this.prisma.post.count({ where }),
         ]);
+        const enriched = data.map((p) => ({
+            ...p,
+            canonicalUrl: (0, post_canonical_1.computePostCanonicalPath)(p),
+        }));
         return {
-            data,
+            data: enriched,
             meta: { total, page: pageNumber, limit: limitNumber, totalPages: Math.ceil(total / limitNumber) },
         };
     }
     async findOne(slug) {
-        const post = await this.prisma.post.findUnique({
-            where: { slug },
+        const post = await this.prisma.post.findFirst({
+            where: { slug, published: true },
             include: {
                 city: true,
                 category: true,
             },
         });
-        if (!post || !post.published)
+        if (!post)
             throw new common_1.NotFoundException('Bài viết không tồn tại');
         return post;
     }
-    create(dto) {
-        return this.prisma.post.create({ data: dto });
+    async create(dto) {
+        try {
+            return await this.prisma.post.create({ data: dto });
+        }
+        catch (e) {
+            this.handlePrismaWriteError(e, dto.slug);
+            throw e;
+        }
     }
     async update(id, dto) {
         const post = await this.prisma.post.findUnique({ where: { id } });
         if (!post)
             throw new common_1.NotFoundException('Bài viết không tồn tại');
-        return this.prisma.post.update({ where: { id }, data: dto });
+        try {
+            return await this.prisma.post.update({ where: { id }, data: dto });
+        }
+        catch (e) {
+            this.handlePrismaWriteError(e, dto.slug);
+            throw e;
+        }
+    }
+    handlePrismaWriteError(e, slug) {
+        if (e instanceof client_1.Prisma.PrismaClientKnownRequestError) {
+            if (e.code === 'P2002') {
+                const target = e.meta?.target ?? '';
+                const targetStr = Array.isArray(target) ? target.join(',') : String(target);
+                if (targetStr.includes('slug')) {
+                    throw new common_1.ConflictException(slug
+                        ? `Slug "${slug}" đã tồn tại. Vui lòng chọn slug khác (ví dụ thêm tên tỉnh).`
+                        : 'Slug đã tồn tại. Vui lòng chọn slug khác.');
+                }
+                throw new common_1.ConflictException('Bản ghi đã tồn tại (vi phạm ràng buộc duy nhất).');
+            }
+            if (e.code === 'P2003') {
+                throw new common_1.ConflictException('Tham chiếu không hợp lệ (categoryId hoặc cityId không tồn tại).');
+            }
+        }
     }
     async remove(id) {
         const post = await this.prisma.post.findUnique({ where: { id } });

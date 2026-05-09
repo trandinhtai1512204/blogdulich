@@ -1,30 +1,35 @@
 import { PrismaService } from '../prisma/prisma.service';
+type CategoryNode = {
+    id: string;
+    name: string;
+    slug: string;
+    type: string;
+    level: 'ROOT' | 'SUBTYPE' | 'CITY' | 'SUB';
+    parentId: string | null;
+    cityId: string | null;
+};
+type CityNode = {
+    id: string;
+    name: string;
+    slug: string;
+};
 type ResolveResult = {
     kind: 'city';
-    city: {
-        id: string;
-        name: string;
-        slug: string;
-    };
+    city: CityNode;
+    canonicalPath: string;
 } | {
     kind: 'category';
-    city?: {
-        id: string;
-        name: string;
-        slug: string;
-    } | null;
-    category: any;
-    chain: any[];
+    city: CityNode | null;
+    category: CategoryNode;
+    chain: CategoryNode[];
+    canonicalPath: string;
 } | {
     kind: 'post';
-    city?: {
-        id: string;
-        name: string;
-        slug: string;
-    } | null;
-    category?: any | null;
-    chain: any[];
+    city: CityNode | null;
+    category: CategoryNode | null;
+    chain: CategoryNode[];
     post: any;
+    canonicalPath: string;
 } | {
     kind: 'not_found';
 };
@@ -32,5 +37,11 @@ export declare class TaxonomyService {
     private prisma;
     constructor(prisma: PrismaService);
     resolve(slugs: string[]): Promise<ResolveResult>;
+    private resolveModuleRoot;
+    private resolveFlatCityVertical;
+    private resolveReview;
+    private resolveDestination;
+    private loadCity;
+    private loadPost;
 }
 export {};

@@ -35,6 +35,7 @@ type Post = {
   thumbnail?: string;
   category?: { id: string; name: string; slug: string };
   city?: { id: string; name: string; slug: string };
+  canonicalUrl?: string;
 };
 
 export default function ReviewIndexPage() {
@@ -191,7 +192,7 @@ export default function ReviewIndexPage() {
                         {matchedPosts.map((post) => (
                           <Link
                             key={post.id}
-                            href={post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`}
+                            href={post.canonicalUrl ?? (post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`)}
                             onClick={() => setFocused(false)}
                             className="flex items-center gap-3 px-4 py-2.5 hover:bg-violet-50/80 transition-colors group"
                           >
@@ -279,7 +280,7 @@ export default function ReviewIndexPage() {
               {featuredPosts.map((post) => (
                 <Link
                   key={post.id}
-                  href={post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`}
+                  href={post.canonicalUrl ?? (post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`)}
                   className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:border-violet-200 transition-all duration-200"
                 >
                   {post.thumbnail ? (

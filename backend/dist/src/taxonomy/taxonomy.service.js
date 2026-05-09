@@ -12,6 +12,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TaxonomyService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const post_canonical_1 = require("../posts/post-canonical");
+const CAT_SELECT = {
+    id: true,
+    name: true,
+    slug: true,
+    type: true,
+    level: true,
+    parentId: true,
+    cityId: true,
+};
+const REVIEW_HAS_SUB = new Set(['review-tour', 'review-khach-san']);
 let TaxonomyService = class TaxonomyService {
     prisma;
     constructor(prisma) {
@@ -20,66 +31,238 @@ let TaxonomyService = class TaxonomyService {
     async resolve(slugs) {
         if (!slugs.length)
             return { kind: 'not_found' };
+        const canonicalPath = '/' + slugs.join('/');
         const first = slugs[0];
-        const city = await this.prisma.city.findUnique({
-            where: { slug: first },
-            select: { id: true, name: true, slug: true },
+        if (first === 'lich-trinh-du-lich' || first === 'kinh-nghiem' || first === 'review') {
+            return this.resolveModuleRoot(first, slugs.slice(1), canonicalPath);
+        }
+        if (first.startsWith('lich-trinh-du-lich-')) {
+            return this.resolveFlatCityVertical('lich-trinh-du-lich', first, slugs.slice(1), canonicalPath);
+        }
+        if (first.startsWith('kinh-nghiem-du-lich-')) {
+            return this.resolveFlatCityVertical('kinh-nghiem', first, slugs.slice(1), canonicalPath);
+        }
+        if (first.startsWith('review-')) {
+            return this.resolveReview(first, slugs.slice(1), canonicalPath);
+        }
+        return this.resolveDestination(slugs, canonicalPath);
+    }
+    async resolveModuleRoot(rootSlug, rest, canonicalPath) {
+        if (rest.length > 0)
+            return { kind: 'not_found' };
+        const root = await this.prisma.category.findFirst({
+            where: { slug: rootSlug, parentId: null, level: 'ROOT' },
+            select: CAT_SELECT,
         });
-        const rest = city ? slugs.slice(1) : slugs.slice(0);
-        if (city && rest.length === 0) {
-            return { kind: 'city', city };
+        if (!root)
+            return { kind: 'not_found' };
+        return {
+            kind: 'category',
+            city: null,
+            category: root,
+            chain: [root],
+            canonicalPath,
+        };
+    }
+    async resolveFlatCityVertical(rootSlug, citySlug, rest, canonicalPath) {
+        const root = await this.prisma.category.findFirst({
+            where: { slug: rootSlug, parentId: null, level: 'ROOT' },
+            select: CAT_SELECT,
+        });
+        if (!root)
+            return { kind: 'not_found' };
+        const cityCat = await this.prisma.category.findFirst({
+            where: { slug: citySlug, parentId: root.id, level: 'CITY' },
+            select: CAT_SELECT,
+        });
+        if (!cityCat)
+            return { kind: 'not_found' };
+        const city = await this.loadCity(cityCat.cityId);
+        if (rest.length === 0) {
+            return {
+                kind: 'category',
+                city,
+                category: cityCat,
+                chain: [cityCat],
+                canonicalPath,
+            };
         }
-        const chain = [];
-        let parentId = null;
-        let lastCategory = null;
-        for (let i = 0; i < rest.length; i++) {
-            const slug = rest[i];
-            let cat = await this.prisma.category.findFirst({
-                where: {
-                    slug,
-                    parentId,
-                    ...(city ? { OR: [{ cityId: null }, { cityId: city.id }] } : {}),
-                },
-                select: { id: true, name: true, slug: true, type: true, parentId: true, cityId: true },
-            });
-            if (!cat && i === 0) {
-                cat = await this.prisma.category.findFirst({
-                    where: {
-                        slug,
-                        ...(city ? { OR: [{ cityId: null }, { cityId: city.id }] } : {}),
-                    },
-                    select: { id: true, name: true, slug: true, type: true, parentId: true, cityId: true },
-                });
-            }
-            if (!cat)
-                break;
-            chain.push(cat);
-            lastCategory = cat;
-            parentId = cat.id;
-        }
-        const consumedCategories = chain.length;
-        const remainingAfterCategories = rest.slice(consumedCategories);
-        if (remainingAfterCategories.length === 0 && lastCategory) {
-            return { kind: 'category', city: city ?? null, category: lastCategory, chain };
-        }
-        if (remainingAfterCategories.length === 1) {
-            const postSlug = remainingAfterCategories[0];
-            const post = await this.prisma.post.findUnique({
-                where: { slug: postSlug },
-                include: {
-                    city: { select: { id: true, name: true, slug: true } },
-                    category: { select: { id: true, name: true, slug: true, type: true, parentId: true, cityId: true } },
-                },
-            });
-            if (!post || !post.published)
+        if (rest.length === 1) {
+            const post = await this.loadPost(rest[0], cityCat.id);
+            if (!post || post.categoryId !== cityCat.id)
                 return { kind: 'not_found' };
-            if (city && post.cityId && post.cityId !== city.id)
-                return { kind: 'not_found' };
-            if (lastCategory && post.categoryId && post.categoryId !== lastCategory.id)
-                return { kind: 'not_found' };
-            return { kind: 'post', city: city ?? null, category: lastCategory, chain, post };
+            return {
+                kind: 'post',
+                city,
+                category: cityCat,
+                chain: [cityCat],
+                post,
+                canonicalPath: (0, post_canonical_1.computePostCanonicalPath)(post),
+            };
         }
         return { kind: 'not_found' };
+    }
+    async resolveReview(subtypeSlug, rest, canonicalPath) {
+        const reviewRoot = await this.prisma.category.findFirst({
+            where: { slug: 'review', parentId: null, level: 'ROOT' },
+            select: CAT_SELECT,
+        });
+        if (!reviewRoot)
+            return { kind: 'not_found' };
+        const subtype = await this.prisma.category.findFirst({
+            where: { slug: subtypeSlug, parentId: reviewRoot.id, level: 'SUBTYPE' },
+            select: CAT_SELECT,
+        });
+        if (!subtype)
+            return { kind: 'not_found' };
+        if (rest.length === 0) {
+            return {
+                kind: 'category',
+                city: null,
+                category: subtype,
+                chain: [subtype],
+                canonicalPath,
+            };
+        }
+        const cityCat = await this.prisma.category.findFirst({
+            where: { slug: rest[0], parentId: subtype.id, level: 'CITY' },
+            select: CAT_SELECT,
+        });
+        if (!cityCat)
+            return { kind: 'not_found' };
+        const city = await this.loadCity(cityCat.cityId);
+        if (rest.length === 1) {
+            return {
+                kind: 'category',
+                city,
+                category: cityCat,
+                chain: [subtype],
+                canonicalPath,
+            };
+        }
+        if (REVIEW_HAS_SUB.has(subtypeSlug)) {
+            const subCat = await this.prisma.category.findFirst({
+                where: { slug: rest[1], parentId: cityCat.id, level: 'SUB' },
+                select: CAT_SELECT,
+            });
+            if (!subCat)
+                return { kind: 'not_found' };
+            if (rest.length === 2) {
+                return {
+                    kind: 'category',
+                    city,
+                    category: subCat,
+                    chain: [subtype, subCat],
+                    canonicalPath,
+                };
+            }
+            if (rest.length === 3) {
+                const post = await this.loadPost(rest[2], subCat.id);
+                if (!post || post.categoryId !== subCat.id)
+                    return { kind: 'not_found' };
+                return {
+                    kind: 'post',
+                    city,
+                    category: subCat,
+                    chain: [subtype, subCat],
+                    post,
+                    canonicalPath: (0, post_canonical_1.computePostCanonicalPath)(post),
+                };
+            }
+            return { kind: 'not_found' };
+        }
+        if (rest.length !== 2)
+            return { kind: 'not_found' };
+        const post = await this.loadPost(rest[1], cityCat.id);
+        if (!post || post.categoryId !== cityCat.id)
+            return { kind: 'not_found' };
+        return {
+            kind: 'post',
+            city,
+            category: cityCat,
+            chain: [subtype],
+            post,
+            canonicalPath: (0, post_canonical_1.computePostCanonicalPath)(post),
+        };
+    }
+    async resolveDestination(slugs, canonicalPath) {
+        const citySlug = slugs[0];
+        const city = await this.prisma.city.findUnique({
+            where: { slug: citySlug },
+            select: { id: true, name: true, slug: true },
+        });
+        if (!city)
+            return { kind: 'not_found' };
+        if (slugs.length === 1)
+            return { kind: 'city', city, canonicalPath };
+        const destRoot = await this.prisma.category.findFirst({
+            where: { slug: 'diem-den', parentId: null, level: 'ROOT' },
+            select: CAT_SELECT,
+        });
+        if (!destRoot)
+            return { kind: 'not_found' };
+        const cityCat = await this.prisma.category.findFirst({
+            where: { slug: citySlug, parentId: destRoot.id, level: 'CITY' },
+            select: CAT_SELECT,
+        });
+        if (!cityCat)
+            return { kind: 'not_found' };
+        if (slugs.length === 2) {
+            const subCat = await this.prisma.category.findFirst({
+                where: { slug: slugs[1], parentId: cityCat.id, level: 'SUB' },
+                select: CAT_SELECT,
+            });
+            if (!subCat)
+                return { kind: 'not_found' };
+            return {
+                kind: 'category',
+                city,
+                category: subCat,
+                chain: [subCat],
+                canonicalPath,
+            };
+        }
+        if (slugs.length === 3) {
+            const subCat = await this.prisma.category.findFirst({
+                where: { slug: slugs[1], parentId: cityCat.id, level: 'SUB' },
+                select: CAT_SELECT,
+            });
+            if (!subCat)
+                return { kind: 'not_found' };
+            const post = await this.loadPost(slugs[2], subCat.id);
+            if (!post || post.categoryId !== subCat.id)
+                return { kind: 'not_found' };
+            return {
+                kind: 'post',
+                city,
+                category: subCat,
+                chain: [subCat],
+                post,
+                canonicalPath: (0, post_canonical_1.computePostCanonicalPath)(post),
+            };
+        }
+        return { kind: 'not_found' };
+    }
+    async loadCity(cityId) {
+        if (!cityId)
+            return null;
+        const city = await this.prisma.city.findUnique({
+            where: { id: cityId },
+            select: { id: true, name: true, slug: true },
+        });
+        return city ?? null;
+    }
+    async loadPost(slug, categoryId) {
+        const post = await this.prisma.post.findFirst({
+            where: { slug, categoryId },
+            include: {
+                city: { select: { id: true, name: true, slug: true } },
+                category: { select: post_canonical_1.CATEGORY_WITH_ANCESTORS_SELECT },
+            },
+        });
+        if (!post || !post.published)
+            return null;
+        return post;
     }
 };
 exports.TaxonomyService = TaxonomyService;

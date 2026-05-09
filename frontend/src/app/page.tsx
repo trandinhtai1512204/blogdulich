@@ -11,7 +11,7 @@ type CategoryType = 'destination' | 'itinerary' | 'review' | 'experience';
 
 interface Category {
   id: string;
-  type?: CategoryType | 'about';
+  type?: CategoryType;
 }
 
 interface Post {
@@ -23,6 +23,7 @@ interface Post {
   thumbnail?: string;
   category?: { id: string; name: string; slug: string };
   city?: { id: string; name: string; slug: string };
+  canonicalUrl?: string;
 }
 
 const MAIN_CATEGORIES: Array<{
@@ -96,7 +97,7 @@ export default function HomePage() {
         };
         const categoryTypeById = new Map<string, CategoryType>();
         rows.forEach((cat) => {
-          if (!cat.type || cat.type === 'about') return;
+          if (!cat.type) return;
           counts[cat.type] += 1;
           categoryTypeById.set(cat.id, cat.type);
         });
@@ -181,7 +182,7 @@ export default function HomePage() {
                     {posts.map((post) => (
                       <Link
                         key={post.id}
-                        href={post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`}
+                        href={post.canonicalUrl ?? (post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`)}
                         className="shrink-0 w-[88vw] max-w-[340px] rounded-2xl overflow-hidden border border-gray-200 hover:shadow-sm transition-all bg-white"
                         style={{ scrollSnapAlign: 'start' }}
                       >

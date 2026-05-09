@@ -6,19 +6,51 @@ export declare class PostsService {
     constructor(prisma: PrismaService);
     findAll(query: QueryPostsDto): Promise<{
         data: {
+            canonicalUrl: string;
+            id: string;
+            slug: string;
+            createdAt: Date;
             city: {
-                name: string;
                 id: string;
                 slug: string;
+                name: string;
             } | null;
             category: {
-                name: string;
                 id: string;
                 slug: string;
+                name: string;
+                cityId: string | null;
+                parentId: string | null;
+                type: import(".prisma/client").$Enums.CategoryType;
+                level: import(".prisma/client").$Enums.CategoryLevel;
+                parent: {
+                    id: string;
+                    slug: string;
+                    name: string;
+                    cityId: string | null;
+                    parentId: string | null;
+                    type: import(".prisma/client").$Enums.CategoryType;
+                    level: import(".prisma/client").$Enums.CategoryLevel;
+                    parent: {
+                        id: string;
+                        slug: string;
+                        name: string;
+                        cityId: string | null;
+                        parentId: string | null;
+                        type: import(".prisma/client").$Enums.CategoryType;
+                        level: import(".prisma/client").$Enums.CategoryLevel;
+                        parent: {
+                            id: string;
+                            slug: string;
+                            name: string;
+                            cityId: string | null;
+                            parentId: string | null;
+                            type: import(".prisma/client").$Enums.CategoryType;
+                            level: import(".prisma/client").$Enums.CategoryLevel;
+                        } | null;
+                    } | null;
+                } | null;
             } | null;
-            id: string;
-            createdAt: Date;
-            slug: string;
             cityId: string | null;
             title: string;
             content: string;
@@ -39,29 +71,30 @@ export declare class PostsService {
     }>;
     findOne(slug: string): Promise<{
         city: {
-            image: string | null;
-            name: string;
             id: string;
+            slug: string;
+            name: string;
+            country: string;
+            image: string | null;
+            description: string | null;
             createdAt: Date;
             updatedAt: Date;
-            slug: string;
-            description: string | null;
-            country: string;
         } | null;
         category: {
-            name: string;
             id: string;
-            createdAt: Date;
             slug: string;
+            name: string;
+            createdAt: Date;
             cityId: string | null;
             parentId: string | null;
             type: import(".prisma/client").$Enums.CategoryType;
+            level: import(".prisma/client").$Enums.CategoryLevel;
         } | null;
     } & {
         id: string;
+        slug: string;
         createdAt: Date;
         updatedAt: Date;
-        slug: string;
         cityId: string | null;
         title: string;
         content: string;
@@ -73,11 +106,11 @@ export declare class PostsService {
         published: boolean;
         categoryId: string | null;
     }>;
-    create(dto: CreatePostDto): import(".prisma/client").Prisma.Prisma__PostClient<{
+    create(dto: CreatePostDto): Promise<{
         id: string;
+        slug: string;
         createdAt: Date;
         updatedAt: Date;
-        slug: string;
         cityId: string | null;
         title: string;
         content: string;
@@ -88,12 +121,12 @@ export declare class PostsService {
         longitude: number | null;
         published: boolean;
         categoryId: string | null;
-    }, never, import("@prisma/client/runtime/library").DefaultArgs>;
+    }>;
     update(id: string, dto: Partial<CreatePostDto>): Promise<{
         id: string;
+        slug: string;
         createdAt: Date;
         updatedAt: Date;
-        slug: string;
         cityId: string | null;
         title: string;
         content: string;
@@ -105,11 +138,12 @@ export declare class PostsService {
         published: boolean;
         categoryId: string | null;
     }>;
+    private handlePrismaWriteError;
     remove(id: string): Promise<{
         id: string;
+        slug: string;
         createdAt: Date;
         updatedAt: Date;
-        slug: string;
         cityId: string | null;
         title: string;
         content: string;

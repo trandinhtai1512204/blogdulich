@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -62,19 +63,22 @@ model Hotel {
 }
 
 model Category {
-  id        String       @id @default(cuid())
+  id        String        @id @default(cuid())
   name      String
-  slug      String       @unique
-  createdAt DateTime     @default(now())
+  slug      String
+  createdAt DateTime      @default(now())
   cityId    String?
   parentId  String?
-  type      CategoryType @default(destination)
-  city      City?        @relation(fields: [cityId], references: [id])
-  parent    Category?    @relation("CategoryParent", fields: [parentId], references: [id])
-  children  Category[]   @relation("CategoryParent")
+  type      CategoryType  @default(destination)
+  level     CategoryLevel
+  city      City?         @relation(fields: [cityId], references: [id])
+  parent    Category?     @relation("CategoryParent", fields: [parentId], references: [id])
+  children  Category[]    @relation("CategoryParent")
   posts     Post[]
 
+  @@unique([parentId, slug])
   @@index([type])
+  @@index([level])
   @@index([cityId])
   @@index([parentId])
   @@map("categories")
@@ -83,7 +87,7 @@ model Category {
 model Post {
   id         String    @id @default(cuid())
   title      String
-  slug       String    @unique
+  slug       String
   content    String
   excerpt    String?
   thumbnail  String?
@@ -98,6 +102,7 @@ model Post {
   category   Category? @relation(fields: [categoryId], references: [id])
   city       City?     @relation(fields: [cityId], references: [id])
 
+  @@unique([categoryId, slug])
   @@index([cityId])
   @@index([categoryId])
   @@map("posts")
@@ -175,10 +180,15 @@ enum PaymentStatus {
 }
 
 enum CategoryType {
-  about
   destination
   itinerary
-  cost
   review
   experience
+}
+
+enum CategoryLevel {
+  ROOT
+  SUBTYPE
+  CITY
+  SUB
 }
