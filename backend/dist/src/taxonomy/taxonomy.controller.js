@@ -27,6 +27,13 @@ let TaxonomyController = class TaxonomyController {
             .filter(Boolean);
         return this.taxonomy.resolve(slugs);
     }
+    async page(path) {
+        const slugs = (path || '')
+            .split('/')
+            .map((s) => s.trim())
+            .filter(Boolean);
+        return this.taxonomy.resolvePage(slugs);
+    }
 };
 exports.TaxonomyController = TaxonomyController;
 __decorate([
@@ -36,6 +43,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], TaxonomyController.prototype, "resolve", null);
+__decorate([
+    (0, common_1.Get)('page'),
+    __param(0, (0, common_1.Query)('path')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], TaxonomyController.prototype, "page", null);
 exports.TaxonomyController = TaxonomyController = __decorate([
     (0, common_1.Controller)('taxonomy'),
     __metadata("design:paramtypes", [taxonomy_service_1.TaxonomyService])

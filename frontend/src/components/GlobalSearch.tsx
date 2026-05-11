@@ -16,6 +16,8 @@ interface SearchResult {
   categorySlug?: string;
 }
 
+let citiesCache: any[] | null = null;
+
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -67,14 +69,19 @@ export function GlobalSearch({ placeholder = 'Tìm kiếm thành phố, khách s
 
     setLoading(true);
     const q = encodeURIComponent(debouncedQuery);
+    const lq = debouncedQuery.toLowerCase();
+
+    const fetchCities = citiesCache
+      ? Promise.resolve(citiesCache)
+      : api.get('/cities').then((r) => { citiesCache = r.data as any[]; return citiesCache; });
 
     Promise.all([
-      api.get('/cities'),
+      fetchCities,
       api.get(`/hotels?search=${q}&limit=4`),
       api.get(`/posts?search=${q}&limit=3`),
-    ]).then(([citiesRes, hotelsRes, postsRes]) => {
-      const cities = (citiesRes.data as any[])
-        .filter((c) => c.name.toLowerCase().includes(debouncedQuery.toLowerCase()))
+    ]).then(([allCities, hotelsRes, postsRes]) => {
+      const cities = (allCities as any[])
+        .filter((c) => c.name.toLowerCase().includes(lq))
         .slice(0, 3)
         .map((c) => ({ type: 'city' as const, id: c.id, name: c.name, slug: c.slug, sub: c.country, image: c.image }));
 

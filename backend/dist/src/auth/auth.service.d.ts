@@ -30,11 +30,11 @@ export declare class AuthService {
         };
     }>;
     getMe(userId: string): Promise<{
-        email: string;
-        name: string | null;
         id: string;
-        role: import(".prisma/client").$Enums.Role;
+        name: string | null;
         createdAt: Date;
+        email: string;
+        role: import(".prisma/client").$Enums.Role;
         isVerified: boolean;
     }>;
     verifyEmail(token: string): Promise<{

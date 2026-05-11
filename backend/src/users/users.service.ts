@@ -31,6 +31,7 @@ export class UsersService {
         bookings: {
           include: { hotel: true, payment: true },
           orderBy: { createdAt: 'desc' },
+          take: 20,
         },
       },
     });

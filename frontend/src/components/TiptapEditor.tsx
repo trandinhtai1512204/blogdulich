@@ -28,6 +28,7 @@ export function TiptapEditor({ value, onChange, placeholder = 'Nhập nội dung
       Placeholder.configure({ placeholder }),
     ],
     content: value,
+    immediatelyRender: false,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
     editorProps: {
       attributes: {

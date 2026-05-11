@@ -85,7 +85,7 @@ export default function HomePage() {
   });
 
   useEffect(() => {
-    Promise.all([api.get('/categories'), api.get('/posts?limit=200')])
+    Promise.all([api.get('/categories'), api.get('/posts?limit=40')])
       .then(([catRes, postRes]) => {
         const rows: Category[] = catRes.data ?? [];
         const posts: Post[] = postRes.data?.data ?? [];
@@ -199,7 +199,7 @@ export default function HomePage() {
                           </div>
                           <div className="w-[140px] md:w-[150px] h-full shrink-0 bg-gray-100">
                             {post.thumbnail ? (
-                              <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover" />
+                              <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover" loading="lazy" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-4xl">
                                 {item.emoji}

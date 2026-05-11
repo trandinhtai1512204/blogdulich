@@ -35,10 +35,8 @@ export function Navbar({ opaque = false }: { opaque?: boolean }) {
       <div className="w-full px-4 md:px-6 h-[72px] flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-full bg-linear-to-br from-sky-500 to-blue-700 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L3 7l9 5 9-5-9-5zM3 17l9 5 9-5M3 12l9 5 9-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+          <div className="w-8 h-8 rounded-full bg-linear-to-br from-sky-500 to-blue-700 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform select-none">
+            <span style={{ fontFamily: 'Georgia, serif', fontSize: '17px', fontWeight: 700, color: 'white', fontStyle: 'italic', lineHeight: 1 }}>B</span>
           </div>
           <span className={`text-lg md:text-xl tracking-tight transition-colors font-bold ${isOpaque ? 'text-gray-900' : 'text-white'}`}
             style={{ letterSpacing: '-0.02em' }}>
@@ -53,7 +51,7 @@ export function Navbar({ opaque = false }: { opaque?: boolean }) {
       key={link.label}
       href={link.href}
       className={`flex items-center gap-1.5 px-5 py-2 rounded-full transition-all duration-200 text-sm font-medium ${
-        scrolled
+        isOpaque
           ? 'text-gray-600 hover:bg-gray-100 hover:text-violet-600'
           : 'text-white hover:text-white hover:bg-white/10'
       }`}
@@ -91,11 +89,11 @@ export function Navbar({ opaque = false }: { opaque?: boolean }) {
                   isOpaque ? 'text-gray-600 hover:bg-gray-100' : 'text-white/80 hover:bg-white/10'
                 }`}
               >
-                <div className="w-7 h-7 rounded-full bg-linear-to-br from-violet-500 to-purple-700 flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">
-                    {(user.name || user.email)[0].toUpperCase()}
-                  </span>
-                </div>
+                <img
+                  src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(user.email)}`}
+                  alt={user.name || user.email}
+                  className="w-7 h-7 rounded-full bg-violet-100 object-cover"
+                />
                 <span className="hidden md:inline">{user.name || user.email.split('@')[0]}</span>
               </button>
               {menuOpen && (

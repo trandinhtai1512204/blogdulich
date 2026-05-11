@@ -35,12 +35,6 @@ const SYSTEM_ROOT_SLUGS = new Set([
   'diem-den', 'lich-trinh-du-lich', 'review', 'kinh-nghiem',
 ]);
 
-// Per sitemap, the L2 review subtype landing pages list CITIES (L3), not
-// child categories. Detect these to switch the listing UI to city pills.
-const REVIEW_SUBTYPE_SLUGS = new Set([
-  'review-tour', 'review-khach-san', 'review-combo',
-  'review-resort', 'review-du-thuyen', 'review-nha-hang',
-]);
 
 type CategoryNode = { id: string; name: string; slug: string; type?: string; cityId?: string | null; parentId?: string | null };
 type CityNode = { id: string; name: string; slug: string };
@@ -82,70 +76,14 @@ export default function CatchAllPage() {
     setPosts([]);
     setThumbnailError(false);
 
-    api.get(`/taxonomy/resolve?path=${encodeURIComponent(path)}`)
-      .then(async (r) => {
+    api.get(`/taxonomy/page?path=${encodeURIComponent(path)}`)
+      .then((r) => {
         if (!mounted) return;
-        const data: ResolveResult = r.data;
-        setResolved(data);
-
-        if (data.kind === 'city') {
-          const [catsRes, postsRes] = await Promise.all([
-            api.get(`/categories?cityId=${data.city.id}`),
-            api.get(`/posts?cityId=${data.city.id}&limit=100`),
-          ]);
-          if (!mounted) return;
-          const allCats: CategoryNode[] = catsRes.data ?? [];
-          const navCats = allCats.filter((c) => c.type === 'destination');
-          const destCatIds = new Set(navCats.map((c) => c.id));
-          const allPosts: PostListItem[] = postsRes.data.data ?? [];
-          const destPosts = allPosts
-            .filter((p) => p.category?.id && destCatIds.has(p.category.id))
-            .slice(0, 12);
-          setChildren(navCats);
-          setPosts(destPosts);
-        }
-
-        if (data.kind === 'category') {
-          const catId = data.category.id;
-          const cityId = data.city?.id;
-          const citySlug = data.city?.slug;
-
-          // L2 review subtype landing (no city scope): list cities as primary nav
-          // per sitemap convention (L2 → L3 = subtype → city).
-          const isReviewSubtypeL2 =
-            REVIEW_SUBTYPE_SLUGS.has(data.category.slug) && !data.city;
-
-          if (isReviewSubtypeL2) {
-            const [citiesRes, postsRes] = await Promise.all([
-              api.get('/cities'),
-              api.get(`/posts?categoryId=${catId}&limit=12`),
-            ]);
-            if (!mounted) return;
-            setCityPills(citiesRes.data ?? []);
-            setChildren([]);
-            setPosts(postsRes.data.data ?? []);
-            return;
-          }
-
-          const postsUrl = cityId
-            ? `/posts?categoryId=${catId}&cityId=${cityId}&limit=12`
-            : `/posts?categoryId=${catId}&limit=12`;
-          const [catsRes, postsRes] = await Promise.all([
-            api.get(`/categories?parentId=${catId}`),
-            api.get(postsUrl),
-          ]);
-          if (!mounted) return;
-          // City-scoped landing: only show children either un-scoped or scoped to current city.
-          // Drop child whose slug == city slug (it's the city marker, not a real subcat).
-          const allChildren: CategoryNode[] = catsRes.data ?? [];
-          const filteredChildren = cityId
-            ? allChildren.filter(
-                (c) => (c.cityId == null || c.cityId === cityId) && c.slug !== citySlug,
-              )
-            : allChildren;
-          setChildren(filteredChildren);
-          setPosts(postsRes.data.data ?? []);
-        }
+        const { resolved, children, cityPills, posts } = r.data;
+        setResolved(resolved);
+        setChildren(children ?? []);
+        setCityPills(cityPills ?? []);
+        setPosts(posts ?? []);
       })
       .catch(() => mounted && setResolved({ kind: 'not_found' }))
       .finally(() => mounted && setLoading(false));
@@ -339,7 +277,7 @@ export default function CatchAllPage() {
                 [&_a]:text-violet-600 [&_a]:underline-offset-2 hover:[&_a]:underline
                 [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-violet-200 [&_blockquote]:pl-4 [&_blockquote]:text-gray-600
                 [&_figure]:my-8
-                [&_img]:my-6 [&_img]:mx-auto [&_img]:block [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-2xl
+                [&_img]:my-6 [&_img]:mx-auto [&_img]:block [&_img]:w-full [&_img]:h-auto [&_img]:rounded-2xl
                 [&_table]:w-full [&_table]:my-6 [&_table]:border-collapse
                 [&_th]:border [&_th]:border-gray-200 [&_th]:bg-gray-50 [&_th]:px-3 [&_th]:py-2
                 [&_td]:border [&_td]:border-gray-200 [&_td]:px-3 [&_td]:py-2"

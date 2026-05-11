@@ -13,10 +13,8 @@ exports.CreateCategoryDto = exports.CategoryType = void 0;
 const class_validator_1 = require("class-validator");
 var CategoryType;
 (function (CategoryType) {
-    CategoryType["about"] = "about";
     CategoryType["destination"] = "destination";
     CategoryType["itinerary"] = "itinerary";
-    CategoryType["cost"] = "cost";
     CategoryType["review"] = "review";
     CategoryType["experience"] = "experience";
 })(CategoryType || (exports.CategoryType = CategoryType = {}));

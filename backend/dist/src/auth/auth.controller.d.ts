@@ -29,11 +29,11 @@ export declare class AuthController {
     googleAuth(): void;
     googleCallback(req: any, res: Response): void;
     getMe(req: any): Promise<{
-        email: string;
-        name: string | null;
         id: string;
-        role: import(".prisma/client").$Enums.Role;
+        name: string | null;
         createdAt: Date;
+        email: string;
+        role: import(".prisma/client").$Enums.Role;
         isVerified: boolean;
     }>;
     verifyEmail(token: string): Promise<{

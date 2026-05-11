@@ -105,6 +105,8 @@ model Post {
   @@unique([categoryId, slug])
   @@index([cityId])
   @@index([categoryId])
+  @@index([published, createdAt(sort: Desc)])
+  @@index([categoryId, published, createdAt(sort: Desc)])
   @@map("posts")
 }
 

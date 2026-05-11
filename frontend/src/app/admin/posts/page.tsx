@@ -17,7 +17,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
-  type?: 'about' | 'destination' | 'itinerary' | 'cost' | 'review' | 'experience';
+  type?: 'destination' | 'itinerary' | 'review' | 'experience';
   cityId?: string | null;
   parentId?: string | null;
 }
@@ -35,11 +35,10 @@ const EMPTY = {
   cityId: '',
   categoryId: '',
 };
-const ROOT_SLUGS = ['about', 'diem-den', 'lich-trinh-du-lich', 'chi-phi-du-lich', 'review', 'kinh-nghiem'] as const;
+const ROOT_SLUGS = ['diem-den', 'lich-trinh-du-lich', 'review', 'kinh-nghiem'] as const;
 const SYSTEM_MENU = [
   { type: 'destination', label: 'Điểm đến hấp dẫn' },
   { type: 'itinerary', label: 'Lịch trình du lịch' },
-  { type: 'cost', label: 'Chi phí du lịch' },
   { type: 'review', label: 'Review' },
   { type: 'experience', label: 'Kinh nghiệm du lịch' },
 ] as const;
@@ -200,7 +199,7 @@ export default function AdminPostsPage() {
       current = parent;
     }
     const rootType = current?.type;
-    if (rootType === 'destination' || rootType === 'itinerary' || rootType === 'cost' || rootType === 'review' || rootType === 'experience') {
+    if (rootType === 'destination' || rootType === 'itinerary' || rootType === 'review' || rootType === 'experience') {
       return rootType;
     }
     return '';

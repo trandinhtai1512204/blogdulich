@@ -24,22 +24,30 @@ export class ReviewsService {
   }
 
   async findByHotel(hotelId: string) {
-    const reviews = await this.prisma.review.findMany({
-      where: { hotelId },
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [reviews, aggregate, ratingGroups] = await Promise.all([
+      this.prisma.review.findMany({
+        where: { hotelId },
+        include: { user: { select: { id: true, name: true, email: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.review.aggregate({
+        where: { hotelId },
+        _count: { _all: true },
+        _avg: { rating: true },
+      }),
+      this.prisma.review.groupBy({
+        by: ['rating'],
+        where: { hotelId },
+        _count: { _all: true },
+      }),
+    ]);
 
-    const total = reviews.length;
-    const avg = total > 0
-      ? reviews.reduce((sum, r) => sum + r.rating, 0) / total
-      : 0;
-
+    const total = aggregate._count._all;
+    const avg = aggregate._avg.rating ?? 0;
+    const countByRating = new Map(ratingGroups.map((g) => [g.rating, g._count._all]));
     const distribution = [5, 4, 3, 2, 1].map((star) => ({
       star,
-      count: reviews.filter((r) => r.rating === star).length,
+      count: countByRating.get(star) ?? 0,
     }));
 
     return { reviews, total, avg: Math.round(avg * 10) / 10, distribution };

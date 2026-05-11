@@ -25,7 +25,20 @@ let CitiesService = class CitiesService {
     async findOne(slug) {
         const city = await this.prisma.city.findUnique({
             where: { slug },
-            include: { hotels: true },
+            include: {
+                hotels: {
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        address: true,
+                        price: true,
+                        images: true,
+                        availableRooms: true,
+                    },
+                    orderBy: { createdAt: 'desc' },
+                },
+            },
         });
         if (!city)
             throw new common_1.NotFoundException('City không tồn tại');

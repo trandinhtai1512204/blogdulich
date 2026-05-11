@@ -3,34 +3,34 @@ export declare class UsersService {
     private prisma;
     constructor(prisma: PrismaService);
     findAll(): import(".prisma/client").Prisma.PrismaPromise<{
-        email: string;
-        name: string | null;
         id: string;
-        role: import(".prisma/client").$Enums.Role;
+        name: string | null;
         createdAt: Date;
         _count: {
             bookings: number;
         };
+        email: string;
+        role: import(".prisma/client").$Enums.Role;
     }[]>;
     findOne(id: string): Promise<{
-        email: string;
-        name: string | null;
         id: string;
-        role: import(".prisma/client").$Enums.Role;
+        name: string | null;
         createdAt: Date;
+        email: string;
+        role: import(".prisma/client").$Enums.Role;
         bookings: ({
             hotel: {
-                name: string;
                 id: string;
+                slug: string;
+                name: string;
+                description: string | null;
                 createdAt: Date;
                 updatedAt: Date;
-                slug: string;
+                cityId: string;
                 address: string;
                 price: number;
                 images: string[];
-                description: string | null;
                 availableRooms: number;
-                cityId: string;
             };
             payment: {
                 id: string;
@@ -47,19 +47,19 @@ export declare class UsersService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            userId: string;
             hotelId: string;
             checkIn: Date;
             checkOut: Date;
             totalPrice: number;
             status: import(".prisma/client").$Enums.BookingStatus;
             expiresAt: Date | null;
+            userId: string;
         })[];
     }>;
     updateRole(id: string, role: 'admin' | 'user'): Promise<{
-        email: string;
-        name: string | null;
         id: string;
+        name: string | null;
+        email: string;
         role: import(".prisma/client").$Enums.Role;
     }>;
 }

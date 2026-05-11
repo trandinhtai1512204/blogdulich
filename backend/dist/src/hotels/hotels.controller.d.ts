@@ -7,27 +7,27 @@ export declare class HotelsController {
     findAll(query: QueryHotelsDto): Promise<{
         data: ({
             city: {
-                image: string | null;
-                name: string;
                 id: string;
+                slug: string;
+                name: string;
+                country: string;
+                image: string | null;
+                description: string | null;
                 createdAt: Date;
                 updatedAt: Date;
-                slug: string;
-                description: string | null;
-                country: string;
             };
         } & {
-            name: string;
             id: string;
+            slug: string;
+            name: string;
+            description: string | null;
             createdAt: Date;
             updatedAt: Date;
-            slug: string;
+            cityId: string;
             address: string;
             price: number;
             images: string[];
-            description: string | null;
             availableRooms: number;
-            cityId: string;
         })[];
         meta: {
             total: number;
@@ -38,65 +38,65 @@ export declare class HotelsController {
     }>;
     findOne(slug: string): Promise<{
         city: {
-            image: string | null;
-            name: string;
             id: string;
+            slug: string;
+            name: string;
+            country: string;
+            image: string | null;
+            description: string | null;
             createdAt: Date;
             updatedAt: Date;
-            slug: string;
-            description: string | null;
-            country: string;
         };
     } & {
-        name: string;
         id: string;
+        slug: string;
+        name: string;
+        description: string | null;
         createdAt: Date;
         updatedAt: Date;
-        slug: string;
+        cityId: string;
         address: string;
         price: number;
         images: string[];
-        description: string | null;
         availableRooms: number;
-        cityId: string;
     }>;
     create(dto: CreateHotelDto): import(".prisma/client").Prisma.Prisma__HotelClient<{
-        name: string;
         id: string;
+        slug: string;
+        name: string;
+        description: string | null;
         createdAt: Date;
         updatedAt: Date;
-        slug: string;
+        cityId: string;
         address: string;
         price: number;
         images: string[];
-        description: string | null;
         availableRooms: number;
-        cityId: string;
     }, never, import("@prisma/client/runtime/library").DefaultArgs>;
     update(id: string, dto: Partial<CreateHotelDto>): Promise<{
-        name: string;
         id: string;
+        slug: string;
+        name: string;
+        description: string | null;
         createdAt: Date;
         updatedAt: Date;
-        slug: string;
+        cityId: string;
         address: string;
         price: number;
         images: string[];
-        description: string | null;
         availableRooms: number;
-        cityId: string;
     }>;
     remove(id: string): Promise<{
-        name: string;
         id: string;
+        slug: string;
+        name: string;
+        description: string | null;
         createdAt: Date;
         updatedAt: Date;
-        slug: string;
+        cityId: string;
         address: string;
         price: number;
         images: string[];
-        description: string | null;
         availableRooms: number;
-        cityId: string;
     }>;
 }

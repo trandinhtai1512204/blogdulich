@@ -1,93 +1,105 @@
+import { OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { QueryCategoriesDto } from './dto/query-categories.dto';
-export declare class CategoriesService {
+export declare class CategoriesService implements OnModuleInit {
     private prisma;
     constructor(prisma: PrismaService);
+    onModuleInit(): Promise<void>;
     private ensureSystemRoots;
-    private resolveRootType;
+    private walkParentChain;
+    private computeChildLevel;
+    private validateChildLevelByModule;
     private isSystemRootSlug;
     findAll(query: QueryCategoriesDto): Promise<{
-        name: string;
         id: string;
-        createdAt: Date;
         slug: string;
+        name: string;
+        createdAt: Date;
         cityId: string | null;
         parentId: string | null;
         type: import(".prisma/client").$Enums.CategoryType;
+        level: import(".prisma/client").$Enums.CategoryLevel;
     }[]>;
     findOne(slug: string): Promise<{
         city: {
-            image: string | null;
-            name: string;
             id: string;
+            slug: string;
+            name: string;
+            country: string;
+            image: string | null;
+            description: string | null;
             createdAt: Date;
             updatedAt: Date;
-            slug: string;
-            description: string | null;
-            country: string;
         } | null;
         parent: {
-            name: string;
             id: string;
-            createdAt: Date;
             slug: string;
+            name: string;
+            createdAt: Date;
             cityId: string | null;
             parentId: string | null;
             type: import(".prisma/client").$Enums.CategoryType;
+            level: import(".prisma/client").$Enums.CategoryLevel;
         } | null;
         children: {
-            name: string;
             id: string;
-            createdAt: Date;
             slug: string;
+            name: string;
+            createdAt: Date;
             cityId: string | null;
             parentId: string | null;
             type: import(".prisma/client").$Enums.CategoryType;
+            level: import(".prisma/client").$Enums.CategoryLevel;
         }[];
     } & {
-        name: string;
         id: string;
-        createdAt: Date;
         slug: string;
+        name: string;
+        createdAt: Date;
         cityId: string | null;
         parentId: string | null;
         type: import(".prisma/client").$Enums.CategoryType;
+        level: import(".prisma/client").$Enums.CategoryLevel;
     }>;
     create(dto: CreateCategoryDto): Promise<{
-        name: string;
         id: string;
-        createdAt: Date;
         slug: string;
+        name: string;
+        createdAt: Date;
         cityId: string | null;
         parentId: string | null;
         type: import(".prisma/client").$Enums.CategoryType;
+        level: import(".prisma/client").$Enums.CategoryLevel;
     }>;
     update(id: string, dto: Partial<CreateCategoryDto>): Promise<{
-        name: string;
         id: string;
-        createdAt: Date;
         slug: string;
+        name: string;
+        createdAt: Date;
         cityId: string | null;
         parentId: string | null;
         type: import(".prisma/client").$Enums.CategoryType;
+        level: import(".prisma/client").$Enums.CategoryLevel;
     }>;
     remove(id: string): Promise<{
-        name: string;
         id: string;
-        createdAt: Date;
         slug: string;
+        name: string;
+        createdAt: Date;
         cityId: string | null;
         parentId: string | null;
         type: import(".prisma/client").$Enums.CategoryType;
+        level: import(".prisma/client").$Enums.CategoryLevel;
     }>;
     bootstrapRoots(): Promise<{
-        name: string;
         id: string;
-        createdAt: Date;
         slug: string;
+        name: string;
+        createdAt: Date;
         cityId: string | null;
         parentId: string | null;
         type: import(".prisma/client").$Enums.CategoryType;
+        level: import(".prisma/client").$Enums.CategoryLevel;
     }[]>;
 }

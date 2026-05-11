@@ -53,12 +53,8 @@ export declare class PostsService {
             } | null;
             cityId: string | null;
             title: string;
-            content: string;
             excerpt: string | null;
             thumbnail: string | null;
-            location: string | null;
-            latitude: number | null;
-            longitude: number | null;
             published: boolean;
             categoryId: string | null;
         }[];

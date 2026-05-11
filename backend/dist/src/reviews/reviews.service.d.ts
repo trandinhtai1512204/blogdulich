@@ -7,24 +7,24 @@ export declare class ReviewsService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
         hotelId: string;
+        userId: string;
         rating: number;
         comment: string | null;
     }>;
     findByHotel(hotelId: string): Promise<{
         reviews: ({
             user: {
-                email: string;
-                name: string | null;
                 id: string;
+                name: string | null;
+                email: string;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            userId: string;
             hotelId: string;
+            userId: string;
             rating: number;
             comment: string | null;
         })[];
@@ -39,8 +39,8 @@ export declare class ReviewsService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
         hotelId: string;
+        userId: string;
         rating: number;
         comment: string | null;
     }>;

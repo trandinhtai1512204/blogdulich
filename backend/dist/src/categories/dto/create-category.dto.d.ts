@@ -1,8 +1,6 @@
 export declare enum CategoryType {
-    about = "about",
     destination = "destination",
     itinerary = "itinerary",
-    cost = "cost",
     review = "review",
     experience = "experience"
 }

@@ -5,13 +5,13 @@ import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, X, Tag } from 'lucide-react';
 import api from '@/lib/axios';
 
-type CategoryType = 'about' | 'destination' | 'itinerary' | 'review' | 'experience';
+type CategoryType = 'destination' | 'itinerary' | 'review' | 'experience';
 
 interface Category {
   id: string;
   name: string;
   slug: string;
-  type?: CategoryType | 'cost' | string;
+  type?: CategoryType | string;
   cityId?: string | null;
   parentId?: string | null;
   createdAt: string;
@@ -23,24 +23,20 @@ interface City {
 }
 
 const TYPE_LABELS: Record<CategoryType, string> = {
-  about: 'Giới thiệu',
   destination: 'Điểm đến hấp dẫn',
   itinerary: 'Lịch trình du lịch',
   review: 'Review',
   experience: 'Kinh nghiệm du lịch',
 };
 const SYSTEM_MENU: CategoryType[] = ['destination', 'itinerary', 'review', 'experience'];
-const LEGACY_TYPE_LABELS: Record<string, string> = {
-  cost: 'Chi phí du lịch (đã tạm dừng)',
-};
 
 const getTypeLabel = (type?: string) => {
   if (!type) return TYPE_LABELS.destination;
   if (type in TYPE_LABELS) return TYPE_LABELS[type as CategoryType];
-  return LEGACY_TYPE_LABELS[type] ?? type;
+  return type;
 };
 
-const ROOT_SLUGS = ['about', 'diem-den', 'lich-trinh-du-lich', 'review', 'kinh-nghiem'] as const;
+const ROOT_SLUGS = ['diem-den', 'lich-trinh-du-lich', 'review', 'kinh-nghiem'] as const;
 
 const EMPTY = { name: '', slug: '', cityId: '', parentId: '' };
 

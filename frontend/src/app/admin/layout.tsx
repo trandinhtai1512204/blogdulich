@@ -6,16 +6,17 @@ import Link from 'next/link';
 import {
   LayoutDashboard, Hotel, MapPin, FileText,
   Users, LogOut, ChevronRight,
-  Tag, Menu, X, TrendingUp
+  Tag, Menu, TrendingUp, FolderTree,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 
 const NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+  { href: '/admin/content', label: 'Nội dung', icon: FolderTree },
   { href: '/admin/hotels', label: 'Khách sạn', icon: Hotel },
   { href: '/admin/cities', label: 'Thành phố', icon: MapPin },
-  { href: '/admin/posts', label: 'Bài viết', icon: FileText },
-  { href: '/admin/categories', label: 'Chuyên mục', icon: Tag },
+  { href: '/admin/posts', label: 'Bài viết (cũ)', icon: FileText },
+  { href: '/admin/categories', label: 'Chuyên mục (cũ)', icon: Tag },
   { href: '/admin/users', label: 'Người dùng', icon: Users },
 ];
 

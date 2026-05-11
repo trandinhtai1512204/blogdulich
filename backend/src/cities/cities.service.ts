@@ -15,7 +15,20 @@ export class CitiesService {
   async findOne(slug: string) {
     const city = await this.prisma.city.findUnique({
       where: { slug },
-      include: { hotels: true },
+      include: {
+        hotels: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            address: true,
+            price: true,
+            images: true,
+            availableRooms: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
     });
     if (!city) throw new NotFoundException('City không tồn tại');
     return city;

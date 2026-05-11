@@ -31,6 +31,24 @@ const CAT_SELECT = {
 
 const REVIEW_HAS_SUB = new Set(['review-tour', 'review-khach-san']);
 
+const REVIEW_SUBTYPE_SLUGS = new Set([
+  'review-tour', 'review-khach-san', 'review-combo',
+  'review-resort', 'review-du-thuyen', 'review-nha-hang',
+]);
+
+const POST_LIST_SELECT = {
+  id: true,
+  title: true,
+  slug: true,
+  excerpt: true,
+  thumbnail: true,
+  createdAt: true,
+  cityId: true,
+  categoryId: true,
+  city: { select: { id: true, name: true, slug: true } },
+  category: { select: CATEGORY_WITH_ANCESTORS_SELECT },
+} as const;
+
 @Injectable()
 export class TaxonomyService {
   constructor(private prisma: PrismaService) {}
@@ -313,6 +331,81 @@ export class TaxonomyService {
     }
 
     return { kind: 'not_found' };
+  }
+
+  /**
+   * Resolve path AND fetch all supporting data (children + posts) in one call.
+   * Eliminates the client-side waterfall: resolve → then fetch children/posts.
+   */
+  async resolvePage(slugs: string[]) {
+    const resolved = await this.resolve(slugs);
+
+    if (resolved.kind === 'not_found' || resolved.kind === 'post') {
+      return { resolved, children: [], cityPills: [], posts: [] };
+    }
+
+    if (resolved.kind === 'city') {
+      const navCats = await this.prisma.category.findMany({
+        where: { cityId: resolved.city.id, type: 'destination' },
+        select: CAT_SELECT,
+        orderBy: { createdAt: 'asc' },
+      });
+      const destCatIds = navCats.map((c) => c.id);
+      const rawPosts = destCatIds.length
+        ? await this.prisma.post.findMany({
+            where: { published: true, cityId: resolved.city.id, categoryId: { in: destCatIds } },
+            take: 12,
+            orderBy: { createdAt: 'desc' },
+            select: POST_LIST_SELECT,
+          })
+        : [];
+      const posts = rawPosts.map((p) => ({ ...p, canonicalUrl: computePostCanonicalPath(p as any) }));
+      return { resolved, children: navCats, cityPills: [], posts };
+    }
+
+    // resolved.kind === 'category'
+    const catId = resolved.category.id;
+    const cityId = resolved.city?.id ?? null;
+    const citySlug = resolved.city?.slug ?? null;
+    const isReviewSubtypeL2 = REVIEW_SUBTYPE_SLUGS.has(resolved.category.slug) && !resolved.city;
+
+    if (isReviewSubtypeL2) {
+      const [cities, rawPosts] = await Promise.all([
+        this.prisma.city.findMany({
+          select: { id: true, name: true, slug: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+        this.prisma.post.findMany({
+          where: { published: true, categoryId: catId },
+          take: 12,
+          orderBy: { createdAt: 'desc' },
+          select: POST_LIST_SELECT,
+        }),
+      ]);
+      const posts = rawPosts.map((p) => ({ ...p, canonicalUrl: computePostCanonicalPath(p as any) }));
+      return { resolved, children: [], cityPills: cities, posts };
+    }
+
+    const postsWhere: any = { published: true, categoryId: catId };
+    if (cityId) postsWhere.cityId = cityId;
+    const [allChildren, rawPosts] = await Promise.all([
+      this.prisma.category.findMany({
+        where: { parentId: catId },
+        select: CAT_SELECT,
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.post.findMany({
+        where: postsWhere,
+        take: 12,
+        orderBy: { createdAt: 'desc' },
+        select: POST_LIST_SELECT,
+      }),
+    ]);
+    const filteredChildren = cityId
+      ? allChildren.filter((c) => (c.cityId == null || c.cityId === cityId) && c.slug !== citySlug)
+      : allChildren;
+    const posts = rawPosts.map((p) => ({ ...p, canonicalUrl: computePostCanonicalPath(p as any) }));
+    return { resolved, children: filteredChildren, cityPills: [], posts };
   }
 
   // -------- Helpers -----------------------------------------------------

@@ -8,19 +8,19 @@ import { GlobalSearch } from '@/components/GlobalSearch';
 const HERO_IMAGES = [
 
   {
-    url: 'https://images.unsplash.com/photo-1660562925534-3f6948ac654f?w=1920&q=80',
+    url: 'https://images.unsplash.com/photo-1660562925534-3f6948ac654f?w=1200&q=70',
     location: 'Hội An, Việt Nam',
   },
   {
-    url: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=1920&q=80',
+    url: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=1200&q=70',
     location: 'Sài Gòn, Việt Nam',
   },
   {
-    url: 'https://images.unsplash.com/photo-1601108644994-1e450e786d3d?w=1920&q=80',
+    url: 'https://images.unsplash.com/photo-1601108644994-1e450e786d3d?w=1200&q=70',
     location: 'Hà Nội, Việt Nam',
   },
   {
-    url: 'https://images.unsplash.com/photo-1696993545232-2b2717676c40?w=1920&q=80',
+    url: 'https://images.unsplash.com/photo-1696993545232-2b2717676c40?w=1200&q=70',
     location: 'Đà Nẵng, Việt Nam',
   },
 ];
@@ -170,7 +170,7 @@ useEffect(() => {
               className="absolute inset-0 transition-opacity duration-1000"
               style={{ opacity: index === currentSlide ? 1 : 0 }}
             >
-              <img src={img.url} alt={img.location} className="w-full h-full object-cover" />
+              <img src={img.url} alt={img.location} className="w-full h-full object-cover" loading={index === 0 ? 'eager' : 'lazy'} />
             </div>
           ))}
           {/* Dot indicators */}

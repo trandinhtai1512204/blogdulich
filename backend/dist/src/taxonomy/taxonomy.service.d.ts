@@ -41,6 +41,225 @@ export declare class TaxonomyService {
     private resolveFlatCityVertical;
     private resolveReview;
     private resolveDestination;
+    resolvePage(slugs: string[]): Promise<{
+        resolved: {
+            kind: "post";
+            city: CityNode | null;
+            category: CategoryNode | null;
+            chain: CategoryNode[];
+            post: any;
+            canonicalPath: string;
+        } | {
+            kind: "not_found";
+        };
+        children: never[];
+        cityPills: never[];
+        posts: never[];
+    } | {
+        resolved: {
+            kind: "city";
+            city: CityNode;
+            canonicalPath: string;
+        };
+        children: {
+            id: string;
+            slug: string;
+            name: string;
+            cityId: string | null;
+            parentId: string | null;
+            type: import(".prisma/client").$Enums.CategoryType;
+            level: import(".prisma/client").$Enums.CategoryLevel;
+        }[];
+        cityPills: never[];
+        posts: {
+            canonicalUrl: string;
+            id: string;
+            slug: string;
+            createdAt: Date;
+            city: {
+                id: string;
+                slug: string;
+                name: string;
+            } | null;
+            category: {
+                id: string;
+                slug: string;
+                name: string;
+                cityId: string | null;
+                parentId: string | null;
+                type: import(".prisma/client").$Enums.CategoryType;
+                level: import(".prisma/client").$Enums.CategoryLevel;
+                parent: {
+                    id: string;
+                    slug: string;
+                    name: string;
+                    cityId: string | null;
+                    parentId: string | null;
+                    type: import(".prisma/client").$Enums.CategoryType;
+                    level: import(".prisma/client").$Enums.CategoryLevel;
+                    parent: {
+                        id: string;
+                        slug: string;
+                        name: string;
+                        cityId: string | null;
+                        parentId: string | null;
+                        type: import(".prisma/client").$Enums.CategoryType;
+                        level: import(".prisma/client").$Enums.CategoryLevel;
+                        parent: {
+                            id: string;
+                            slug: string;
+                            name: string;
+                            cityId: string | null;
+                            parentId: string | null;
+                            type: import(".prisma/client").$Enums.CategoryType;
+                            level: import(".prisma/client").$Enums.CategoryLevel;
+                        } | null;
+                    } | null;
+                } | null;
+            } | null;
+            cityId: string | null;
+            title: string;
+            excerpt: string | null;
+            thumbnail: string | null;
+            categoryId: string | null;
+        }[];
+    } | {
+        resolved: {
+            kind: "category";
+            city: CityNode | null;
+            category: CategoryNode;
+            chain: CategoryNode[];
+            canonicalPath: string;
+        };
+        children: never[];
+        cityPills: {
+            id: string;
+            slug: string;
+            name: string;
+        }[];
+        posts: {
+            canonicalUrl: string;
+            id: string;
+            slug: string;
+            createdAt: Date;
+            city: {
+                id: string;
+                slug: string;
+                name: string;
+            } | null;
+            category: {
+                id: string;
+                slug: string;
+                name: string;
+                cityId: string | null;
+                parentId: string | null;
+                type: import(".prisma/client").$Enums.CategoryType;
+                level: import(".prisma/client").$Enums.CategoryLevel;
+                parent: {
+                    id: string;
+                    slug: string;
+                    name: string;
+                    cityId: string | null;
+                    parentId: string | null;
+                    type: import(".prisma/client").$Enums.CategoryType;
+                    level: import(".prisma/client").$Enums.CategoryLevel;
+                    parent: {
+                        id: string;
+                        slug: string;
+                        name: string;
+                        cityId: string | null;
+                        parentId: string | null;
+                        type: import(".prisma/client").$Enums.CategoryType;
+                        level: import(".prisma/client").$Enums.CategoryLevel;
+                        parent: {
+                            id: string;
+                            slug: string;
+                            name: string;
+                            cityId: string | null;
+                            parentId: string | null;
+                            type: import(".prisma/client").$Enums.CategoryType;
+                            level: import(".prisma/client").$Enums.CategoryLevel;
+                        } | null;
+                    } | null;
+                } | null;
+            } | null;
+            cityId: string | null;
+            title: string;
+            excerpt: string | null;
+            thumbnail: string | null;
+            categoryId: string | null;
+        }[];
+    } | {
+        resolved: {
+            kind: "category";
+            city: CityNode | null;
+            category: CategoryNode;
+            chain: CategoryNode[];
+            canonicalPath: string;
+        };
+        children: {
+            id: string;
+            slug: string;
+            name: string;
+            cityId: string | null;
+            parentId: string | null;
+            type: import(".prisma/client").$Enums.CategoryType;
+            level: import(".prisma/client").$Enums.CategoryLevel;
+        }[];
+        cityPills: never[];
+        posts: {
+            canonicalUrl: string;
+            id: string;
+            slug: string;
+            createdAt: Date;
+            city: {
+                id: string;
+                slug: string;
+                name: string;
+            } | null;
+            category: {
+                id: string;
+                slug: string;
+                name: string;
+                cityId: string | null;
+                parentId: string | null;
+                type: import(".prisma/client").$Enums.CategoryType;
+                level: import(".prisma/client").$Enums.CategoryLevel;
+                parent: {
+                    id: string;
+                    slug: string;
+                    name: string;
+                    cityId: string | null;
+                    parentId: string | null;
+                    type: import(".prisma/client").$Enums.CategoryType;
+                    level: import(".prisma/client").$Enums.CategoryLevel;
+                    parent: {
+                        id: string;
+                        slug: string;
+                        name: string;
+                        cityId: string | null;
+                        parentId: string | null;
+                        type: import(".prisma/client").$Enums.CategoryType;
+                        level: import(".prisma/client").$Enums.CategoryLevel;
+                        parent: {
+                            id: string;
+                            slug: string;
+                            name: string;
+                            cityId: string | null;
+                            parentId: string | null;
+                            type: import(".prisma/client").$Enums.CategoryType;
+                            level: import(".prisma/client").$Enums.CategoryLevel;
+                        } | null;
+                    } | null;
+                } | null;
+            } | null;
+            cityId: string | null;
+            title: string;
+            excerpt: string | null;
+            thumbnail: string | null;
+            categoryId: string | null;
+        }[];
+    }>;
     private loadCity;
     private loadPost;
 }
