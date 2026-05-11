@@ -1,62 +1,46 @@
-import { JwtService } from '@nestjs/jwt';
+import { SupabaseService } from '../supabase/supabase.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { MailService } from '../mail/mail.service';
 export declare class AuthService {
+    private supabase;
     private prisma;
-    private jwt;
-    private mailService;
-    constructor(prisma: PrismaService, jwt: JwtService, mailService: MailService);
+    constructor(supabase: SupabaseService, prisma: PrismaService);
     register(dto: RegisterDto): Promise<{
         message: string;
-        user: {
-            id: string;
-            email: string;
-            name: string | null;
-            role: import(".prisma/client").$Enums.Role;
-            isVerified: boolean;
-        };
     }>;
     login(dto: LoginDto): Promise<{
-        access_token: string;
-        message: string;
+        session: import("@supabase/supabase-js").AuthSession;
         user: {
             id: string;
             email: string;
             name: string | null;
             role: import(".prisma/client").$Enums.Role;
-            isVerified: true;
+            avatar: string | null;
         };
     }>;
-    getMe(userId: string): Promise<{
+    getMe(supabaseUserId: string): Promise<{
         id: string;
+        email: string;
         name: string | null;
-        createdAt: Date;
-        email: string;
+        avatar: string | null;
         role: import(".prisma/client").$Enums.Role;
-        isVerified: boolean;
+        createdAt: Date;
     }>;
-    verifyEmail(token: string): Promise<{
-        access_token: string;
-        message: string;
-        user: {
-            id: string;
-            email: string;
-            name: string | null;
-            role: import(".prisma/client").$Enums.Role;
-            isVerified: boolean;
-        };
+    refreshSession(refreshToken: string): Promise<import("@supabase/supabase-js").AuthSession>;
+    signOut(_accessToken: string): Promise<void>;
+    getOAuthUrl(provider: 'google'): Promise<{
+        url: string;
+        pkceState: string;
     }>;
-    resendVerification(email: string): Promise<{
-        message: string;
-    }>;
-    findOrCreateGoogleUser(data: {
+    handleOAuthCallback(code: string, pkceState: string): Promise<import("@supabase/supabase-js").AuthSession>;
+    upsertPrismaUser(supabaseId: string, email: string, name?: string, avatar?: string): Promise<{
+        id: string;
         email: string;
-        name: string;
-        avatar?: string;
-    }): Promise<{
-        access_token: string;
+        name: string | null;
+        avatar: string | null;
+        role: import(".prisma/client").$Enums.Role;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
-    private signToken;
 }

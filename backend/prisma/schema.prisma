@@ -9,18 +9,15 @@ datasource db {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  email          String    @unique
-  password       String
-  name           String?
-  role           Role      @default(user)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  isVerified     Boolean   @default(false)
-  verifyToken    String?
-  verifyTokenExp DateTime?
-  bookings       Booking[]
-  reviews        Review[]
+  id        String    @id              // Supabase auth.uid() (UUID)
+  email     String    @unique
+  name      String?
+  avatar    String?
+  role      Role      @default(user)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+  reviews   Review[]
 
   @@map("users")
 }

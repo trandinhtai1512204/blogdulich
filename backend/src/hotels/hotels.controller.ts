@@ -2,7 +2,7 @@ import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } f
 import { HotelsService } from './hotels.service';
 import { QueryHotelsDto } from './dto/query-hotels.dto';
 import { CreateHotelDto } from './dto/create-hotel.dto';
-import { AuthGuard } from '@nestjs/passport';
+import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 import { AdminGuard } from '../auth/roles.guard';
 
 @Controller('hotels')
@@ -21,19 +21,19 @@ export class HotelsController {
   }
 
   // Admin only
-  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @UseGuards(SupabaseAuthGuard, AdminGuard)
   @Post()
   create(@Body() dto: CreateHotelDto) {
     return this.hotelsService.create(dto);
   }
 
-  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @UseGuards(SupabaseAuthGuard, AdminGuard)
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: Partial<CreateHotelDto>) {
     return this.hotelsService.update(id, dto);
   }
 
-  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @UseGuards(SupabaseAuthGuard, AdminGuard)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.hotelsService.remove(id);

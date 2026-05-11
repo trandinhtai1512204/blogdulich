@@ -9,28 +9,26 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.JwtStrategy = void 0;
+exports.SupabaseService = void 0;
 const common_1 = require("@nestjs/common");
-const passport_1 = require("@nestjs/passport");
-const passport_jwt_1 = require("passport-jwt");
-let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy) {
+const supabase_js_1 = require("@supabase/supabase-js");
+if (!globalThis.WebSocket) {
+    const { WebSocket } = require('ws');
+    globalThis.WebSocket = WebSocket;
+}
+let SupabaseService = class SupabaseService {
+    anon;
+    admin;
     constructor() {
-        super({
-            jwtFromRequest: passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken(),
-            secretOrKey: process.env.JWT_SECRET,
-        });
-    }
-    async validate(payload) {
-        return {
-            sub: payload.sub,
-            email: payload.email,
-            role: payload.role,
-        };
+        const url = process.env.SUPABASE_URL;
+        const opts = { auth: { autoRefreshToken: false, persistSession: false } };
+        this.anon = (0, supabase_js_1.createClient)(url, process.env.SUPABASE_ANON_KEY, opts);
+        this.admin = (0, supabase_js_1.createClient)(url, process.env.SUPABASE_SERVICE_ROLE_KEY, opts);
     }
 };
-exports.JwtStrategy = JwtStrategy;
-exports.JwtStrategy = JwtStrategy = __decorate([
+exports.SupabaseService = SupabaseService;
+exports.SupabaseService = SupabaseService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [])
-], JwtStrategy);
-//# sourceMappingURL=jwt.strategy.js.map
+], SupabaseService);
+//# sourceMappingURL=supabase.service.js.map

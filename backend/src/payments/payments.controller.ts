@@ -3,7 +3,7 @@ import type { Request } from 'express';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from './payments.service';
-import { AuthGuard } from '@nestjs/passport';
+import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 import { MailService } from '../mail/mail.service';
 
 @Controller('payments')
@@ -16,7 +16,7 @@ export class PaymentsController {
     private mailService: MailService,
   ) {}
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(SupabaseAuthGuard)
   @Post('checkout/:bookingId')
   createCheckout(@Param('bookingId') bookingId: string, @Req() req: any) {
     return this.paymentsService.createCheckoutSession(bookingId, req.user.sub);

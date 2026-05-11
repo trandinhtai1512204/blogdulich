@@ -1,53 +1,37 @@
+import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import type { Response } from 'express';
 export declare class AuthController {
     private authService;
     constructor(authService: AuthService);
     register(dto: RegisterDto): Promise<{
         message: string;
-        user: {
-            id: string;
-            email: string;
-            name: string | null;
-            role: import(".prisma/client").$Enums.Role;
-            isVerified: boolean;
-        };
     }>;
-    login(dto: LoginDto): Promise<{
-        access_token: string;
+    login(dto: LoginDto, res: Response): Promise<{
         message: string;
         user: {
             id: string;
             email: string;
             name: string | null;
             role: import(".prisma/client").$Enums.Role;
-            isVerified: true;
+            avatar: string | null;
         };
     }>;
-    googleAuth(): void;
-    googleCallback(req: any, res: Response): void;
+    logout(req: Request, res: Response): Promise<{
+        message: string;
+    }>;
+    refresh(req: Request, res: Response): Promise<{
+        message: string;
+    }>;
     getMe(req: any): Promise<{
         id: string;
-        name: string | null;
-        createdAt: Date;
         email: string;
+        name: string | null;
+        avatar: string | null;
         role: import(".prisma/client").$Enums.Role;
-        isVerified: boolean;
+        createdAt: Date;
     }>;
-    verifyEmail(token: string): Promise<{
-        access_token: string;
-        message: string;
-        user: {
-            id: string;
-            email: string;
-            name: string | null;
-            role: import(".prisma/client").$Enums.Role;
-            isVerified: boolean;
-        };
-    }>;
-    resendVerification(email: string): Promise<{
-        message: string;
-    }>;
+    googleAuth(res: Response): Promise<void>;
+    oauthCallback(code: string, req: Request, res: Response): Promise<void>;
 }

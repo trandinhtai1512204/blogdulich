@@ -5,26 +5,27 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import api from '@/lib/axios';
 
+// Backend đã set httpOnly cookie và redirect về đây.
+// Chỉ cần fetch /auth/me để lấy user info vào store.
 export default function GoogleCallbackClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { setAuth } = useAuthStore();
+  const { setUser } = useAuthStore();
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    if (!token) {
-      router.push('/login');
+    const error = searchParams.get('error');
+    if (error) {
+      router.push('/login?error=oauth_failed');
       return;
     }
 
-    localStorage.setItem('token', token);
     api.get('/auth/me')
       .then((res) => {
-        setAuth(res.data, token);
+        setUser(res.data);
         router.push('/');
       })
       .catch(() => router.push('/login'));
-  }, [router, searchParams, setAuth]);
+  }, [router, searchParams, setUser]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -35,4 +36,3 @@ export default function GoogleCallbackClient() {
     </div>
   );
 }
-

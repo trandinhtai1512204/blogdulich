@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersController = void 0;
 const common_1 = require("@nestjs/common");
 const users_service_1 = require("./users.service");
-const passport_1 = require("@nestjs/passport");
+const supabase_auth_guard_1 = require("../auth/supabase-auth.guard");
 const roles_guard_1 = require("../auth/roles.guard");
 const class_validator_1 = require("class-validator");
 class UpdateRoleDto {
@@ -63,7 +63,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "updateRole", null);
 exports.UsersController = UsersController = __decorate([
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt'), roles_guard_1.AdminGuard),
+    (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard, roles_guard_1.AdminGuard),
     (0, common_1.Controller)('users'),
     __metadata("design:paramtypes", [users_service_1.UsersService])
 ], UsersController);

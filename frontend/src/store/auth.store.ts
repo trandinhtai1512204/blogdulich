@@ -1,34 +1,36 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import api from '@/lib/axios';
 
 interface User {
   id: string;
   email: string;
   name?: string;
   role: string;
+  avatar?: string;
 }
 
 interface AuthState {
   user: User | null;
-  token: string | null;
-  setAuth: (user: User, token: string) => void;
-  logout: () => void;
+  setUser: (user: User) => void;
+  clearUser: () => void;
+  logout: () => Promise<void>;  // ← thêm
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      token: null,
-      setAuth: (user, token) => {
-        localStorage.setItem('token', token);
-        set({ user, token });
-      },
-      logout: () => {
-        localStorage.removeItem('token');
-        set({ user: null, token: null });
-      },
+      setUser: (user) => set({ user }),
+      clearUser: () => set({ user: null }),
+      logout: async () => {
+  try {
+    await api.post('/auth/logout'); // axios instance đã có baseURL đúng
+  } catch (_) {}
+  set({ user: null });
+},
     }),
-    { name: 'auth-storage' }
+    { name: 'auth-user' }
   )
 );
+

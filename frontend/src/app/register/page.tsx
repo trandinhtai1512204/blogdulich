@@ -9,20 +9,21 @@ import { useAuthStore } from '@/store/auth.store';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { setAuth } = useAuthStore();
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
     try {
       const res = await api.post('/auth/register', form);
-      setAuth(res.data.user, res.data.access_token);
-      router.push('/');
+      // Supabase gửi email verify — không login ngay
+      setSuccess(res.data.message || 'Kiểm tra email để xác thực tài khoản!');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Đăng ký thất bại');
     } finally {
@@ -92,6 +93,12 @@ export default function RegisterPage() {
             {error && (
               <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl mb-6 text-sm flex items-center gap-2">
                 <span>⚠</span> {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="bg-green-50 border border-green-100 text-green-700 px-4 py-3 rounded-xl mb-6 text-sm">
+                {success}
               </div>
             )}
 

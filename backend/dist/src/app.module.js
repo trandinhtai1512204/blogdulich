@@ -8,8 +8,10 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
-const upload_module_1 = require("./upload/upload.module");
 const config_1 = require("@nestjs/config");
+const throttler_1 = require("@nestjs/throttler");
+const schedule_1 = require("@nestjs/schedule");
+const supabase_module_1 = require("./supabase/supabase.module");
 const prisma_module_1 = require("./prisma/prisma.module");
 const auth_module_1 = require("./auth/auth.module");
 const users_module_1 = require("./users/users.module");
@@ -18,8 +20,8 @@ const hotels_module_1 = require("./hotels/hotels.module");
 const posts_module_1 = require("./posts/posts.module");
 const bookings_module_1 = require("./bookings/bookings.module");
 const payments_module_1 = require("./payments/payments.module");
-const schedule_1 = require("@nestjs/schedule");
 const reviews_module_1 = require("./reviews/reviews.module");
+const upload_module_1 = require("./upload/upload.module");
 const mail_module_1 = require("./mail/mail.module");
 const categories_module_1 = require("./categories/categories.module");
 const taxonomy_module_1 = require("./taxonomy/taxonomy.module");
@@ -29,8 +31,10 @@ exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            schedule_1.ScheduleModule.forRoot(),
             config_1.ConfigModule.forRoot({ isGlobal: true }),
+            schedule_1.ScheduleModule.forRoot(),
+            throttler_1.ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+            supabase_module_1.SupabaseModule,
             prisma_module_1.PrismaModule,
             auth_module_1.AuthModule,
             users_module_1.UsersModule,

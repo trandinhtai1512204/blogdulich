@@ -1,6 +1,6 @@
 import { Controller, Get, Patch, Param, Body, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { AuthGuard } from '@nestjs/passport';
+import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 import { AdminGuard } from '../auth/roles.guard';
 import { IsEnum } from 'class-validator';
 
@@ -9,7 +9,7 @@ class UpdateRoleDto {
   role: 'admin' | 'user';
 }
 
-@UseGuards(AuthGuard('jwt'), AdminGuard)
+@UseGuards(SupabaseAuthGuard, AdminGuard)
 @Controller('users')
 export class UsersController {
   constructor(private usersService: UsersService) {}

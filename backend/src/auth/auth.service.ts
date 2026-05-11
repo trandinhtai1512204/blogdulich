@@ -3,190 +3,243 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { createClient } from '@supabase/supabase-js';
+import { SupabaseService } from '../supabase/supabase.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { MailService } from '../mail/mail.service';
-import * as bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
   constructor(
+    private supabase: SupabaseService,
     private prisma: PrismaService,
-    private jwt: JwtService,
-    private mailService: MailService,
   ) {}
 
   async register(dto: RegisterDto) {
-    const exists = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-    if (exists) throw new ConflictException('Email đã tồn tại');
-
-    const hashed = await bcrypt.hash(dto.password, 10);
-    const verifyToken = uuidv4();
-    const verifyTokenExp = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email,
-        password: hashed,
-        name: dto.name,
-        verifyToken,
-        verifyTokenExp,
-        isVerified: false,
-      },
-    });
-
-    const verifyUrl = `${process.env.CLIENT_URL}/verify-email?token=${verifyToken}`;
-
     try {
-      await this.mailService.sendVerificationEmail({
-        toEmail: user.email,
-        toName: user.name || 'Bạn',
-        verifyUrl,
+      const { data, error } = await this.supabase.anon.auth.signUp({
+        email: dto.email,
+        password: dto.password,
+        options: {
+          data: { name: dto.name },
+        },
       });
-    } catch (e) {
-      console.log('⚠️ Email failed:', e.message);
-    }
 
-    return {
-      message: 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        isVerified: user.isVerified,
-      },
-    };
+      if (error) {
+        if (error.message.includes('already registered')) {
+          throw new ConflictException('Email đã được đăng ký');
+        }
+        throw new BadRequestException(error.message);
+      }
+
+      // Upsert profile vào Prisma ngay khi đăng ký
+      if (data.user) {
+        await this.upsertPrismaUser(data.user.id, dto.email, dto.name);
+      }
+
+      return {
+        message: 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.',
+      };
+    } catch (err) {
+      if (err instanceof ConflictException || err instanceof BadRequestException) {
+        throw err;
+      }
+      throw new InternalServerErrorException('Lỗi đăng ký, vui lòng thử lại');
+    }
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-    if (!user) throw new UnauthorizedException('Email hoặc password không đúng');
+    try {
+      const { data, error } = await this.supabase.anon.auth.signInWithPassword({
+        email: dto.email,
+        password: dto.password,
+      });
 
-    const valid = await bcrypt.compare(dto.password, user.password);
-    if (!valid) throw new UnauthorizedException('Email hoặc password không đúng');
+      if (error) {
+        throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+      }
 
-    if (!user.isVerified) {
-      throw new UnauthorizedException('Vui lòng xác thực email trước khi đăng nhập');
+      if (!data.session) {
+        throw new UnauthorizedException('Không thể tạo session');
+      }
+
+      // Upsert Prisma user và lấy role từ DB
+      const prismaUser = await this.upsertPrismaUser(
+        data.user.id,
+        data.user.email!,
+        data.user.user_metadata?.name,
+        data.user.user_metadata?.avatar_url,
+      );
+
+      return {
+        session: data.session,
+        user: {
+          id: prismaUser.id,
+          email: prismaUser.email,
+          name: prismaUser.name,
+          role: prismaUser.role,   // role lấy từ Prisma, không trust JWT
+          avatar: prismaUser.avatar,
+        },
+      };
+    } catch (err) {
+      if (err instanceof UnauthorizedException) throw err;
+      throw new InternalServerErrorException('Lỗi đăng nhập, vui lòng thử lại');
     }
-
-    const token = this.signToken(user.id, user.email, user.role);
-    return {
-      message: 'Đăng nhập thành công',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        isVerified: user.isVerified,
-      },
-      ...token,
-    };
   }
 
-  async getMe(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        isVerified: true,
-        createdAt: true,
-      },
-    });
-    if (!user) throw new UnauthorizedException('User không tồn tại');
-    return user;
-  }
+  async getMe(supabaseUserId: string) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: supabaseUserId },
+        select: { id: true, email: true, name: true, role: true, avatar: true, createdAt: true },
+      });
 
-  async verifyEmail(token: string) {
-    const user = await this.prisma.user.findFirst({
-      where: { verifyToken: token },
-    });
-
-    if (!user) throw new BadRequestException('Token không hợp lệ');
-    if (user.verifyTokenExp && user.verifyTokenExp < new Date()) {
-      throw new BadRequestException('Token đã hết hạn, vui lòng gửi lại email xác thực');
+      if (!user) throw new UnauthorizedException('User không tồn tại');
+      return user;
+    } catch (err) {
+      if (err instanceof UnauthorizedException) throw err;
+      throw new InternalServerErrorException('Lỗi lấy thông tin user');
     }
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        isVerified: true,
-        verifyToken: null,
-        verifyTokenExp: null,
-      },
-    });
-
-    const tokenData = this.signToken(user.id, user.email, user.role);
-    return {
-      message: 'Xác thực email thành công!',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        isVerified: true,
-      },
-      ...tokenData,
-    };
   }
 
-  async resendVerification(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) throw new BadRequestException('Email không tồn tại');
-    if (user.isVerified) throw new BadRequestException('Email đã được xác thực rồi');
+  async refreshSession(refreshToken: string) {
+    try {
+      const { data, error } = await this.supabase.anon.auth.refreshSession({
+        refresh_token: refreshToken,
+      });
 
-    const verifyToken = uuidv4();
-    const verifyTokenExp = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      if (error || !data.session) {
+        throw new UnauthorizedException('Refresh token không hợp lệ hoặc đã hết hạn');
+      }
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { verifyToken, verifyTokenExp },
-    });
-
-    const verifyUrl = `${process.env.CLIENT_URL}/verify-email?token=${verifyToken}`;
-    await this.mailService.sendVerificationEmail({
-      toEmail: user.email,
-      toName: user.name || 'Bạn',
-      verifyUrl,
-    });
-
-    return { message: 'Đã gửi lại email xác thực!' };
-  }
-  async findOrCreateGoogleUser(data: { email: string; name: string; avatar?: string }) {
-  let user = await this.prisma.user.findUnique({ where: { email: data.email } });
- 
-  if (!user) {
-    user = await this.prisma.user.create({
-      data: {
-        email: data.email,
-        name: data.name,
-        password: '',           // Google user không cần password
-        isVerified: true,    // Google đã verify rồi
-      },
-    });
-  }
- 
-  return this.signToken(user.id, user.email, user.role);
+      return data.session;
+    } catch (err) {
+      if (err instanceof UnauthorizedException) throw err;
+      throw new InternalServerErrorException('Lỗi refresh token');
+    }
   }
 
-  private signToken(userId: string, email: string, role: string) {
-    const payload = { sub: userId, email, role };
-    const access_token = this.jwt.sign(payload, {
-      expiresIn: '7d',
-      secret: process.env.JWT_SECRET,
-    });
-    return { access_token };
+  // Cookie được clear ở controller, token Supabase tự hết hạn sau 1h
+  async signOut(_accessToken: string) {
+    // no-op: cookie clearing handled in controller
   }
 
+  // Tạo OAuth URL và trả về pkceState (base64 của storage snapshot) để lưu vào httpOnly cookie.
+  // Dùng fresh client per-request để tránh race condition khi nhiều user OAuth đồng thời.
+  async getOAuthUrl(provider: 'google'): Promise<{ url: string; pkceState: string }> {
+    try {
+      const pkceStore: Record<string, string> = {};
+      const storage = {
+        getItem: (key: string) => pkceStore[key] ?? null,
+        setItem: (key: string, value: string) => { pkceStore[key] = value; },
+        removeItem: (key: string) => { delete pkceStore[key]; },
+      };
+
+      const client = createClient(
+        process.env.SUPABASE_URL!,
+        process.env.SUPABASE_ANON_KEY!,
+        { auth: { storage, autoRefreshToken: false, persistSession: true, flowType: 'pkce', } },
+      );
+
+      const { data, error } = await client.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${process.env.BACKEND_URL}/api/auth/callback`,
+          queryParams: { access_type: 'offline', prompt: 'consent' },
+        },
+      });
+
+      if (error || !data.url) {
+        throw new InternalServerErrorException('Không thể tạo OAuth URL');
+      }
+
+      // Serialize toàn bộ PKCE storage để lưu vào httpOnly cookie
+      const pkceState = Buffer.from(JSON.stringify(pkceStore)).toString('base64');
+      return { url: data.url, pkceState };
+    } catch (err) {
+      if (err instanceof InternalServerErrorException) throw err;
+      throw new InternalServerErrorException('Lỗi khởi tạo Google OAuth');
+    }
+  }
+
+  // Khôi phục PKCE storage từ cookie, tạo fresh client, exchange code.
+  async handleOAuthCallback(code: string, pkceState: string) {
+    try {
+      const pkceStore: Record<string, string> = JSON.parse(
+        Buffer.from(pkceState, 'base64').toString(),
+      );
+
+      const storage = {
+        getItem: (key: string) => pkceStore[key] ?? null,
+        setItem: (key: string, value: string) => { pkceStore[key] = value; },
+        removeItem: (key: string) => { delete pkceStore[key]; },
+      };
+
+      const client = createClient(
+        process.env.SUPABASE_URL!,
+        process.env.SUPABASE_ANON_KEY!,
+        { auth: { storage, autoRefreshToken: false, persistSession: true, flowType: 'pkce', } },
+      );
+
+      const { data, error } = await client.auth.exchangeCodeForSession(code);
+
+      if (error || !data.session) {
+        throw new UnauthorizedException('OAuth callback thất bại');
+      }
+
+      await this.upsertPrismaUser(
+        data.user.id,
+        data.user.email!,
+        data.user.user_metadata?.full_name || data.user.user_metadata?.name,
+        data.user.user_metadata?.avatar_url,
+      );
+
+      return data.session;
+    } catch (err) {
+      if (err instanceof UnauthorizedException) throw err;
+      throw new InternalServerErrorException('Lỗi xử lý OAuth callback');
+    }
+  }
+
+  // Sync Supabase user vào Prisma, role luôn lấy từ DB
+  async upsertPrismaUser(
+    supabaseId: string,
+    email: string,
+    name?: string,
+    avatar?: string,
+  ) {
+    try {
+      return await this.prisma.user.upsert({
+        where: { id: supabaseId },
+        update: {
+          email,
+          ...(name && { name }),
+          ...(avatar && { avatar }),
+        },
+        create: {
+          id: supabaseId,
+          email,
+          name: name ?? null,
+          avatar: avatar ?? null,
+        },
+      });
+    } catch (err) {
+    // P2002: email tồn tại với Supabase ID khác
+    // (user đã đăng ký email/password, nay login Google cùng email)
+    if ((err as any)?.code === 'P2002') {
+      return await this.prisma.user.update({
+        where: { email },           // tìm theo email (unique)
+        data: {
+          id: supabaseId,           // cập nhật ID sang OAuth Supabase ID
+          ...(name && { name }),
+          ...(avatar && { avatar }),
+        },
+      });
+    }
+    throw new InternalServerErrorException('Lỗi đồng bộ user profile');
+  }
+  }
 }

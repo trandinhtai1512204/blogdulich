@@ -1,17 +1,17 @@
-// main.ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import * as bodyParser from 'body-parser';
+import cookieParser = require('cookie-parser');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // ✅ Phải đặt TRƯỚC mọi thứ khác
-  app.use(
-    '/api/payments/webhook',
-    bodyParser.raw({ type: 'application/json' }),
-  );
+  // Raw body cho Stripe webhook — phải đặt TRƯỚC mọi thứ
+  app.use('/api/payments/webhook', bodyParser.raw({ type: 'application/json' }));
+
+  // Cookie parser — cần cho httpOnly auth cookies
+  app.use(cookieParser());
 
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
@@ -29,7 +29,7 @@ async function bootstrap() {
 
   app.enableCors({
     origin: allowedOrigins,
-    credentials: true,
+    credentials: true,   // bắt buộc để cookie hoạt động cross-origin
   });
 
   app.setGlobalPrefix('api');

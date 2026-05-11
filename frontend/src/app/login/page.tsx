@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/auth.store';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setAuth } = useAuthStore();
+  const { setUser } = useAuthStore();
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -21,7 +21,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await api.post('/auth/login', form);
-      setAuth(res.data.user, res.data.access_token);
+      setUser(res.data.user); // cookie được backend set tự động
       router.push('/');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Đăng nhập thất bại');

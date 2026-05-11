@@ -16,7 +16,7 @@ exports.CitiesController = void 0;
 const common_1 = require("@nestjs/common");
 const cities_service_1 = require("./cities.service");
 const create_city_dto_1 = require("./dto/create-city.dto");
-const passport_1 = require("@nestjs/passport");
+const supabase_auth_guard_1 = require("../auth/supabase-auth.guard");
 const roles_guard_1 = require("../auth/roles.guard");
 let CitiesController = class CitiesController {
     citiesService;
@@ -54,7 +54,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], CitiesController.prototype, "findOne", null);
 __decorate([
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt'), roles_guard_1.AdminGuard),
+    (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard, roles_guard_1.AdminGuard),
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -62,7 +62,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], CitiesController.prototype, "create", null);
 __decorate([
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt'), roles_guard_1.AdminGuard),
+    (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard, roles_guard_1.AdminGuard),
     (0, common_1.Patch)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
@@ -71,7 +71,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], CitiesController.prototype, "update", null);
 __decorate([
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt'), roles_guard_1.AdminGuard),
+    (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard, roles_guard_1.AdminGuard),
     (0, common_1.Delete)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),

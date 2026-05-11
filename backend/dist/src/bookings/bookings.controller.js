@@ -16,7 +16,7 @@ exports.BookingsController = void 0;
 const common_1 = require("@nestjs/common");
 const bookings_service_1 = require("./bookings.service");
 const create_booking_dto_1 = require("./dto/create-booking.dto");
-const passport_1 = require("@nestjs/passport");
+const supabase_auth_guard_1 = require("../auth/supabase-auth.guard");
 let BookingsController = class BookingsController {
     bookingService;
     constructor(bookingService) {
@@ -34,7 +34,7 @@ let BookingsController = class BookingsController {
 };
 exports.BookingsController = BookingsController;
 __decorate([
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
+    (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard),
     (0, common_1.Post)(),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Body)()),
@@ -43,7 +43,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], BookingsController.prototype, "create", null);
 __decorate([
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
+    (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard),
     (0, common_1.Get)('my'),
     __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
@@ -51,7 +51,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], BookingsController.prototype, "getMyBookings", null);
 __decorate([
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
+    (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard),
     (0, common_1.Delete)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Req)()),

@@ -20,7 +20,7 @@ const common_1 = require("@nestjs/common");
 const stripe_1 = __importDefault(require("stripe"));
 const prisma_service_1 = require("../prisma/prisma.service");
 const payments_service_1 = require("./payments.service");
-const passport_1 = require("@nestjs/passport");
+const supabase_auth_guard_1 = require("../auth/supabase-auth.guard");
 const mail_service_1 = require("../mail/mail.service");
 let PaymentsController = class PaymentsController {
     prisma;
@@ -107,7 +107,7 @@ let PaymentsController = class PaymentsController {
 };
 exports.PaymentsController = PaymentsController;
 __decorate([
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
+    (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard),
     (0, common_1.Post)('checkout/:bookingId'),
     __param(0, (0, common_1.Param)('bookingId')),
     __param(1, (0, common_1.Req)()),

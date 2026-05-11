@@ -9,39 +9,37 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AdminGuard = void 0;
+exports.SupabaseAuthGuard = void 0;
 const common_1 = require("@nestjs/common");
-const prisma_service_1 = require("../prisma/prisma.service");
-let AdminGuard = class AdminGuard {
-    prisma;
-    constructor(prisma) {
-        this.prisma = prisma;
+const supabase_service_1 = require("../supabase/supabase.service");
+let SupabaseAuthGuard = class SupabaseAuthGuard {
+    supabase;
+    constructor(supabase) {
+        this.supabase = supabase;
     }
     async canActivate(context) {
         const request = context.switchToHttp().getRequest();
-        const supabaseId = request.user?.sub;
-        if (!supabaseId)
+        const accessToken = request.cookies?.access_token;
+        if (!accessToken)
             throw new common_1.UnauthorizedException('Chưa đăng nhập');
         try {
-            const user = await this.prisma.user.findUnique({
-                where: { id: supabaseId },
-                select: { role: true },
-            });
-            if (user?.role !== 'admin') {
-                throw new common_1.ForbiddenException('Chỉ admin mới có quyền này');
+            const { data, error } = await this.supabase.anon.auth.getUser(accessToken);
+            if (error || !data.user) {
+                throw new common_1.UnauthorizedException('Token không hợp lệ hoặc đã hết hạn');
             }
+            request.user = { sub: data.user.id, email: data.user.email };
             return true;
         }
         catch (err) {
-            if (err instanceof common_1.ForbiddenException || err instanceof common_1.UnauthorizedException)
+            if (err instanceof common_1.UnauthorizedException)
                 throw err;
-            throw new common_1.ForbiddenException('Không thể xác minh quyền admin');
+            throw new common_1.UnauthorizedException('Lỗi xác thực token');
         }
     }
 };
-exports.AdminGuard = AdminGuard;
-exports.AdminGuard = AdminGuard = __decorate([
+exports.SupabaseAuthGuard = SupabaseAuthGuard;
+exports.SupabaseAuthGuard = SupabaseAuthGuard = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
-], AdminGuard);
-//# sourceMappingURL=roles.guard.js.map
+    __metadata("design:paramtypes", [supabase_service_1.SupabaseService])
+], SupabaseAuthGuard);
+//# sourceMappingURL=supabase-auth.guard.js.map

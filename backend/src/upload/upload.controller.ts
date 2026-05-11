@@ -1,7 +1,7 @@
 import { Controller, Post, UploadedFile, UseInterceptors, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { AuthGuard } from '@nestjs/passport';
+import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 import { AdminGuard } from '../auth/roles.guard';
 import { v2 as cloudinary } from 'cloudinary';
 
@@ -13,7 +13,7 @@ cloudinary.config({
 
 @Controller('upload')
 export class UploadController {
-  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @UseGuards(SupabaseAuthGuard, AdminGuard)
   @Post('image')
   @UseInterceptors(FileInterceptor('file', {
     storage: memoryStorage(),

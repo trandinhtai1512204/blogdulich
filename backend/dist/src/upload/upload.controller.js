@@ -16,7 +16,7 @@ exports.UploadController = void 0;
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
 const multer_1 = require("multer");
-const passport_1 = require("@nestjs/passport");
+const supabase_auth_guard_1 = require("../auth/supabase-auth.guard");
 const roles_guard_1 = require("../auth/roles.guard");
 const cloudinary_1 = require("cloudinary");
 cloudinary_1.v2.config({
@@ -34,7 +34,7 @@ let UploadController = class UploadController {
 };
 exports.UploadController = UploadController;
 __decorate([
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt'), roles_guard_1.AdminGuard),
+    (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard, roles_guard_1.AdminGuard),
     (0, common_1.Post)('image'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
         storage: (0, multer_1.memoryStorage)(),

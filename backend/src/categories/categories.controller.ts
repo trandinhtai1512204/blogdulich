@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 import { AdminGuard } from '../auth/roles.guard';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -26,19 +26,19 @@ export class CategoriesController {
   }
 
   // Admin
-  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @UseGuards(SupabaseAuthGuard, AdminGuard)
   @Post()
   create(@Body() dto: CreateCategoryDto) {
     return this.categoriesService.create(dto);
   }
 
-  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @UseGuards(SupabaseAuthGuard, AdminGuard)
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: Partial<CreateCategoryDto>) {
     return this.categoriesService.update(id, dto);
   }
 
-  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @UseGuards(SupabaseAuthGuard, AdminGuard)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.categoriesService.remove(id);
