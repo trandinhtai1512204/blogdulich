@@ -3,10 +3,20 @@ services:
     name: blogdulich-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm install && npx prisma generate && npm run build
+    buildCommand: npm install --include=dev && npx prisma db execute --file prisma/add-community-posts.sql --schema prisma/schema.prisma && npx prisma generate && npm run build
     startCommand: npm run start:prod
     envVars:
       - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: BACKEND_URL
         sync: false
       - key: JWT_SECRET
         sync: false

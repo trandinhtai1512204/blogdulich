@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, BookOpen, Clock } from 'lucide-react';
+import { ArrowUpRight, BookOpen, ChevronLeft, ChevronRight, Clock, Mail, MapPin, Phone } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { HeroSection } from '@/components/HeroSection';
 import api from '@/lib/axios';
@@ -222,38 +222,84 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer className="mt-8 bg-gray-950 text-white/70">
-        <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-10 md:py-14">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-7 md:gap-12 mb-8 md:mb-10">
+      {/* Footer */}
+      <footer className="mt-10 border-t border-gray-200 bg-white">
+        <div className="mx-auto max-w-[1160px] px-4 py-10 md:px-6 md:py-12">
+          <div className="grid gap-9 md:grid-cols-[1.2fr_0.8fr_0.8fr_1fr]">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-full bg-linear-to-br from-violet-500 to-purple-700 flex items-center justify-center">
-                  <span className="text-white text-sm">✈</span>
+              <Link href="/" className="inline-flex items-center gap-2 group">
+                <div className="w-9 h-9 rounded-full bg-linear-to-br from-sky-500 to-blue-700 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform select-none">
+                  <span style={{ fontFamily: 'Georgia, serif', fontSize: '18px', fontWeight: 700, color: 'white', fontStyle: 'italic', lineHeight: 1 }}>B</span>
                 </div>
-                <span className="text-white text-lg font-bold">tripviet</span>
+                <span className="text-xl font-bold tracking-tight text-gray-950">blogdulich</span>
+              </Link>
+              <p className="mt-4 max-w-[300px] text-sm leading-6 text-gray-600">
+                Cẩm nang du lịch Việt Nam với điểm đến, lịch trình, review và kinh nghiệm thực tế cho từng chuyến đi.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {['Việt Nam', 'Review thật', 'Lịch trình gọn'].map((item) => (
+                  <span key={item} className="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
+                    {item}
+                  </span>
+                ))}
               </div>
-              <p className="text-sm leading-relaxed max-w-[220px]">Cách thông minh để khám phá Việt Nam.</p>
             </div>
-            {Object.entries({
-              'Công ty': ['Về chúng tôi', 'Tuyển dụng', 'Blog', 'Liên hệ'],
-              'Chuyên mục': ['Điểm đến', 'Lịch trình', 'Review', 'Kinh nghiệm'],
-              'Hỗ trợ': ['Trung tâm hỗ trợ', 'Chính sách hủy', 'An toàn', 'Liên hệ'],
-              'Pháp lý': ['Chính sách BM', 'Điều khoản', 'Cookie', 'Trợ năng'],
-            }).map(([section, links]) => (
-              <div key={section}>
-                <p className="text-white text-sm mb-4 font-semibold">{section}</p>
-                <ul className="space-y-2.5">
-                  {links.map((link) => (
-                    <li key={link}><a href="#" className="text-sm hover:text-white transition-colors">{link}</a></li>
-                  ))}
-                </ul>
+
+            <div>
+              <p className="mb-3 text-sm font-bold text-gray-950">Chuyên mục</p>
+              <ul className="space-y-2.5">
+                {[
+                  ['Điểm đến', '/diem-den'],
+                  ['Lịch trình', '/lich-trinh-du-lich'],
+                  ['Review', '/review'],
+                  ['Kinh nghiệm', '/kinh-nghiem'],
+                ].map(([label, href]) => (
+                  <li key={href}>
+                    <Link href={href} className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-sky-700 transition-colors">
+                      {label}
+                      <ArrowUpRight size={13} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="mb-3 text-sm font-bold text-gray-950">Khám phá</p>
+              <ul className="space-y-2.5">
+                {['Bài mới nhất', 'Cẩm nang theo mùa', 'Gợi ý cuối tuần', 'Địa điểm nổi bật'].map((item) => (
+                  <li key={item}>
+                    <a href="#" className="text-sm text-gray-600 hover:text-sky-700 transition-colors">{item}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="mb-3 text-sm font-bold text-gray-950">Liên hệ</p>
+              <div className="space-y-3 text-sm text-gray-600">
+                <p className="flex items-start gap-2">
+                  <MapPin size={16} className="mt-0.5 shrink-0 text-sky-700" />
+                  Việt Nam
+                </p>
+                <a href="mailto:hello@blogdulich.vn" className="flex items-center gap-2 hover:text-sky-700 transition-colors">
+                  <Mail size={16} className="shrink-0 text-sky-700" />
+                  hello@blogdulich.vn
+                </a>
+                <a href="tel:+84000000000" className="flex items-center gap-2 hover:text-sky-700 transition-colors">
+                  <Phone size={16} className="shrink-0 text-sky-700" />
+                  +84 000 000 000
+                </a>
               </div>
-            ))}
+            </div>
           </div>
-          <div className="border-t border-white/10 pt-5 md:pt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
-            <p className="text-xs">© 2026 BlogDuLich.vn. All rights reserved.</p>
-            <p className="text-xs">Việt Nam · VND</p>
+
+          <div className="mt-9 flex flex-col gap-3 border-t border-gray-200 pt-5 text-xs text-gray-500 md:flex-row md:items-center md:justify-between">
+            <p>© 2026 BlogDuLich.vn. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              <a href="#" className="hover:text-gray-900 transition-colors">Chính sách bảo mật</a>
+              <a href="#" className="hover:text-gray-900 transition-colors">Điều khoản</a>
+            </div>
           </div>
         </div>
       </footer>

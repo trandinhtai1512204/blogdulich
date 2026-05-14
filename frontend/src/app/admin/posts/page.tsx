@@ -8,9 +8,11 @@ import api from '@/lib/axios';
 interface Post {
   id: string; title: string; slug: string; content: string;
   excerpt?: string; thumbnail?: string; published: boolean;
+  status?: 'pending' | 'approved' | 'rejected';
   location?: string; latitude?: number; longitude?: number;
   cityId?: string; categoryId?: string; createdAt: string;
   city?: { id: string; name: string }; category?: { id: string; name: string };
+  author?: { id: string; name?: string | null; email?: string | null };
 }
 interface City { id: string; name: string; }
 interface Category {
@@ -65,7 +67,7 @@ export default function AdminPostsPage() {
     setLoading(true);
     try {
       // Admin needs to see unpublished too — using limit high enough
-      const res = await api.get(`/posts?page=${page}&limit=10`);
+      const res = await api.get(`/posts/admin?page=${page}&limit=10`);
       setPosts(res.data.data);
       setTotal(res.data.meta.total);
       setTotalPages(res.data.meta.totalPages);
@@ -144,7 +146,11 @@ export default function AdminPostsPage() {
   const togglePublish = async (post: Post) => {
     try {
       await api.patch(`/posts/${post.id}`, { published: !post.published });
-      setPosts((prev) => prev.map((p) => p.id === post.id ? { ...p, published: !post.published } : p));
+      setPosts((prev) => prev.map((p) => p.id === post.id ? {
+        ...p,
+        published: !post.published,
+        status: !post.published ? 'approved' : 'pending',
+      } : p));
     } catch (_e: unknown) { alert('Thất bại'); }
   };
 
@@ -287,6 +293,7 @@ export default function AdminPostsPage() {
                     <div>
                       <p className="font-semibold text-gray-800 text-sm max-w-[240px] truncate">{post.title}</p>
                       {post.excerpt && <p className="text-xs text-gray-400 max-w-[240px] truncate">{post.excerpt}</p>}
+                      {post.author && <p className="text-xs text-sky-600 max-w-[240px] truncate">Tác giả: {post.author.name || post.author.email || 'Người dùng'}</p>}
                     </div>
                   </div>
                 </td>
@@ -310,7 +317,7 @@ export default function AdminPostsPage() {
                         : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
                     }`}>
                     {post.published ? <Eye size={10} /> : <EyeOff size={10} />}
-                    {post.published ? 'Công khai' : 'Ẩn'}
+                    {post.published ? 'Công khai' : post.status === 'rejected' ? 'Từ chối' : 'Chờ duyệt'}
                   </button>
                 </td>
                 <td className="px-5 py-4">

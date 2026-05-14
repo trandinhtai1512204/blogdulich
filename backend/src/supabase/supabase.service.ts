@@ -1,23 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 
-// Polyfill WebSocket cho Node.js < 22
 if (!globalThis.WebSocket) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { WebSocket } = require('ws');
-  (globalThis as any).WebSocket = WebSocket;
+  (
+    globalThis as typeof globalThis & { WebSocket: typeof globalThis.WebSocket }
+  ).WebSocket = WebSocket as unknown as typeof globalThis.WebSocket;
 }
 
 @Injectable()
 export class SupabaseService {
-  readonly anon: SupabaseClient;
-  readonly admin: SupabaseClient;
+  readonly anon: ReturnType<typeof createClient>;
+  readonly admin: ReturnType<typeof createClient>;
 
   constructor() {
-    const url = process.env.SUPABASE_URL!;
+    const url = process.env.SUPABASE_URL;
+    const anonKey = process.env.SUPABASE_ANON_KEY;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !anonKey || !serviceRoleKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
+
     const opts = { auth: { autoRefreshToken: false, persistSession: false } };
 
-    this.anon = createClient(url, process.env.SUPABASE_ANON_KEY!, opts);
-    this.admin = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY!, opts);
+    this.anon = createClient(url, anonKey, opts);
+    this.admin = createClient(url, serviceRoleKey, opts);
   }
 }

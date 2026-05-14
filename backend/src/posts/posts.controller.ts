@@ -1,9 +1,25 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { PostsService } from './posts.service';
-import { CreatePostDto } from './dto/create-post.dto';
+import { CreatePostDto, SubmitPostDto } from './dto/create-post.dto';
 import { QueryPostsDto } from './dto/query-posts.dto';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 import { AdminGuard } from '../auth/roles.guard';
+import type { Request } from 'express';
+
+type AuthenticatedRequest = Request & {
+  user: { sub: string };
+};
 
 @Controller('posts')
 export class PostsController {
@@ -13,6 +29,27 @@ export class PostsController {
   @Get()
   findAll(@Query() query: QueryPostsDto) {
     return this.postsService.findAll(query);
+  }
+
+  @UseGuards(SupabaseAuthGuard)
+  @Post('community')
+  submitCommunityPost(
+    @Body() dto: SubmitPostDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.postsService.submitCommunityPost(dto, req.user.sub);
+  }
+
+  @UseGuards(SupabaseAuthGuard)
+  @Get('community/me')
+  findMyPosts(@Req() req: AuthenticatedRequest) {
+    return this.postsService.findByAuthor(req.user.sub);
+  }
+
+  @UseGuards(SupabaseAuthGuard, AdminGuard)
+  @Get('admin')
+  findAllForAdmin(@Query() query: QueryPostsDto) {
+    return this.postsService.findAllForAdmin(query);
   }
 
   @Get(':slug')

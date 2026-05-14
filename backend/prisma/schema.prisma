@@ -18,6 +18,7 @@ model User {
   updatedAt DateTime  @updatedAt
   bookings  Booking[]
   reviews   Review[]
+  posts     Post[]
 
   @@map("users")
 }
@@ -92,16 +93,21 @@ model Post {
   latitude   Float?
   longitude  Float?
   published  Boolean   @default(false)
+  status     PostStatus @default(pending)
+  authorId   String?
   cityId     String?
   categoryId String?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+  author     User?     @relation(fields: [authorId], references: [id])
   category   Category? @relation(fields: [categoryId], references: [id])
   city       City?     @relation(fields: [cityId], references: [id])
 
+  @@index([authorId])
   @@unique([categoryId, slug])
   @@index([cityId])
   @@index([categoryId])
+  @@index([status, createdAt(sort: Desc)])
   @@index([published, createdAt(sort: Desc)])
   @@index([categoryId, published, createdAt(sort: Desc)])
   @@map("posts")
@@ -190,4 +196,10 @@ enum CategoryLevel {
   SUBTYPE
   CITY
   SUB
+}
+
+enum PostStatus {
+  pending
+  approved
+  rejected
 }

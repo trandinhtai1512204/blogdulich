@@ -14,7 +14,7 @@ interface AuthState {
   user: User | null;
   setUser: (user: User) => void;
   clearUser: () => void;
-  logout: () => Promise<void>;  // ← thêm
+  logout: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -24,13 +24,20 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user) => set({ user }),
       clearUser: () => set({ user: null }),
       logout: async () => {
-  try {
-    await api.post('/auth/logout'); // axios instance đã có baseURL đúng
-  } catch (_) {}
-  set({ user: null });
-},
+        try {
+          await api.post('/auth/logout');
+        } catch {
+          // Cookie cleanup is best-effort; local state should still be cleared.
+        }
+        set({ user: null });
+      },
     }),
-    { name: 'auth-user' }
-  )
+    { name: 'auth-user' },
+  ),
 );
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('auth:logout', () => {
+    useAuthStore.getState().clearUser();
+  });
+}

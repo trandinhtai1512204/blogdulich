@@ -1,46 +1,65 @@
 import {
-  Controller,
-  Post,
-  Get,
   Body,
+  Controller,
+  Get,
+  Post,
+  Query,
   Req,
   Res,
-  UseGuards,
   UnauthorizedException,
-  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { SupabaseAuthGuard } from './supabase-auth.guard';
+
+type CookieBag = {
+  cookies?: Record<string, string | undefined>;
+};
+
+type AuthenticatedRequest = Request & {
+  user: { sub: string };
+};
+
+const sameSite: 'none' | 'lax' =
+  process.env.NODE_ENV === 'production' ? 'none' : 'lax';
+
+function getCookie(req: Request, name: string) {
+  const cookies = (req as unknown as CookieBag).cookies;
+  return cookies?.[name];
+}
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
+  sameSite,
   path: '/',
 };
 
-// Cookie lưu PKCE code_verifier giữa 2 request OAuth (GET /google → GET /callback).
-// Giới hạn path và TTL ngắn để giảm surface attack.
 const PKCE_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
+  sameSite,
   path: '/api/auth',
-  maxAge: 10 * 60 * 1000, // 10 phút
+  maxAge: 10 * 60 * 1000,
 };
 
-function setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
+function setAuthCookies(
+  res: Response,
+  accessToken: string,
+  refreshToken: string,
+  accessTokenExpiresInSeconds = 60 * 60,
+) {
   res.cookie('access_token', accessToken, {
     ...COOKIE_OPTIONS,
-    maxAge: 60 * 60 * 1000,          // 1 giờ
+    maxAge: accessTokenExpiresInSeconds * 1000,
   });
   res.cookie('refresh_token', refreshToken, {
     ...COOKIE_OPTIONS,
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 }
 
@@ -61,39 +80,62 @@ export class AuthController {
 
   @Post('login')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const { session, user } = await this.authService.login(dto);
-    setAuthCookies(res, session.access_token, session.refresh_token);
-    return { message: 'Đăng nhập thành công', user };
+    setAuthCookies(
+      res,
+      session.access_token,
+      session.refresh_token,
+      session.expires_in,
+    );
+    return { message: 'Dang nhap thanh cong', user };
   }
 
   @Post('logout')
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const accessToken = req.cookies?.access_token;
+    const accessToken = getCookie(req, 'access_token');
     if (accessToken) {
       await this.authService.signOut(accessToken);
     }
     clearAuthCookies(res);
-    return { message: 'Đăng xuất thành công' };
+    return { message: 'Dang xuat thanh cong' };
   }
 
   @Post('refresh')
-  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const refreshToken = req.cookies?.refresh_token;
-    if (!refreshToken) throw new UnauthorizedException('Không có refresh token');
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = getCookie(req, 'refresh_token');
+    if (!refreshToken) {
+      clearAuthCookies(res);
+      throw new UnauthorizedException('Khong co refresh token');
+    }
 
-    const session = await this.authService.refreshSession(refreshToken);
-    setAuthCookies(res, session.access_token, session.refresh_token);
-    return { message: 'Token đã được làm mới' };
+    try {
+      const session = await this.authService.refreshSession(refreshToken);
+      setAuthCookies(
+        res,
+        session.access_token,
+        session.refresh_token,
+        session.expires_in,
+      );
+      return { message: 'Token da duoc lam moi' };
+    } catch (err) {
+      clearAuthCookies(res);
+      throw err;
+    }
   }
 
   @Get('me')
   @UseGuards(SupabaseAuthGuard)
-  getMe(@Req() req: any) {
+  getMe(@Req() req: AuthenticatedRequest) {
     return this.authService.getMe(req.user.sub);
   }
 
-  // Tạo Supabase OAuth URL, lưu PKCE state vào httpOnly cookie rồi redirect
   @Get('google')
   async googleAuth(@Res() res: Response) {
     const { url, pkceState } = await this.authService.getOAuthUrl('google');
@@ -101,15 +143,13 @@ export class AuthController {
     res.redirect(url);
   }
 
-  // Supabase redirect về đây với ?code=xxx
-  // Dùng PKCE state từ cookie để exchange code an toàn
   @Get('callback')
   async oauthCallback(
     @Query('code') code: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const pkceState = req.cookies?.pkce_state;
+    const pkceState = getCookie(req, 'pkce_state');
     res.clearCookie('pkce_state', PKCE_COOKIE_OPTIONS);
 
     if (!code || !pkceState) {
@@ -117,11 +157,22 @@ export class AuthController {
     }
 
     try {
-      const session = await this.authService.handleOAuthCallback(code, pkceState);
-      setAuthCookies(res, session.access_token, session.refresh_token);
+      const session = await this.authService.handleOAuthCallback(
+        code,
+        pkceState,
+      );
+      setAuthCookies(
+        res,
+        session.access_token,
+        session.refresh_token,
+        session.expires_in,
+      );
       res.redirect(`${process.env.CLIENT_URL}/auth/google/callback`);
     } catch (err) {
-      console.log('[OAuth callback] ERROR:', err?.message || err);
+      console.log(
+        '[OAuth callback] ERROR:',
+        err instanceof Error ? err.message : err,
+      );
       res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
     }
   }
