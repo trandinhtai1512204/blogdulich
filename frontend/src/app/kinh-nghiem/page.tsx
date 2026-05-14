@@ -53,19 +53,15 @@ export default function ExperienceIndexPage() {
   useEffect(() => {
     Promise.all([
       api.get('/categories?type=experience'),
-      api.get('/posts?limit=200'),
+      api.get('/posts?type=experience&limit=10'),
     ]).then(([catRes, postRes]) => {
       const allCats: ExperienceCategory[] = catRes.data ?? [];
       const cityCats = allCats.filter((c) => c.slug !== 'kinh-nghiem-du-lich');
       setCategories(cityCats);
 
-      const expCatIds = new Set(allCats.map((c) => c.id));
-      const all: Post[] = postRes.data?.data ?? [];
-      const expPosts = all
-        .filter((p) => p.category?.id && expCatIds.has(p.category.id))
-        .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
-      setAllPosts(expPosts);
-      setFeaturedPosts(expPosts.slice(0, 6));
+      const posts: Post[] = postRes.data?.data ?? [];
+      setAllPosts(posts);
+      setFeaturedPosts(posts.slice(0, 6));
     }).catch(() => {});
   }, []);
 

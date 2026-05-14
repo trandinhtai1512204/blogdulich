@@ -16,26 +16,31 @@ exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const throttler_1 = require("@nestjs/throttler");
 const auth_service_1 = require("./auth.service");
-const register_dto_1 = require("./dto/register.dto");
 const login_dto_1 = require("./dto/login.dto");
+const register_dto_1 = require("./dto/register.dto");
 const supabase_auth_guard_1 = require("./supabase-auth.guard");
+const sameSite = process.env.NODE_ENV === 'production' ? 'none' : 'lax';
+function getCookie(req, name) {
+    const cookies = req.cookies;
+    return cookies?.[name];
+}
 const COOKIE_OPTIONS = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite,
     path: '/',
 };
 const PKCE_COOKIE_OPTIONS = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite,
     path: '/api/auth',
     maxAge: 10 * 60 * 1000,
 };
-function setAuthCookies(res, accessToken, refreshToken) {
+function setAuthCookies(res, accessToken, refreshToken, accessTokenExpiresInSeconds = 60 * 60) {
     res.cookie('access_token', accessToken, {
         ...COOKIE_OPTIONS,
-        maxAge: 60 * 60 * 1000,
+        maxAge: accessTokenExpiresInSeconds * 1000,
     });
     res.cookie('refresh_token', refreshToken, {
         ...COOKIE_OPTIONS,
@@ -56,24 +61,32 @@ let AuthController = class AuthController {
     }
     async login(dto, res) {
         const { session, user } = await this.authService.login(dto);
-        setAuthCookies(res, session.access_token, session.refresh_token);
-        return { message: 'Đăng nhập thành công', user };
+        setAuthCookies(res, session.access_token, session.refresh_token, session.expires_in);
+        return { message: 'Dang nhap thanh cong', user };
     }
     async logout(req, res) {
-        const accessToken = req.cookies?.access_token;
+        const accessToken = getCookie(req, 'access_token');
         if (accessToken) {
             await this.authService.signOut(accessToken);
         }
         clearAuthCookies(res);
-        return { message: 'Đăng xuất thành công' };
+        return { message: 'Dang xuat thanh cong' };
     }
     async refresh(req, res) {
-        const refreshToken = req.cookies?.refresh_token;
-        if (!refreshToken)
-            throw new common_1.UnauthorizedException('Không có refresh token');
-        const session = await this.authService.refreshSession(refreshToken);
-        setAuthCookies(res, session.access_token, session.refresh_token);
-        return { message: 'Token đã được làm mới' };
+        const refreshToken = getCookie(req, 'refresh_token');
+        if (!refreshToken) {
+            clearAuthCookies(res);
+            throw new common_1.UnauthorizedException('Khong co refresh token');
+        }
+        try {
+            const session = await this.authService.refreshSession(refreshToken);
+            setAuthCookies(res, session.access_token, session.refresh_token, session.expires_in);
+            return { message: 'Token da duoc lam moi' };
+        }
+        catch (err) {
+            clearAuthCookies(res);
+            throw err;
+        }
     }
     getMe(req) {
         return this.authService.getMe(req.user.sub);
@@ -84,18 +97,18 @@ let AuthController = class AuthController {
         res.redirect(url);
     }
     async oauthCallback(code, req, res) {
-        const pkceState = req.cookies?.pkce_state;
+        const pkceState = getCookie(req, 'pkce_state');
         res.clearCookie('pkce_state', PKCE_COOKIE_OPTIONS);
         if (!code || !pkceState) {
             return res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
         }
         try {
             const session = await this.authService.handleOAuthCallback(code, pkceState);
-            setAuthCookies(res, session.access_token, session.refresh_token);
+            setAuthCookies(res, session.access_token, session.refresh_token, session.expires_in);
             res.redirect(`${process.env.CLIENT_URL}/auth/google/callback`);
         }
         catch (err) {
-            console.log('[OAuth callback] ERROR:', err?.message || err);
+            console.log('[OAuth callback] ERROR:', err instanceof Error ? err.message : err);
             res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
         }
     }

@@ -8,22 +8,22 @@ export declare class HotelsController {
         data: ({
             city: {
                 id: string;
-                slug: string;
                 name: string;
+                slug: string;
+                createdAt: Date;
                 country: string;
                 image: string | null;
                 description: string | null;
-                createdAt: Date;
                 updatedAt: Date;
             };
         } & {
             id: string;
-            slug: string;
             name: string;
-            description: string | null;
+            slug: string;
             createdAt: Date;
-            updatedAt: Date;
             cityId: string;
+            description: string | null;
+            updatedAt: Date;
             address: string;
             price: number;
             images: string[];
@@ -39,22 +39,22 @@ export declare class HotelsController {
     findOne(slug: string): Promise<{
         city: {
             id: string;
-            slug: string;
             name: string;
+            slug: string;
+            createdAt: Date;
             country: string;
             image: string | null;
             description: string | null;
-            createdAt: Date;
             updatedAt: Date;
         };
     } & {
         id: string;
-        slug: string;
         name: string;
-        description: string | null;
+        slug: string;
         createdAt: Date;
-        updatedAt: Date;
         cityId: string;
+        description: string | null;
+        updatedAt: Date;
         address: string;
         price: number;
         images: string[];
@@ -62,12 +62,12 @@ export declare class HotelsController {
     }>;
     create(dto: CreateHotelDto): import(".prisma/client").Prisma.Prisma__HotelClient<{
         id: string;
-        slug: string;
         name: string;
-        description: string | null;
+        slug: string;
         createdAt: Date;
-        updatedAt: Date;
         cityId: string;
+        description: string | null;
+        updatedAt: Date;
         address: string;
         price: number;
         images: string[];
@@ -75,12 +75,12 @@ export declare class HotelsController {
     }, never, import("@prisma/client/runtime/library").DefaultArgs>;
     update(id: string, dto: Partial<CreateHotelDto>): Promise<{
         id: string;
-        slug: string;
         name: string;
-        description: string | null;
+        slug: string;
         createdAt: Date;
-        updatedAt: Date;
         cityId: string;
+        description: string | null;
+        updatedAt: Date;
         address: string;
         price: number;
         images: string[];
@@ -88,12 +88,12 @@ export declare class HotelsController {
     }>;
     remove(id: string): Promise<{
         id: string;
-        slug: string;
         name: string;
-        description: string | null;
+        slug: string;
         createdAt: Date;
-        updatedAt: Date;
         cityId: string;
+        description: string | null;
+        updatedAt: Date;
         address: string;
         price: number;
         images: string[];

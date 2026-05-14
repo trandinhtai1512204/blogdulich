@@ -20,4 +20,8 @@ export class QueryPostsDto {
   @IsOptional()
   @IsString()
   limit?: string;
+
+  @IsOptional()
+  @IsString()
+  type?: string;
 }

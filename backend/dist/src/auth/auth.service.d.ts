@@ -21,11 +21,11 @@ export declare class AuthService {
     }>;
     getMe(supabaseUserId: string): Promise<{
         id: string;
-        email: string;
         name: string | null;
+        createdAt: Date;
+        email: string;
         avatar: string | null;
         role: import(".prisma/client").$Enums.Role;
-        createdAt: Date;
     }>;
     refreshSession(refreshToken: string): Promise<import("@supabase/supabase-js").AuthSession>;
     signOut(_accessToken: string): Promise<void>;
@@ -36,11 +36,11 @@ export declare class AuthService {
     handleOAuthCallback(code: string, pkceState: string): Promise<import("@supabase/supabase-js").AuthSession>;
     upsertPrismaUser(supabaseId: string, email: string, name?: string, avatar?: string): Promise<{
         id: string;
-        email: string;
         name: string | null;
-        avatar: string | null;
-        role: import(".prisma/client").$Enums.Role;
         createdAt: Date;
         updatedAt: Date;
+        email: string;
+        avatar: string | null;
+        role: import(".prisma/client").$Enums.Role;
     }>;
 }

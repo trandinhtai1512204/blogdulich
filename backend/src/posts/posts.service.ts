@@ -29,7 +29,7 @@ export class PostsService {
   }
 
   async findAll(query: QueryPostsDto) {
-    const { cityId, categoryId, search, page = '1', limit = '10' } = query;
+    const { cityId, categoryId, search, page = '1', limit = '10', type } = query;
 
     const pageNumber = parseInt(page);
     const limitNumber = parseInt(limit);
@@ -37,6 +37,7 @@ export class PostsService {
 
     if (cityId) where.cityId = cityId;
     if (categoryId) where.categoryId = categoryId;
+    if (type) where.category = { type: type as any };
     if (search) {
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },

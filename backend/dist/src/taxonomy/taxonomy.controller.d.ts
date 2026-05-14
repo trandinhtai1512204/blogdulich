@@ -112,8 +112,8 @@ export declare class TaxonomyController {
         };
         children: {
             id: string;
-            slug: string;
             name: string;
+            slug: string;
             cityId: string | null;
             parentId: string | null;
             type: import(".prisma/client").$Enums.CategoryType;
@@ -122,42 +122,34 @@ export declare class TaxonomyController {
         cityPills: never[];
         posts: {
             canonicalUrl: string;
-            id: string;
-            slug: string;
-            createdAt: Date;
-            city: {
-                id: string;
-                slug: string;
-                name: string;
-            } | null;
             category: {
                 id: string;
-                slug: string;
                 name: string;
+                slug: string;
                 cityId: string | null;
                 parentId: string | null;
                 type: import(".prisma/client").$Enums.CategoryType;
                 level: import(".prisma/client").$Enums.CategoryLevel;
                 parent: {
                     id: string;
-                    slug: string;
                     name: string;
+                    slug: string;
                     cityId: string | null;
                     parentId: string | null;
                     type: import(".prisma/client").$Enums.CategoryType;
                     level: import(".prisma/client").$Enums.CategoryLevel;
                     parent: {
                         id: string;
-                        slug: string;
                         name: string;
+                        slug: string;
                         cityId: string | null;
                         parentId: string | null;
                         type: import(".prisma/client").$Enums.CategoryType;
                         level: import(".prisma/client").$Enums.CategoryLevel;
                         parent: {
                             id: string;
-                            slug: string;
                             name: string;
+                            slug: string;
                             cityId: string | null;
                             parentId: string | null;
                             type: import(".prisma/client").$Enums.CategoryType;
@@ -166,7 +158,15 @@ export declare class TaxonomyController {
                     } | null;
                 } | null;
             } | null;
+            id: string;
+            slug: string;
+            createdAt: Date;
             cityId: string | null;
+            city: {
+                id: string;
+                name: string;
+                slug: string;
+            } | null;
             title: string;
             excerpt: string | null;
             thumbnail: string | null;
@@ -203,47 +203,39 @@ export declare class TaxonomyController {
         children: never[];
         cityPills: {
             id: string;
-            slug: string;
             name: string;
+            slug: string;
         }[];
         posts: {
             canonicalUrl: string;
-            id: string;
-            slug: string;
-            createdAt: Date;
-            city: {
-                id: string;
-                slug: string;
-                name: string;
-            } | null;
             category: {
                 id: string;
-                slug: string;
                 name: string;
+                slug: string;
                 cityId: string | null;
                 parentId: string | null;
                 type: import(".prisma/client").$Enums.CategoryType;
                 level: import(".prisma/client").$Enums.CategoryLevel;
                 parent: {
                     id: string;
-                    slug: string;
                     name: string;
+                    slug: string;
                     cityId: string | null;
                     parentId: string | null;
                     type: import(".prisma/client").$Enums.CategoryType;
                     level: import(".prisma/client").$Enums.CategoryLevel;
                     parent: {
                         id: string;
-                        slug: string;
                         name: string;
+                        slug: string;
                         cityId: string | null;
                         parentId: string | null;
                         type: import(".prisma/client").$Enums.CategoryType;
                         level: import(".prisma/client").$Enums.CategoryLevel;
                         parent: {
                             id: string;
-                            slug: string;
                             name: string;
+                            slug: string;
                             cityId: string | null;
                             parentId: string | null;
                             type: import(".prisma/client").$Enums.CategoryType;
@@ -252,7 +244,15 @@ export declare class TaxonomyController {
                     } | null;
                 } | null;
             } | null;
+            id: string;
+            slug: string;
+            createdAt: Date;
             cityId: string | null;
+            city: {
+                id: string;
+                name: string;
+                slug: string;
+            } | null;
             title: string;
             excerpt: string | null;
             thumbnail: string | null;
@@ -288,8 +288,8 @@ export declare class TaxonomyController {
         };
         children: {
             id: string;
-            slug: string;
             name: string;
+            slug: string;
             cityId: string | null;
             parentId: string | null;
             type: import(".prisma/client").$Enums.CategoryType;
@@ -298,42 +298,34 @@ export declare class TaxonomyController {
         cityPills: never[];
         posts: {
             canonicalUrl: string;
-            id: string;
-            slug: string;
-            createdAt: Date;
-            city: {
-                id: string;
-                slug: string;
-                name: string;
-            } | null;
             category: {
                 id: string;
-                slug: string;
                 name: string;
+                slug: string;
                 cityId: string | null;
                 parentId: string | null;
                 type: import(".prisma/client").$Enums.CategoryType;
                 level: import(".prisma/client").$Enums.CategoryLevel;
                 parent: {
                     id: string;
-                    slug: string;
                     name: string;
+                    slug: string;
                     cityId: string | null;
                     parentId: string | null;
                     type: import(".prisma/client").$Enums.CategoryType;
                     level: import(".prisma/client").$Enums.CategoryLevel;
                     parent: {
                         id: string;
-                        slug: string;
                         name: string;
+                        slug: string;
                         cityId: string | null;
                         parentId: string | null;
                         type: import(".prisma/client").$Enums.CategoryType;
                         level: import(".prisma/client").$Enums.CategoryLevel;
                         parent: {
                             id: string;
-                            slug: string;
                             name: string;
+                            slug: string;
                             cityId: string | null;
                             parentId: string | null;
                             type: import(".prisma/client").$Enums.CategoryType;
@@ -342,7 +334,15 @@ export declare class TaxonomyController {
                     } | null;
                 } | null;
             } | null;
+            id: string;
+            slug: string;
+            createdAt: Date;
             cityId: string | null;
+            city: {
+                id: string;
+                name: string;
+                slug: string;
+            } | null;
             title: string;
             excerpt: string | null;
             thumbnail: string | null;

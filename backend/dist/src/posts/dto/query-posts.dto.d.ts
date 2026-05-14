@@ -4,4 +4,5 @@ export declare class QueryPostsDto {
     search?: string;
     page?: string;
     limit?: string;
+    type?: string;
 }

@@ -63,8 +63,8 @@ export declare class TaxonomyService {
         };
         children: {
             id: string;
-            slug: string;
             name: string;
+            slug: string;
             cityId: string | null;
             parentId: string | null;
             type: import(".prisma/client").$Enums.CategoryType;
@@ -73,42 +73,34 @@ export declare class TaxonomyService {
         cityPills: never[];
         posts: {
             canonicalUrl: string;
-            id: string;
-            slug: string;
-            createdAt: Date;
-            city: {
-                id: string;
-                slug: string;
-                name: string;
-            } | null;
             category: {
                 id: string;
-                slug: string;
                 name: string;
+                slug: string;
                 cityId: string | null;
                 parentId: string | null;
                 type: import(".prisma/client").$Enums.CategoryType;
                 level: import(".prisma/client").$Enums.CategoryLevel;
                 parent: {
                     id: string;
-                    slug: string;
                     name: string;
+                    slug: string;
                     cityId: string | null;
                     parentId: string | null;
                     type: import(".prisma/client").$Enums.CategoryType;
                     level: import(".prisma/client").$Enums.CategoryLevel;
                     parent: {
                         id: string;
-                        slug: string;
                         name: string;
+                        slug: string;
                         cityId: string | null;
                         parentId: string | null;
                         type: import(".prisma/client").$Enums.CategoryType;
                         level: import(".prisma/client").$Enums.CategoryLevel;
                         parent: {
                             id: string;
-                            slug: string;
                             name: string;
+                            slug: string;
                             cityId: string | null;
                             parentId: string | null;
                             type: import(".prisma/client").$Enums.CategoryType;
@@ -117,7 +109,15 @@ export declare class TaxonomyService {
                     } | null;
                 } | null;
             } | null;
+            id: string;
+            slug: string;
+            createdAt: Date;
             cityId: string | null;
+            city: {
+                id: string;
+                name: string;
+                slug: string;
+            } | null;
             title: string;
             excerpt: string | null;
             thumbnail: string | null;
@@ -134,47 +134,39 @@ export declare class TaxonomyService {
         children: never[];
         cityPills: {
             id: string;
-            slug: string;
             name: string;
+            slug: string;
         }[];
         posts: {
             canonicalUrl: string;
-            id: string;
-            slug: string;
-            createdAt: Date;
-            city: {
-                id: string;
-                slug: string;
-                name: string;
-            } | null;
             category: {
                 id: string;
-                slug: string;
                 name: string;
+                slug: string;
                 cityId: string | null;
                 parentId: string | null;
                 type: import(".prisma/client").$Enums.CategoryType;
                 level: import(".prisma/client").$Enums.CategoryLevel;
                 parent: {
                     id: string;
-                    slug: string;
                     name: string;
+                    slug: string;
                     cityId: string | null;
                     parentId: string | null;
                     type: import(".prisma/client").$Enums.CategoryType;
                     level: import(".prisma/client").$Enums.CategoryLevel;
                     parent: {
                         id: string;
-                        slug: string;
                         name: string;
+                        slug: string;
                         cityId: string | null;
                         parentId: string | null;
                         type: import(".prisma/client").$Enums.CategoryType;
                         level: import(".prisma/client").$Enums.CategoryLevel;
                         parent: {
                             id: string;
-                            slug: string;
                             name: string;
+                            slug: string;
                             cityId: string | null;
                             parentId: string | null;
                             type: import(".prisma/client").$Enums.CategoryType;
@@ -183,7 +175,15 @@ export declare class TaxonomyService {
                     } | null;
                 } | null;
             } | null;
+            id: string;
+            slug: string;
+            createdAt: Date;
             cityId: string | null;
+            city: {
+                id: string;
+                name: string;
+                slug: string;
+            } | null;
             title: string;
             excerpt: string | null;
             thumbnail: string | null;
@@ -199,8 +199,8 @@ export declare class TaxonomyService {
         };
         children: {
             id: string;
-            slug: string;
             name: string;
+            slug: string;
             cityId: string | null;
             parentId: string | null;
             type: import(".prisma/client").$Enums.CategoryType;
@@ -209,42 +209,34 @@ export declare class TaxonomyService {
         cityPills: never[];
         posts: {
             canonicalUrl: string;
-            id: string;
-            slug: string;
-            createdAt: Date;
-            city: {
-                id: string;
-                slug: string;
-                name: string;
-            } | null;
             category: {
                 id: string;
-                slug: string;
                 name: string;
+                slug: string;
                 cityId: string | null;
                 parentId: string | null;
                 type: import(".prisma/client").$Enums.CategoryType;
                 level: import(".prisma/client").$Enums.CategoryLevel;
                 parent: {
                     id: string;
-                    slug: string;
                     name: string;
+                    slug: string;
                     cityId: string | null;
                     parentId: string | null;
                     type: import(".prisma/client").$Enums.CategoryType;
                     level: import(".prisma/client").$Enums.CategoryLevel;
                     parent: {
                         id: string;
-                        slug: string;
                         name: string;
+                        slug: string;
                         cityId: string | null;
                         parentId: string | null;
                         type: import(".prisma/client").$Enums.CategoryType;
                         level: import(".prisma/client").$Enums.CategoryLevel;
                         parent: {
                             id: string;
-                            slug: string;
                             name: string;
+                            slug: string;
                             cityId: string | null;
                             parentId: string | null;
                             type: import(".prisma/client").$Enums.CategoryType;
@@ -253,7 +245,15 @@ export declare class TaxonomyService {
                     } | null;
                 } | null;
             } | null;
+            id: string;
+            slug: string;
+            createdAt: Date;
             cityId: string | null;
+            city: {
+                id: string;
+                name: string;
+                slug: string;
+            } | null;
             title: string;
             excerpt: string | null;
             thumbnail: string | null;

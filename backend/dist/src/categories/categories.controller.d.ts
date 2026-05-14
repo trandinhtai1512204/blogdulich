@@ -6,8 +6,8 @@ export declare class CategoriesController {
     constructor(categoriesService: CategoriesService);
     findAll(query: QueryCategoriesDto): Promise<{
         id: string;
-        slug: string;
         name: string;
+        slug: string;
         createdAt: Date;
         cityId: string | null;
         parentId: string | null;
@@ -16,8 +16,8 @@ export declare class CategoriesController {
     }[]>;
     bootstrapRoots(): Promise<{
         id: string;
-        slug: string;
         name: string;
+        slug: string;
         createdAt: Date;
         cityId: string | null;
         parentId: string | null;
@@ -27,18 +27,18 @@ export declare class CategoriesController {
     findOne(slug: string): Promise<{
         city: {
             id: string;
-            slug: string;
             name: string;
+            slug: string;
+            createdAt: Date;
             country: string;
             image: string | null;
             description: string | null;
-            createdAt: Date;
             updatedAt: Date;
         } | null;
         parent: {
             id: string;
-            slug: string;
             name: string;
+            slug: string;
             createdAt: Date;
             cityId: string | null;
             parentId: string | null;
@@ -47,8 +47,8 @@ export declare class CategoriesController {
         } | null;
         children: {
             id: string;
-            slug: string;
             name: string;
+            slug: string;
             createdAt: Date;
             cityId: string | null;
             parentId: string | null;
@@ -57,8 +57,8 @@ export declare class CategoriesController {
         }[];
     } & {
         id: string;
-        slug: string;
         name: string;
+        slug: string;
         createdAt: Date;
         cityId: string | null;
         parentId: string | null;
@@ -67,8 +67,8 @@ export declare class CategoriesController {
     }>;
     create(dto: CreateCategoryDto): Promise<{
         id: string;
-        slug: string;
         name: string;
+        slug: string;
         createdAt: Date;
         cityId: string | null;
         parentId: string | null;
@@ -77,8 +77,8 @@ export declare class CategoriesController {
     }>;
     update(id: string, dto: Partial<CreateCategoryDto>): Promise<{
         id: string;
-        slug: string;
         name: string;
+        slug: string;
         createdAt: Date;
         cityId: string | null;
         parentId: string | null;
@@ -87,8 +87,8 @@ export declare class CategoriesController {
     }>;
     remove(id: string): Promise<{
         id: string;
-        slug: string;
         name: string;
+        slug: string;
         createdAt: Date;
         cityId: string | null;
         parentId: string | null;

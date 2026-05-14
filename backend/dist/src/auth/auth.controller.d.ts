@@ -1,7 +1,12 @@
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
+type AuthenticatedRequest = Request & {
+    user: {
+        sub: string;
+    };
+};
 export declare class AuthController {
     private authService;
     constructor(authService: AuthService);
@@ -24,14 +29,15 @@ export declare class AuthController {
     refresh(req: Request, res: Response): Promise<{
         message: string;
     }>;
-    getMe(req: any): Promise<{
+    getMe(req: AuthenticatedRequest): Promise<{
         id: string;
-        email: string;
         name: string | null;
+        createdAt: Date;
+        email: string;
         avatar: string | null;
         role: import(".prisma/client").$Enums.Role;
-        createdAt: Date;
     }>;
     googleAuth(res: Response): Promise<void>;
     oauthCallback(code: string, req: Request, res: Response): Promise<void>;
 }
+export {};

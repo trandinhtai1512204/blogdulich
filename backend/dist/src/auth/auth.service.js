@@ -98,7 +98,7 @@ let AuthService = class AuthService {
     }
     async refreshSession(refreshToken) {
         try {
-            const { data, error } = await this.supabase.anon.auth.refreshSession({
+            const { data, error } = await this.supabase.admin.auth.refreshSession({
                 refresh_token: refreshToken,
             });
             if (error || !data.session) {

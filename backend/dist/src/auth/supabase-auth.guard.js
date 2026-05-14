@@ -12,6 +12,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabaseAuthGuard = void 0;
 const common_1 = require("@nestjs/common");
 const supabase_service_1 = require("../supabase/supabase.service");
+function getCookie(req, name) {
+    const cookies = req.cookies;
+    return cookies?.[name];
+}
 let SupabaseAuthGuard = class SupabaseAuthGuard {
     supabase;
     constructor(supabase) {
@@ -19,13 +23,13 @@ let SupabaseAuthGuard = class SupabaseAuthGuard {
     }
     async canActivate(context) {
         const request = context.switchToHttp().getRequest();
-        const accessToken = request.cookies?.access_token;
+        const accessToken = getCookie(request, 'access_token');
         if (!accessToken)
-            throw new common_1.UnauthorizedException('Chưa đăng nhập');
+            throw new common_1.UnauthorizedException('Chua dang nhap');
         try {
-            const { data, error } = await this.supabase.anon.auth.getUser(accessToken);
+            const { data, error } = await this.supabase.admin.auth.getUser(accessToken);
             if (error || !data.user) {
-                throw new common_1.UnauthorizedException('Token không hợp lệ hoặc đã hết hạn');
+                throw new common_1.UnauthorizedException('Token khong hop le hoac da het han');
             }
             request.user = { sub: data.user.id, email: data.user.email };
             return true;
@@ -33,7 +37,7 @@ let SupabaseAuthGuard = class SupabaseAuthGuard {
         catch (err) {
             if (err instanceof common_1.UnauthorizedException)
                 throw err;
-            throw new common_1.UnauthorizedException('Lỗi xác thực token');
+            throw new common_1.UnauthorizedException('Loi xac thuc token');
         }
     }
 };

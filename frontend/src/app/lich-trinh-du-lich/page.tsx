@@ -53,19 +53,15 @@ export default function ItinerariesIndexPage() {
   useEffect(() => {
     Promise.all([
       api.get('/categories?type=itinerary'),
-      api.get('/posts?limit=200'),
+      api.get('/posts?type=itinerary&limit=10'),
     ]).then(([catRes, postRes]) => {
       const allCats: ItineraryCategory[] = catRes.data ?? [];
       const cityCats = allCats.filter((c) => c.slug !== 'lich-trinh-du-lich');
       setCategories(cityCats);
 
-      const itineraryCatIds = new Set(allCats.map((c) => c.id));
-      const all: Post[] = postRes.data?.data ?? [];
-      const itineraryPosts = all
-        .filter((p) => p.category?.id && itineraryCatIds.has(p.category.id))
-        .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
-      setAllPosts(itineraryPosts);
-      setFeaturedPosts(itineraryPosts.slice(0, 6));
+      const posts: Post[] = postRes.data?.data ?? [];
+      setAllPosts(posts);
+      setFeaturedPosts(posts.slice(0, 6));
     });
   }, []);
 

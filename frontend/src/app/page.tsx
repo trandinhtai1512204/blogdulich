@@ -85,38 +85,22 @@ export default function HomePage() {
   });
 
   useEffect(() => {
-    Promise.all([api.get('/categories'), api.get('/posts?limit=40')])
-      .then(([catRes, postRes]) => {
+    const types: CategoryType[] = ['destination', 'itinerary', 'review', 'experience'];
+    Promise.all([
+      api.get('/categories'),
+      ...types.map((t) => api.get(`/posts?type=${t}&limit=10`)),
+    ])
+      .then(([catRes, ...postResults]) => {
         const rows: Category[] = catRes.data ?? [];
-        const posts: Post[] = postRes.data?.data ?? [];
         const counts: Record<CategoryType, number> = {
-          destination: 0,
-          itinerary: 0,
-          review: 0,
-          experience: 0,
+          destination: 0, itinerary: 0, review: 0, experience: 0,
         };
-        const categoryTypeById = new Map<string, CategoryType>();
-        rows.forEach((cat) => {
-          if (!cat.type) return;
-          counts[cat.type] += 1;
-          categoryTypeById.set(cat.id, cat.type);
-        });
+        rows.forEach((cat) => { if (cat.type) counts[cat.type] += 1; });
         setTypeCounts(counts);
 
-        const grouped: Record<CategoryType, Post[]> = {
-          destination: [],
-          itinerary: [],
-          review: [],
-          experience: [],
-        };
-        posts.forEach((post) => {
-          const type = post.category?.id ? categoryTypeById.get(post.category.id) : undefined;
-          if (!type) return;
-          grouped[type].push(post);
-        });
-        (Object.keys(grouped) as CategoryType[]).forEach((type) => {
-          grouped[type].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
-          grouped[type] = grouped[type].slice(0, 10);
+        const grouped = {} as Record<CategoryType, Post[]>;
+        types.forEach((t, i) => {
+          grouped[t] = postResults[i].data?.data ?? [];
         });
         setPostsByType(grouped);
       })

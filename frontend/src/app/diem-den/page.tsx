@@ -35,21 +35,9 @@ export default function DestinationsPage() {
 
   useEffect(() => {
     api.get('/cities').then((r) => setCities(r.data ?? []));
-
-    Promise.all([api.get('/categories'), api.get('/posts?limit=200')]).then(
-      ([catRes, postRes]) => {
-        const cats: Array<{ id: string; type?: string }> = catRes.data ?? [];
-        const destCatIds = new Set(
-          cats.filter((c) => c.type === 'destination').map((c) => c.id),
-        );
-        const all: Post[] = postRes.data?.data ?? [];
-        const dest = all
-          .filter((p) => p.category?.id && destCatIds.has(p.category.id))
-          .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
-          .slice(0, 6);
-        setPosts(dest);
-      },
-    );
+    api.get('/posts?type=destination&limit=6').then((r) => {
+      setPosts(r.data?.data ?? []);
+    });
   }, []);
 
   useEffect(() => {

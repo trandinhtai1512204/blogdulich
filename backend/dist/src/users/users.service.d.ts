@@ -21,12 +21,12 @@ export declare class UsersService {
         bookings: ({
             hotel: {
                 id: string;
-                slug: string;
                 name: string;
-                description: string | null;
+                slug: string;
                 createdAt: Date;
-                updatedAt: Date;
                 cityId: string;
+                description: string | null;
+                updatedAt: Date;
                 address: string;
                 price: number;
                 images: string[];
@@ -47,13 +47,13 @@ export declare class UsersService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            status: import(".prisma/client").$Enums.BookingStatus;
+            userId: string;
             hotelId: string;
             checkIn: Date;
             checkOut: Date;
             totalPrice: number;
-            status: import(".prisma/client").$Enums.BookingStatus;
             expiresAt: Date | null;
-            userId: string;
         })[];
     }>;
     updateRole(id: string, role: 'admin' | 'user'): Promise<{

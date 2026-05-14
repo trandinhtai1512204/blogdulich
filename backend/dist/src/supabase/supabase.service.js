@@ -8,22 +8,30 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupabaseService = void 0;
 const common_1 = require("@nestjs/common");
 const supabase_js_1 = require("@supabase/supabase-js");
+const ws_1 = __importDefault(require("ws"));
 if (!globalThis.WebSocket) {
-    const { WebSocket } = require('ws');
-    globalThis.WebSocket = WebSocket;
+    globalThis.WebSocket = ws_1.default;
 }
 let SupabaseService = class SupabaseService {
     anon;
     admin;
     constructor() {
         const url = process.env.SUPABASE_URL;
+        const anonKey = process.env.SUPABASE_ANON_KEY;
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !anonKey || !serviceRoleKey) {
+            throw new Error('Missing Supabase environment variables');
+        }
         const opts = { auth: { autoRefreshToken: false, persistSession: false } };
-        this.anon = (0, supabase_js_1.createClient)(url, process.env.SUPABASE_ANON_KEY, opts);
-        this.admin = (0, supabase_js_1.createClient)(url, process.env.SUPABASE_SERVICE_ROLE_KEY, opts);
+        this.anon = (0, supabase_js_1.createClient)(url, anonKey, opts);
+        this.admin = (0, supabase_js_1.createClient)(url, serviceRoleKey, opts);
     }
 };
 exports.SupabaseService = SupabaseService;

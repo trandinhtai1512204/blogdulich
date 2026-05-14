@@ -13,8 +13,8 @@ export declare class CategoriesService implements OnModuleInit {
     private isSystemRootSlug;
     findAll(query: QueryCategoriesDto): Promise<{
         id: string;
-        slug: string;
         name: string;
+        slug: string;
         createdAt: Date;
         cityId: string | null;
         parentId: string | null;
@@ -24,18 +24,18 @@ export declare class CategoriesService implements OnModuleInit {
     findOne(slug: string): Promise<{
         city: {
             id: string;
-            slug: string;
             name: string;
+            slug: string;
+            createdAt: Date;
             country: string;
             image: string | null;
             description: string | null;
-            createdAt: Date;
             updatedAt: Date;
         } | null;
         parent: {
             id: string;
-            slug: string;
             name: string;
+            slug: string;
             createdAt: Date;
             cityId: string | null;
             parentId: string | null;
@@ -44,8 +44,8 @@ export declare class CategoriesService implements OnModuleInit {
         } | null;
         children: {
             id: string;
-            slug: string;
             name: string;
+            slug: string;
             createdAt: Date;
             cityId: string | null;
             parentId: string | null;
@@ -54,8 +54,8 @@ export declare class CategoriesService implements OnModuleInit {
         }[];
     } & {
         id: string;
-        slug: string;
         name: string;
+        slug: string;
         createdAt: Date;
         cityId: string | null;
         parentId: string | null;
@@ -64,8 +64,8 @@ export declare class CategoriesService implements OnModuleInit {
     }>;
     create(dto: CreateCategoryDto): Promise<{
         id: string;
-        slug: string;
         name: string;
+        slug: string;
         createdAt: Date;
         cityId: string | null;
         parentId: string | null;
@@ -74,8 +74,8 @@ export declare class CategoriesService implements OnModuleInit {
     }>;
     update(id: string, dto: Partial<CreateCategoryDto>): Promise<{
         id: string;
-        slug: string;
         name: string;
+        slug: string;
         createdAt: Date;
         cityId: string | null;
         parentId: string | null;
@@ -84,8 +84,8 @@ export declare class CategoriesService implements OnModuleInit {
     }>;
     remove(id: string): Promise<{
         id: string;
-        slug: string;
         name: string;
+        slug: string;
         createdAt: Date;
         cityId: string | null;
         parentId: string | null;
@@ -94,8 +94,8 @@ export declare class CategoriesService implements OnModuleInit {
     }>;
     bootstrapRoots(): Promise<{
         id: string;
-        slug: string;
         name: string;
+        slug: string;
         createdAt: Date;
         cityId: string | null;
         parentId: string | null;

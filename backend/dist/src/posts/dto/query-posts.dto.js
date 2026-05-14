@@ -17,6 +17,7 @@ class QueryPostsDto {
     search;
     page;
     limit;
+    type;
 }
 exports.QueryPostsDto = QueryPostsDto;
 __decorate([
@@ -44,4 +45,9 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], QueryPostsDto.prototype, "limit", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], QueryPostsDto.prototype, "type", void 0);
 //# sourceMappingURL=query-posts.dto.js.map

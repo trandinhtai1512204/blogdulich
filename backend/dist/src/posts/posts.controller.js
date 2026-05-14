@@ -27,6 +27,15 @@ let PostsController = class PostsController {
     findAll(query) {
         return this.postsService.findAll(query);
     }
+    submitCommunityPost(dto, req) {
+        return this.postsService.submitCommunityPost(dto, req.user.sub);
+    }
+    findMyPosts(req) {
+        return this.postsService.findByAuthor(req.user.sub);
+    }
+    findAllForAdmin(query) {
+        return this.postsService.findAllForAdmin(query);
+    }
     findOne(slug) {
         return this.postsService.findOne(slug);
     }
@@ -48,6 +57,31 @@ __decorate([
     __metadata("design:paramtypes", [query_posts_dto_1.QueryPostsDto]),
     __metadata("design:returntype", void 0)
 ], PostsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard),
+    (0, common_1.Post)('community'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [create_post_dto_1.SubmitPostDto, Object]),
+    __metadata("design:returntype", void 0)
+], PostsController.prototype, "submitCommunityPost", null);
+__decorate([
+    (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard),
+    (0, common_1.Get)('community/me'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], PostsController.prototype, "findMyPosts", null);
+__decorate([
+    (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard, roles_guard_1.AdminGuard),
+    (0, common_1.Get)('admin'),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [query_posts_dto_1.QueryPostsDto]),
+    __metadata("design:returntype", void 0)
+], PostsController.prototype, "findAllForAdmin", null);
 __decorate([
     (0, common_1.Get)(':slug'),
     __param(0, (0, common_1.Param)('slug')),
