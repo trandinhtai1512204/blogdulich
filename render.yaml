@@ -4,7 +4,7 @@ services:
     runtime: node
     rootDir: backend
     buildCommand: npm install --include=dev && npx prisma db execute --file prisma/add-community-posts.sql --schema prisma/schema.prisma && npx prisma generate && npm run build
-    startCommand: npm run start:prod
+    startCommand: node dist/src/main
     envVars:
       - key: DATABASE_URL
         sync: false
