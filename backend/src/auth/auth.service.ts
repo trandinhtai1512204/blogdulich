@@ -59,6 +59,12 @@ export class AuthService {
       });
 
       if (error) {
+        const msg = error.message?.toLowerCase() ?? '';
+        if (msg.includes('not confirmed') || msg.includes('email not')) {
+          throw new UnauthorizedException(
+            'Tài khoản chưa xác thực email. Vui lòng kiểm tra hộp thư.',
+          );
+        }
         throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
       }
 
@@ -129,7 +135,11 @@ export class AuthService {
 
   // Tạo OAuth URL và trả về pkceState (base64 của storage snapshot) để lưu vào httpOnly cookie.
   // Dùng fresh client per-request để tránh race condition khi nhiều user OAuth đồng thời.
-  async getOAuthUrl(provider: 'google'): Promise<{ url: string; pkceState: string }> {
+  async getOAuthUrl(
+    provider: 'google',
+    redirectTo: string,
+    clientUrl: string,
+  ): Promise<{ url: string; pkceState: string }> {
     try {
       const pkceStore: Record<string, string> = {};
       const storage = {
@@ -147,7 +157,7 @@ export class AuthService {
       const { data, error } = await client.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${process.env.BACKEND_URL}/api/auth/callback`,
+          redirectTo,
           queryParams: { access_type: 'offline', prompt: 'consent' },
         },
       });
@@ -156,8 +166,10 @@ export class AuthService {
         throw new InternalServerErrorException('Không thể tạo OAuth URL');
       }
 
-      // Serialize toàn bộ PKCE storage để lưu vào httpOnly cookie
-      const pkceState = Buffer.from(JSON.stringify(pkceStore)).toString('base64');
+      // Serialize PKCE storage with the client origin that started OAuth.
+      const pkceState = Buffer.from(
+        JSON.stringify({ storage: pkceStore, clientUrl }),
+      ).toString('base64');
       return { url: data.url, pkceState };
     } catch (err) {
       if (err instanceof InternalServerErrorException) throw err;
@@ -168,9 +180,13 @@ export class AuthService {
   // Khôi phục PKCE storage từ cookie, tạo fresh client, exchange code.
   async handleOAuthCallback(code: string, pkceState: string) {
     try {
-      const pkceStore: Record<string, string> = JSON.parse(
+      const parsedState = JSON.parse(
         Buffer.from(pkceState, 'base64').toString(),
       );
+      const pkceStore: Record<string, string> =
+        parsedState.storage && typeof parsedState.storage === 'object'
+          ? parsedState.storage
+          : parsedState;
 
       const storage = {
         getItem: (key: string) => pkceStore[key] ?? null,

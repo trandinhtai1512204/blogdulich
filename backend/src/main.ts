@@ -6,6 +6,7 @@ import cookieParser = require('cookie-parser');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   // Raw body cho Stripe webhook — phải đặt TRƯỚC mọi thứ
   app.use('/api/payments/webhook', bodyParser.raw({ type: 'application/json' }));

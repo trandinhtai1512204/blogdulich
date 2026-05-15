@@ -24,8 +24,10 @@ type AuthenticatedRequest = Request & {
   user: { sub: string };
 };
 
-const sameSite: 'none' | 'lax' =
-  process.env.NODE_ENV === 'production' ? 'none' : 'lax';
+const isProductionLike =
+  process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+const sameSite: 'none' | 'lax' = isProductionLike ? 'none' : 'lax';
+const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
 
 function getCookie(req: Request, name: string) {
   const cookies = (req as unknown as CookieBag).cookies;
@@ -34,18 +36,73 @@ function getCookie(req: Request, name: string) {
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: isProductionLike,
   sameSite,
   path: '/',
+  ...(cookieDomain && { domain: cookieDomain }),
 };
 
 const PKCE_COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: isProductionLike,
   sameSite,
   path: '/api/auth',
+  ...(cookieDomain && { domain: cookieDomain }),
   maxAge: 10 * 60 * 1000,
 };
+
+const ALLOWED_CLIENT_ORIGINS = [
+  'http://localhost:3000',
+  process.env.CLIENT_URL,
+  'https://blogdulich.vn',
+  'https://www.blogdulich.vn',
+  'https://frontend-gilt-two-35.vercel.app',
+].filter(Boolean) as string[];
+
+function toOrigin(value?: string) {
+  if (!value) return undefined;
+
+  try {
+    return new URL(value).origin;
+  } catch {
+    return undefined;
+  }
+}
+
+function getPublicOrigin(req: Request) {
+  const forwardedProto = req.get('x-forwarded-proto')?.split(',')[0]?.trim();
+  const forwardedHost = req.get('x-forwarded-host')?.split(',')[0]?.trim();
+  const proto = forwardedProto || req.protocol;
+  const host = forwardedHost || req.get('host');
+
+  return `${proto}://${host}`;
+}
+
+function getClientOrigin(req: Request) {
+  const refererOrigin = toOrigin(req.get('referer'));
+  if (refererOrigin && ALLOWED_CLIENT_ORIGINS.includes(refererOrigin)) {
+    return refererOrigin;
+  }
+
+  return process.env.CLIENT_URL || 'http://localhost:3000';
+}
+
+function getClientOriginFromState(pkceState?: string) {
+  if (!pkceState) return undefined;
+
+  try {
+    const parsed = JSON.parse(Buffer.from(pkceState, 'base64').toString());
+    const clientUrl = typeof parsed.clientUrl === 'string' ? parsed.clientUrl : undefined;
+
+    if (clientUrl && ALLOWED_CLIENT_ORIGINS.includes(clientUrl)) {
+      return clientUrl;
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+}
 
 function setAuthCookies(
   res: Response,
@@ -105,6 +162,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -137,8 +195,14 @@ export class AuthController {
   }
 
   @Get('google')
-  async googleAuth(@Res() res: Response) {
-    const { url, pkceState } = await this.authService.getOAuthUrl('google');
+  async googleAuth(@Req() req: Request, @Res() res: Response) {
+    const redirectTo = `${getPublicOrigin(req)}/api/auth/callback`;
+    const clientUrl = getClientOrigin(req);
+    const { url, pkceState } = await this.authService.getOAuthUrl(
+      'google',
+      redirectTo,
+      clientUrl,
+    );
     res.cookie('pkce_state', pkceState, PKCE_COOKIE_OPTIONS);
     res.redirect(url);
   }
@@ -151,9 +215,10 @@ export class AuthController {
   ) {
     const pkceState = getCookie(req, 'pkce_state');
     res.clearCookie('pkce_state', PKCE_COOKIE_OPTIONS);
+    const clientUrl = getClientOriginFromState(pkceState) || getClientOrigin(req);
 
     if (!code || !pkceState) {
-      return res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
+      return res.redirect(`${clientUrl}/login?error=oauth_failed`);
     }
 
     try {
@@ -167,13 +232,13 @@ export class AuthController {
         session.refresh_token,
         session.expires_in,
       );
-      res.redirect(`${process.env.CLIENT_URL}/auth/google/callback`);
+      res.redirect(`${clientUrl}/auth/google/callback`);
     } catch (err) {
       console.log(
         '[OAuth callback] ERROR:',
         err instanceof Error ? err.message : err,
       );
-      res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
+      res.redirect(`${clientUrl}/login?error=oauth_failed`);
     }
   }
 }

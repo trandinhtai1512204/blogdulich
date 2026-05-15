@@ -29,7 +29,7 @@ export declare class AuthService {
     }>;
     refreshSession(refreshToken: string): Promise<import("@supabase/supabase-js").AuthSession>;
     signOut(_accessToken: string): Promise<void>;
-    getOAuthUrl(provider: 'google'): Promise<{
+    getOAuthUrl(provider: 'google', redirectTo: string, clientUrl: string): Promise<{
         url: string;
         pkceState: string;
     }>;

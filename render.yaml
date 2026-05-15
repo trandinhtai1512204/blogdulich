@@ -24,6 +24,8 @@ services:
         value: 7d
       - key: CLIENT_URL
         sync: false
+      - key: NODE_ENV
+        value: production
       - key: RESEND_API_KEY
         sync: false
       - key: CLOUDINARY_CLOUD_NAME

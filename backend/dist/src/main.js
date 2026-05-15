@@ -40,6 +40,7 @@ const bodyParser = __importStar(require("body-parser"));
 const cookieParser = require("cookie-parser");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    app.getHttpAdapter().getInstance().set('trust proxy', 1);
     app.use('/api/payments/webhook', bodyParser.raw({ type: 'application/json' }));
     app.use(cookieParser());
     app.useGlobalPipes(new common_1.ValidationPipe({

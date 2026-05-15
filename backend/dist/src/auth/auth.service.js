@@ -57,6 +57,10 @@ let AuthService = class AuthService {
                 password: dto.password,
             });
             if (error) {
+                const msg = error.message?.toLowerCase() ?? '';
+                if (msg.includes('not confirmed') || msg.includes('email not')) {
+                    throw new common_1.UnauthorizedException('Tài khoản chưa xác thực email. Vui lòng kiểm tra hộp thư.');
+                }
                 throw new common_1.UnauthorizedException('Email hoặc mật khẩu không đúng');
             }
             if (!data.session) {
@@ -114,7 +118,7 @@ let AuthService = class AuthService {
     }
     async signOut(_accessToken) {
     }
-    async getOAuthUrl(provider) {
+    async getOAuthUrl(provider, redirectTo, clientUrl) {
         try {
             const pkceStore = {};
             const storage = {
@@ -126,14 +130,14 @@ let AuthService = class AuthService {
             const { data, error } = await client.auth.signInWithOAuth({
                 provider,
                 options: {
-                    redirectTo: `${process.env.BACKEND_URL}/api/auth/callback`,
+                    redirectTo,
                     queryParams: { access_type: 'offline', prompt: 'consent' },
                 },
             });
             if (error || !data.url) {
                 throw new common_1.InternalServerErrorException('Không thể tạo OAuth URL');
             }
-            const pkceState = Buffer.from(JSON.stringify(pkceStore)).toString('base64');
+            const pkceState = Buffer.from(JSON.stringify({ storage: pkceStore, clientUrl })).toString('base64');
             return { url: data.url, pkceState };
         }
         catch (err) {
@@ -144,7 +148,10 @@ let AuthService = class AuthService {
     }
     async handleOAuthCallback(code, pkceState) {
         try {
-            const pkceStore = JSON.parse(Buffer.from(pkceState, 'base64').toString());
+            const parsedState = JSON.parse(Buffer.from(pkceState, 'base64').toString());
+            const pkceStore = parsedState.storage && typeof parsedState.storage === 'object'
+                ? parsedState.storage
+                : parsedState;
             const storage = {
                 getItem: (key) => pkceStore[key] ?? null,
                 setItem: (key, value) => { pkceStore[key] = value; },

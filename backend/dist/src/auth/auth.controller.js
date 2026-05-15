@@ -19,24 +19,74 @@ const auth_service_1 = require("./auth.service");
 const login_dto_1 = require("./dto/login.dto");
 const register_dto_1 = require("./dto/register.dto");
 const supabase_auth_guard_1 = require("./supabase-auth.guard");
-const sameSite = process.env.NODE_ENV === 'production' ? 'none' : 'lax';
+const isProductionLike = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+const sameSite = isProductionLike ? 'none' : 'lax';
+const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
 function getCookie(req, name) {
     const cookies = req.cookies;
     return cookies?.[name];
 }
 const COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProductionLike,
     sameSite,
     path: '/',
+    ...(cookieDomain && { domain: cookieDomain }),
 };
 const PKCE_COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProductionLike,
     sameSite,
     path: '/api/auth',
+    ...(cookieDomain && { domain: cookieDomain }),
     maxAge: 10 * 60 * 1000,
 };
+const ALLOWED_CLIENT_ORIGINS = [
+    'http://localhost:3000',
+    process.env.CLIENT_URL,
+    'https://blogdulich.vn',
+    'https://www.blogdulich.vn',
+    'https://frontend-gilt-two-35.vercel.app',
+].filter(Boolean);
+function toOrigin(value) {
+    if (!value)
+        return undefined;
+    try {
+        return new URL(value).origin;
+    }
+    catch {
+        return undefined;
+    }
+}
+function getPublicOrigin(req) {
+    const forwardedProto = req.get('x-forwarded-proto')?.split(',')[0]?.trim();
+    const forwardedHost = req.get('x-forwarded-host')?.split(',')[0]?.trim();
+    const proto = forwardedProto || req.protocol;
+    const host = forwardedHost || req.get('host');
+    return `${proto}://${host}`;
+}
+function getClientOrigin(req) {
+    const refererOrigin = toOrigin(req.get('referer'));
+    if (refererOrigin && ALLOWED_CLIENT_ORIGINS.includes(refererOrigin)) {
+        return refererOrigin;
+    }
+    return process.env.CLIENT_URL || 'http://localhost:3000';
+}
+function getClientOriginFromState(pkceState) {
+    if (!pkceState)
+        return undefined;
+    try {
+        const parsed = JSON.parse(Buffer.from(pkceState, 'base64').toString());
+        const clientUrl = typeof parsed.clientUrl === 'string' ? parsed.clientUrl : undefined;
+        if (clientUrl && ALLOWED_CLIENT_ORIGINS.includes(clientUrl)) {
+            return clientUrl;
+        }
+    }
+    catch {
+        return undefined;
+    }
+    return undefined;
+}
 function setAuthCookies(res, accessToken, refreshToken, accessTokenExpiresInSeconds = 60 * 60) {
     res.cookie('access_token', accessToken, {
         ...COOKIE_OPTIONS,
@@ -91,25 +141,28 @@ let AuthController = class AuthController {
     getMe(req) {
         return this.authService.getMe(req.user.sub);
     }
-    async googleAuth(res) {
-        const { url, pkceState } = await this.authService.getOAuthUrl('google');
+    async googleAuth(req, res) {
+        const redirectTo = `${getPublicOrigin(req)}/api/auth/callback`;
+        const clientUrl = getClientOrigin(req);
+        const { url, pkceState } = await this.authService.getOAuthUrl('google', redirectTo, clientUrl);
         res.cookie('pkce_state', pkceState, PKCE_COOKIE_OPTIONS);
         res.redirect(url);
     }
     async oauthCallback(code, req, res) {
         const pkceState = getCookie(req, 'pkce_state');
         res.clearCookie('pkce_state', PKCE_COOKIE_OPTIONS);
+        const clientUrl = getClientOriginFromState(pkceState) || getClientOrigin(req);
         if (!code || !pkceState) {
-            return res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
+            return res.redirect(`${clientUrl}/login?error=oauth_failed`);
         }
         try {
             const session = await this.authService.handleOAuthCallback(code, pkceState);
             setAuthCookies(res, session.access_token, session.refresh_token, session.expires_in);
-            res.redirect(`${process.env.CLIENT_URL}/auth/google/callback`);
+            res.redirect(`${clientUrl}/auth/google/callback`);
         }
         catch (err) {
             console.log('[OAuth callback] ERROR:', err instanceof Error ? err.message : err);
-            res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
+            res.redirect(`${clientUrl}/login?error=oauth_failed`);
         }
     }
 };
@@ -141,6 +194,7 @@ __decorate([
 ], AuthController.prototype, "logout", null);
 __decorate([
     (0, common_1.Post)('refresh'),
+    (0, throttler_1.Throttle)({ default: { limit: 30, ttl: 60000 } }),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
@@ -157,9 +211,10 @@ __decorate([
 ], AuthController.prototype, "getMe", null);
 __decorate([
     (0, common_1.Get)('google'),
-    __param(0, (0, common_1.Res)()),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "googleAuth", null);
 __decorate([

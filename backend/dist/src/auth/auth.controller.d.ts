@@ -37,7 +37,7 @@ export declare class AuthController {
         avatar: string | null;
         role: import(".prisma/client").$Enums.Role;
     }>;
-    googleAuth(res: Response): Promise<void>;
+    googleAuth(req: Request, res: Response): Promise<void>;
     oauthCallback(code: string, req: Request, res: Response): Promise<void>;
 }
 export {};

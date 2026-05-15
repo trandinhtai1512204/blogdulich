@@ -7,8 +7,8 @@ export declare class ReviewsService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
         hotelId: string;
+        userId: string;
         rating: number;
         comment: string | null;
     }>;
@@ -23,8 +23,8 @@ export declare class ReviewsService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            userId: string;
             hotelId: string;
+            userId: string;
             rating: number;
             comment: string | null;
         })[];
@@ -39,8 +39,8 @@ export declare class ReviewsService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
         hotelId: string;
+        userId: string;
         rating: number;
         comment: string | null;
     }>;
