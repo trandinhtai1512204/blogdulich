@@ -3,7 +3,7 @@ services:
     name: blogdulich-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm install --include=dev && npx prisma db execute --file prisma/add-community-posts.sql --schema prisma/schema.prisma && npx prisma generate && npm run build
+    buildCommand: npm install --include=dev && npx -y prisma@5.22.0 db execute --file prisma/add-community-posts.sql --schema prisma/schema.prisma && npx -y prisma@5.22.0 generate && npm run build
     startCommand: node dist/src/main
     envVars:
       - key: DATABASE_URL
