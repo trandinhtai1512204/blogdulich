@@ -51,12 +51,12 @@ export declare class UsersController {
             createdAt: Date;
             updatedAt: Date;
             status: import(".prisma/client").$Enums.BookingStatus;
+            userId: string;
             hotelId: string;
             checkIn: Date;
             checkOut: Date;
             totalPrice: number;
             expiresAt: Date | null;
-            userId: string;
         })[];
     }>;
     updateRole(id: string, dto: UpdateRoleDto): Promise<{
