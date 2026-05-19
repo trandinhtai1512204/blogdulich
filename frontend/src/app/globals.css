@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -64,5 +63,86 @@
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* Admin ergonomics: larger controls and clearer action affordances. */
+.admin-shell {
+  --admin-focus: rgb(124 58 237 / 0.28);
+}
+
+.admin-shell button,
+.admin-shell a[href^="/admin"] {
+  min-height: 2.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.admin-shell button {
+  touch-action: manipulation;
+}
+
+.admin-shell button:not(:disabled) {
+  cursor: pointer;
+}
+
+.admin-shell button:focus-visible,
+.admin-shell a[href^="/admin"]:focus-visible,
+.admin-shell input:focus-visible,
+.admin-shell select:focus-visible,
+.admin-shell textarea:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 4px var(--admin-focus);
+}
+
+.admin-shell input,
+.admin-shell select,
+.admin-shell textarea {
+  min-height: 2.75rem;
+  border-color: #d1d5db;
+  font-size: 0.875rem;
+}
+
+.admin-shell label {
+  font-size: 0.8125rem;
+}
+
+.admin-shell table td button {
+  min-width: 2.5rem;
+  padding-inline: 0.75rem;
+  border-radius: 0.75rem;
+}
+
+.admin-shell button:has(> svg:only-child),
+.admin-shell table button:has(svg):not(:has(span)) {
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  color: #4b5563;
+}
+
+.admin-shell button:has(> svg:only-child):hover,
+.admin-shell table button:has(svg):not(:has(span)):hover {
+  border-color: #c4b5fd;
+}
+
+.admin-shell button svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.admin-shell .group .opacity-0 {
+  opacity: 1;
+}
+
+@media (max-width: 640px) {
+  .admin-shell button,
+  .admin-shell a[href^="/admin"] {
+    min-height: 2.75rem;
+  }
+
+  .admin-shell input,
+  .admin-shell select,
+  .admin-shell textarea {
+    min-height: 3rem;
   }
 }

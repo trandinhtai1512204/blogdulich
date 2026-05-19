@@ -176,7 +176,7 @@ function SectionHeader({
       </div>
       <Link
         href={href}
-        className="inline-flex w-fit items-center gap-2 rounded-full border border-gray-300 px-6 py-3 text-sm font-bold text-gray-950 transition-colors hover:border-gray-950"
+        className="inline-flex w-fit items-center gap-2 rounded-full border border-gray-300 px-6 py-3 text-sm font-bold text-gray-950 transition-colors"
       >
         {cta} <ArrowUpRight size={16} />
       </Link>
@@ -282,7 +282,7 @@ function ReviewSection({
               <Link
                 key={post.id}
                 href={getPostHref(post)}
-                className="group overflow-hidden rounded-[32px] border border-gray-200 bg-white transition-colors hover:border-gray-950"
+                className="group overflow-hidden rounded-[32px] border border-gray-200 bg-white transition-colors"
               >
                 <ImageBlock post={post} heightClass="h-56" />
                 <div className="p-6">
@@ -329,7 +329,7 @@ function LargePostCard({
   return (
     <Link
       href={href}
-      className="group overflow-hidden rounded-[32px] border border-gray-200 bg-white transition-colors hover:border-gray-950"
+      className="group overflow-hidden rounded-[32px] border border-gray-200 bg-white transition-colors"
     >
       <ImageBlock post={post} heightClass="h-[260px] md:h-[350px]" />
       <div className="p-6 md:p-8">
@@ -355,7 +355,7 @@ function CompactPostCard({
   return (
     <Link
       href={href}
-      className="group grid min-h-[150px] overflow-hidden rounded-[32px] border border-gray-200 bg-white transition-colors hover:border-gray-950 sm:grid-cols-[180px_1fr]"
+      className="group grid min-h-[150px] overflow-hidden rounded-[32px] border border-gray-200 bg-white transition-colors sm:grid-cols-[180px_1fr]"
     >
       <ImageBlock post={post} heightClass="h-44 sm:h-full" />
       <div className="flex flex-col justify-center p-5">
@@ -387,7 +387,7 @@ function PostCard({
   return (
     <Link
       href={href}
-      className="group overflow-hidden rounded-[32px] border border-gray-200 bg-white transition-colors hover:border-gray-950"
+      className="group overflow-hidden rounded-[32px] border border-gray-200 bg-white transition-colors"
     >
       <div className="relative">
         <ImageBlock post={post} heightClass="h-64" />

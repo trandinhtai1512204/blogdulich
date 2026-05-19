@@ -6,7 +6,23 @@
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Admin\\\\Desktop\\\\blogdulich\" -Recurse -Depth 2)",
       "Bash(Select-Object FullName)",
       "Bash(vercel deploy *)",
-      "Bash(gh api *)"
+      "Bash(gh api *)",
+      "WebSearch",
+      "WebFetch(domain:www.lonelyplanet.com)",
+      "WebFetch(domain:www.cntraveler.com)",
+      "WebFetch(domain:www.travelandleisure.com)",
+      "WebFetch(domain:www.timeout.com)",
+      "WebFetch(domain:www.bucketlistly.blog)",
+      "WebFetch(domain:www.nomadicmatt.com)",
+      "WebFetch(domain:www.theplanetd.com)",
+      "WebFetch(domain:www.roadaffair.com)",
+      "WebFetch(domain:www.tourradar.com)",
+      "Bash(npm run *)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(curl -s http://localhost:3000/_next/static/chunks/src_app_page_tsx*.js)",
+      "Bash(git checkout *)",
+      "Bash(git pull *)"
     ]
   }
 }

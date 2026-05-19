@@ -94,7 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   );
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="admin-shell flex min-h-screen bg-gray-50">
       {/* Desktop sidebar */}
       <aside className="w-60 bg-white border-r border-gray-100 fixed h-full z-30 hidden lg:flex flex-col">
         <SidebarContent />
