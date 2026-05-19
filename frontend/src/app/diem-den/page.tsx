@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Search, MapPin, ArrowUpRight, Clock, BookOpen, X } from 'lucide-react';
+import { Search, MapPin, ArrowUpRight, X } from 'lucide-react';
+import { CoverflowCarousel, type CoverflowItem } from '@/components/CoverflowCarousel';
 import { Navbar } from '@/components/Navbar';
 import api from '@/lib/axios';
 
@@ -70,6 +71,21 @@ export default function DestinationsPage() {
       month: '2-digit',
       year: 'numeric',
     });
+
+  const getPostHref = (post: Post) =>
+    post.canonicalUrl ?? (post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`);
+
+  const featuredItems: CoverflowItem[] = posts.map((post) => ({
+    id: post.id,
+    title: post.title,
+    href: getPostHref(post),
+    image: post.thumbnail,
+    province: post.city?.name,
+    region: post.category?.name,
+    tag: post.category?.name,
+    description: post.excerpt,
+    meta: formatDate(post.createdAt),
+  }));
 
   return (
     <div className="min-h-screen bg-white">
@@ -225,52 +241,7 @@ export default function DestinationsPage() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {posts.map((post) => (
-              <Link
-                key={post.id}
-                href={post.canonicalUrl ?? (post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`)}
-                className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:border-violet-200 transition-all duration-200"
-              >
-                {post.thumbnail ? (
-                  <div className="h-44 overflow-hidden">
-                    <img
-                      src={post.thumbnail}
-                      alt={post.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                ) : (
-                  <div className="h-44 bg-linear-to-br from-violet-50 to-indigo-100 flex items-center justify-center">
-                    <BookOpen size={32} className="text-violet-200" />
-                  </div>
-                )}
-                <div className="p-5">
-                  {(post.category || post.city) && (
-                    <div className="flex items-center gap-2 mb-2">
-                      {post.city && (
-                        <span className="inline-flex items-center gap-1 text-xs text-violet-600 font-semibold">
-                          <MapPin size={11} /> {post.city.name}
-                        </span>
-                      )}
-                      {post.category && (
-                        <span className="text-xs text-gray-400">{post.category.name}</span>
-                      )}
-                    </div>
-                  )}
-                  <h3 className="font-bold text-gray-900 text-base leading-snug mb-2 line-clamp-2 group-hover:text-violet-700 transition-colors">
-                    {post.title}
-                  </h3>
-                  {post.excerpt && (
-                    <p className="text-xs text-gray-500 line-clamp-2 mb-3">{post.excerpt}</p>
-                  )}
-                  <p className="text-xs text-gray-400 flex items-center gap-1.5">
-                    <Clock size={11} /> {formatDate(post.createdAt)}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <CoverflowCarousel items={featuredItems} />
         )}
 
         <div className="flex justify-center mt-10">
