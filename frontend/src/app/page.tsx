@@ -22,6 +22,20 @@ interface Post {
 }
 
 const TYPE_ORDER: CategoryType[] = ['destination', 'itinerary', 'review', 'experience'];
+const HOME_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Blog du lịch Việt Nam',
+  alternateName: ['BlogDuLich.vn', 'Blogdulich', 'Blog du lich', 'Blog du lịch'],
+  url: 'https://blogdulich.vn/',
+  inLanguage: 'vi-VN',
+  description: 'Blog du lịch Việt Nam chia sẻ kinh nghiệm, review điểm đến và lịch trình khám phá Việt Nam.',
+  publisher: {
+    '@type': 'Organization',
+    name: 'BlogDuLich.vn',
+    url: 'https://blogdulich.vn/',
+  },
+};
 
 const SECTION_COPY: Record<CategoryType, { href: string; title: ReactNode; subtitle: ReactNode; cta: ReactNode }> = {
   destination: {
@@ -94,6 +108,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white text-gray-950">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(HOME_JSON_LD) }} />
       <Navbar />
 
       <main>

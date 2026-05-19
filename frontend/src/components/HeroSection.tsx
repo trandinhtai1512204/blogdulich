@@ -194,29 +194,34 @@ useEffect(() => {
         </div>
 
         {/* Content — không overflow-hidden, dropdown thoát tự do */}
-        <div className="relative z-10 w-full max-w-lg px-6">
-  <div className="relative w-full">
-    
-    {/* Search input */}
-    <GlobalSearch
-      size="lg"
-      placeholder="Tìm thành phố, khách sạn..."
-      className="w-full pr-16"
-    />
+        <div className="relative z-10 w-full max-w-3xl px-6 text-center">
+          <h1 className="text-4xl font-extrabold leading-tight text-white drop-shadow-lg md:text-6xl">
+            Blog du lịch Việt Nam
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base font-semibold leading-7 text-white/90 drop-shadow md:text-lg">
+            Kinh nghiệm du lịch, review điểm đến và lịch trình khám phá Việt Nam từ BlogDuLich.vn.
+          </p>
 
-    {/* Nút search nằm trong input */}
-    <button
-      onClick={() => router.push('/hotels')}
-      className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95 hover:scale-105"
-      style={{
-        background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-      }}
-    >
-      <Search size={20} className="text-white" />
-    </button>
+          <div className="relative mx-auto mt-8 w-full max-w-lg">
+            {/* Search input */}
+            <GlobalSearch
+              size="lg"
+              placeholder="Tìm thành phố, khách sạn..."
+              className="w-full pr-16"
+            />
 
-  </div>
-</div>
+            {/* Nút search nằm trong input */}
+            <button
+              onClick={() => router.push('/hotels')}
+              className="absolute right-2 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105 active:scale-95"
+              style={{
+                background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+              }}
+            >
+              <Search size={20} className="text-white" />
+            </button>
+          </div>
+        </div>
     </section>
     </div>
   );
