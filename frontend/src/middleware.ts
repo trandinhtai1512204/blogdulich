@@ -23,9 +23,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  return response;
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/login', '/register'],
+  matcher: [
+    '/admin/:path*',
+    '/login',
+    '/register',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
 };

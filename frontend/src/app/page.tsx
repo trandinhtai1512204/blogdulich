@@ -191,7 +191,7 @@ function SectionHeader({
       </div>
       <Link
         href={href}
-        className="inline-flex w-fit items-center gap-2 rounded-full border border-gray-300 px-6 py-3 text-sm font-bold text-gray-950 transition-colors"
+        className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full bg-violet-600 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-violet-700"
       >
         {cta} <ArrowUpRight size={16} />
       </Link>
@@ -239,9 +239,15 @@ function PostSection({
   variant?: 'grid' | 'itinerary' | 'feature';
 }) {
   const copy = SECTION_COPY[type];
+  const bgMap: Record<CategoryType, string> = {
+    destination: 'bg-white',
+    itinerary: 'bg-slate-50',
+    review: 'bg-white',
+    experience: 'bg-violet-50/40',
+  };
 
   return (
-    <section className="px-4 py-14 md:px-6 md:py-16">
+    <section className={`px-4 py-14 md:px-6 md:py-16 ${bgMap[type]}`}>
       <div className="mx-auto max-w-[1224px]">
         <SectionHeader title={copy.title} subtitle={copy.subtitle} href={copy.href} cta={copy.cta} />
 
@@ -283,7 +289,7 @@ function ReviewSection({
   const copy = SECTION_COPY.review;
 
   return (
-    <section className="px-4 py-14 md:px-6 md:py-16">
+    <section className="bg-slate-50 px-4 py-14 md:px-6 md:py-16">
       <div className="mx-auto max-w-[1224px]">
         <SectionHeader title={copy.title} subtitle={copy.subtitle} href={copy.href} cta={copy.cta} />
 
@@ -297,31 +303,32 @@ function ReviewSection({
               <Link
                 key={post.id}
                 href={getPostHref(post)}
-                className="group overflow-hidden rounded-[32px] border border-gray-200 bg-white transition-colors"
+                className="group relative block overflow-hidden rounded-[32px] aspect-[4/5]"
               >
-                <ImageBlock post={post} heightClass="h-56" />
-                <div className="p-6">
-                  <div className="mb-5 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-12 items-center justify-center rounded-full bg-gray-950 text-sm font-extrabold text-white">
-                        {post.city?.name?.slice(0, 2).toUpperCase() || `R${index + 1}`}
-                      </div>
-                      <div>
-                        <p className="font-bold text-gray-950">{post.city?.name || post.category?.name || 'Thành viên'}</p>
-                        <p className="text-sm text-gray-400">{formatDate(post.createdAt)}</p>
-                      </div>
+                {post.thumbnail ? (
+                  <img src={post.thumbnail} alt={post.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-violet-900" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+
+                <div className="absolute top-4 right-4">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1.5 text-xs font-bold text-amber-900">
+                    <Star size={11} fill="currentColor" /> 5.0
+                  </span>
+                </div>
+
+                <div className="absolute bottom-0 left-0 right-0 p-5">
+                  <div className="mb-3 flex items-center gap-2.5">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-violet-600 text-xs font-extrabold text-white">
+                      {post.city?.name?.slice(0, 2).toUpperCase() || `R${index + 1}`}
                     </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm font-bold text-gray-950">
-                      <Star size={14} fill="currentColor" /> 5.0
-                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-white">{post.city?.name || post.category?.name || 'Việt Nam'}</p>
+                      <p className="text-xs text-white/55">{formatDate(post.createdAt)}</p>
+                    </div>
                   </div>
-                  <p className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-gray-950">
-                    <MapPin size={14} /> {post.city?.name || post.category?.name || 'Blogdulich'}
-                  </p>
-                  <h3 className="line-clamp-2 text-xl font-extrabold leading-tight text-gray-950">
-                    {post.title}
-                  </h3>
-                  {post.excerpt && <p className="mt-4 line-clamp-3 leading-7 text-gray-500">{post.excerpt}</p>}
+                  <h3 className="text-lg font-extrabold leading-snug text-white line-clamp-2">{post.title}</h3>
                 </div>
               </Link>
             ))}
@@ -335,7 +342,6 @@ function ReviewSection({
 function LargePostCard({
   post,
   href,
-  formatDate,
 }: {
   post: Post;
   href: string;
@@ -344,15 +350,23 @@ function LargePostCard({
   return (
     <Link
       href={href}
-      className="group overflow-hidden rounded-[32px] border border-gray-200 bg-white transition-colors"
+      className="group relative block overflow-hidden rounded-[32px] h-[420px] md:h-[500px]"
     >
-      <ImageBlock post={post} heightClass="h-[260px] md:h-[350px]" />
-      <div className="p-6 md:p-8">
-        <MetaRow post={post} formatDate={formatDate} />
-        <h3 className="mt-4 text-2xl font-extrabold leading-tight text-gray-950 md:text-[28px]">
-          {post.title}
-        </h3>
-        {post.excerpt && <p className="mt-4 line-clamp-2 text-base leading-8 text-gray-500">{post.excerpt}</p>}
+      {post.thumbnail ? (
+        <img src={post.thumbnail} alt={post.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="eager" />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-violet-900" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 p-7 md:p-8">
+        <span className="inline-block rounded-full bg-violet-500/80 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white backdrop-blur-sm mb-3">
+          {post.category?.name || 'Blogdulich'}
+        </span>
+        <h3 className="text-2xl font-extrabold leading-tight text-white md:text-3xl">{post.title}</h3>
+        {post.excerpt && <p className="mt-2 line-clamp-2 text-sm leading-6 text-white/70">{post.excerpt}</p>}
+        <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-white/90">
+          Đọc bài <ArrowUpRight size={14} />
+        </span>
       </div>
     </Link>
   );
@@ -361,7 +375,6 @@ function LargePostCard({
 function CompactPostCard({
   post,
   href,
-  formatDate,
 }: {
   post: Post;
   href: string;
@@ -370,18 +383,21 @@ function CompactPostCard({
   return (
     <Link
       href={href}
-      className="group grid min-h-[150px] overflow-hidden rounded-[32px] border border-gray-200 bg-white transition-colors sm:grid-cols-[180px_1fr]"
+      className="group relative block overflow-hidden rounded-[28px] h-[210px]"
     >
-      <ImageBlock post={post} heightClass="h-44 sm:h-full" />
-      <div className="flex flex-col justify-center p-5">
-        <MetaRow post={post} formatDate={formatDate} compact />
-        <h3 className="mt-3 line-clamp-2 text-lg font-extrabold leading-snug text-gray-950">
-          {post.title}
-        </h3>
+      {post.thumbnail ? (
+        <img src={post.thumbnail} alt={post.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-violet-900" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 p-5">
+        <p className="text-xs font-semibold text-white/60 mb-1">{post.category?.name || 'Blogdulich'}</p>
+        <h3 className="text-base font-bold leading-snug text-white line-clamp-2">{post.title}</h3>
         {post.city && (
-          <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-gray-950">
-            <MapPin size={13} /> {post.city.name}
-          </span>
+          <p className="mt-1.5 flex items-center gap-1 text-xs text-white/60">
+            <MapPin size={11} /> {post.city.name}
+          </p>
         )}
       </div>
     </Link>
@@ -391,7 +407,6 @@ function CompactPostCard({
 function PostCard({
   post,
   href,
-  formatDate,
   variant,
 }: {
   post: Post;
@@ -402,26 +417,33 @@ function PostCard({
   return (
     <Link
       href={href}
-      className="group overflow-hidden rounded-[32px] border border-gray-200 bg-white transition-colors"
+      className="group relative block overflow-hidden rounded-[32px] aspect-[3/4]"
     >
-      <div className="relative">
-        <ImageBlock post={post} heightClass="h-64" />
-        {variant === 'itinerary' && (
-          <span className="absolute left-5 top-5 rounded-full bg-white/90 px-4 py-2 text-sm font-bold text-gray-700 backdrop-blur">
-            <Clock size={14} className="mr-1 inline text-gray-950" />
-            Lịch trình gợi ý
+      {post.thumbnail ? (
+        <img src={post.thumbnail} alt={post.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-violet-900" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+
+      {variant === 'itinerary' && (
+        <div className="absolute top-4 left-4">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
+            <Clock size={11} /> Lịch trình gợi ý
           </span>
-        )}
-      </div>
-      <div className="p-6">
-        <MetaRow post={post} formatDate={formatDate} />
-        <h3 className="mt-4 line-clamp-2 text-[22px] font-extrabold leading-tight text-gray-950">
-          {post.title}
-        </h3>
-        {post.excerpt && <p className="mt-4 line-clamp-2 leading-7 text-gray-500">{post.excerpt}</p>}
-        <span className="mt-5 inline-flex items-center gap-2 font-bold text-gray-950">
-          Khám phá <ArrowUpRight size={16} />
+        </div>
+      )}
+
+      <div className="absolute bottom-0 left-0 right-0 p-6">
+        <span className="inline-block rounded-full bg-violet-500/80 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white backdrop-blur-sm mb-3">
+          {post.category?.name || 'Blogdulich'}
         </span>
+        <h3 className="text-xl font-extrabold leading-snug text-white line-clamp-2">{post.title}</h3>
+        {post.city && (
+          <p className="mt-2 flex items-center gap-1 text-sm text-white/65">
+            <MapPin size={12} /> {post.city.name}
+          </p>
+        )}
       </div>
     </Link>
   );
@@ -429,12 +451,12 @@ function PostCard({
 
 function ImageBlock({ post, heightClass }: { post: Post; heightClass: string }) {
   return (
-    <div className={`${heightClass} overflow-hidden bg-gray-100`}>
+    <div className={`${heightClass} relative overflow-hidden bg-gray-100`}>
       {post.thumbnail ? (
         <img
           src={post.thumbnail}
           alt={post.title}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
         />
       ) : (
@@ -442,6 +464,7 @@ function ImageBlock({ post, heightClass }: { post: Post; heightClass: string }) 
           <BookOpen size={36} className="text-gray-300" />
         </div>
       )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
     </div>
   );
 }
@@ -457,7 +480,7 @@ function MetaRow({
 }) {
   return (
     <div className={`flex flex-wrap items-center gap-3 ${compact ? 'text-xs' : 'text-sm'}`}>
-      <span className="rounded-full bg-gray-100 px-3 py-1 font-bold uppercase text-gray-950">
+      <span className="rounded-full bg-violet-100 px-3 py-1 font-bold uppercase text-violet-700">
         {post.category?.name || 'Blogdulich'}
       </span>
       <span className="text-gray-400">{formatDate(post.createdAt)}</span>
