@@ -3,26 +3,21 @@
  *
  * URL conventions (byte-for-byte, no infer, no normalize):
  *
- *   destination:  /{city.slug}/{sub.slug}/{post.slug}
- *                 e.g., /ha-noi/bao-tang/lang-bac
+ *   destination:  /diem-den/{city.slug}/{sub.slug}/{post.slug}
+ *                 e.g., /diem-den/ha-noi/bao-tang/lang-bac
  *
- *   itinerary:    /{city-landing.slug}/{post.slug}
- *                 e.g., /lich-trinh-du-lich-ha-noi/3-ngay-2-dem
+ *   itinerary:    /lich-trinh/{city.slug}/{post.slug}
+ *                 e.g., /lich-trinh/ha-noi/3-ngay-2-dem
  *
- *   experience:   /{city-landing.slug}/{post.slug}
- *                 e.g., /kinh-nghiem-du-lich-ha-noi/thang-10
+ *   experience:   /kinh-nghiem/{city.slug}/{post.slug}
+ *                 e.g., /kinh-nghiem/ha-noi/thang-10
  *
- *   review-tour, review-khach-san:
- *                 /{subtype.slug}/{city.slug}/{sub.slug}/{post.slug}
- *
- *   review-combo, review-resort, review-du-thuyen, review-nha-hang:
- *                 /{subtype.slug}/{city.slug}/{post.slug}
+ *   review:
+ *                 /review/{subtype-public-slug}/{city.slug}/{post.slug}
  *
  * Logic: walk category chain leaf→root, reverse to root-first, drop the
- * system root (its slug never appears in URL — `diem-den` is internal display
- * only; the other 3 roots ARE valid URL segments only as the root index page,
- * never as a parent prefix in nested URLs since itinerary/experience/review
- * use flat slug patterns at the city/subtype level).
+ * Category slugs remain internal data keys. Public URLs follow the client
+ * final brief and map those internal keys to shorter path segments.
  *
  * No-category fallback: /posts/{post.slug}
  */
@@ -38,7 +33,9 @@ type CatNode = {
   id: string;
   slug: string;
   type?: string | null;
+  level?: string | null;
   parentId: string | null;
+  cityId?: string | null;
   parent?: CatNode | null;
 };
 
@@ -61,12 +58,45 @@ export function computePostCanonicalPath(post: PostInput): string {
   // Reverse to root → leaf
   chain.reverse();
 
-  // Drop the system root if present (never in URL).
+  const root = chain[0];
+  if (root?.slug === 'diem-den') {
+    return `/${['diem-den', ...chain.slice(1).map((c) => c.slug), post.slug].join('/')}`;
+  }
+
+  if (root?.slug === 'lich-trinh-du-lich') {
+    const citySlug = chain[1]?.slug.replace(/^lich-trinh-du-lich-/, '');
+    const rest = chain.slice(2).map((c) => c.slug);
+    return citySlug
+      ? `/${['lich-trinh', citySlug, ...rest, post.slug].join('/')}`
+      : `/posts/${post.slug}`;
+  }
+
+  if (root?.slug === 'kinh-nghiem') {
+    const citySlug = chain[1]?.slug.replace(/^kinh-nghiem-du-lich-/, '');
+    const rest = chain.slice(2).map((c) => c.slug);
+    return citySlug
+      ? `/${['kinh-nghiem', citySlug, ...rest, post.slug].join('/')}`
+      : `/posts/${post.slug}`;
+  }
+
+  if (root?.slug === 'review') {
+    const [subtype, ...rest] = chain.slice(1);
+    const subtypeSlug = subtype ? publicReviewSubtypeSlug(subtype.slug) : null;
+    return subtypeSlug
+      ? `/${['review', subtypeSlug, ...rest.map((c) => c.slug), post.slug].join('/')}`
+      : `/posts/${post.slug}`;
+  }
+
+  // Drop any known system root fallback if present.
   if (chain[0] && SYSTEM_ROOT_SLUGS.has(chain[0].slug)) chain.shift();
 
   if (chain.length === 0) return `/posts/${post.slug}`;
 
   return `/${chain.map((c) => c.slug).join('/')}/${post.slug}`;
+}
+
+function publicReviewSubtypeSlug(slug: string) {
+  return slug.replace(/^review-/, '');
 }
 
 /**

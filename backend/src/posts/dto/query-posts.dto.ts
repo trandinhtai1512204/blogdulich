@@ -1,4 +1,5 @@
-import { IsOptional, IsString } from 'class-validator';
+import { CategoryType } from '@prisma/client';
+import { IsEnum, IsIn, IsOptional, IsString } from 'class-validator';
 
 export class QueryPostsDto {
   @IsOptional()
@@ -22,6 +23,10 @@ export class QueryPostsDto {
   limit?: string;
 
   @IsOptional()
-  @IsString()
-  type?: string;
+  @IsEnum(CategoryType)
+  type?: CategoryType;
+
+  @IsOptional()
+  @IsIn(['latest', 'hot'])
+  sort?: 'latest' | 'hot';
 }

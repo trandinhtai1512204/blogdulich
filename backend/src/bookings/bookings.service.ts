@@ -31,11 +31,16 @@ export class BookingsService {
         where: {
           hotelId,
           status: 'confirmed',
-          OR: [{ checkIn: { lt: checkOutDate }, checkOut: { gt: checkInDate } }],
+          OR: [
+            { checkIn: { lt: checkOutDate }, checkOut: { gt: checkInDate } },
+          ],
         },
       });
 
-      if (overlap) throw new BadRequestException('Phòng đã được đặt trong khoảng thời gian này');
+      if (overlap)
+        throw new BadRequestException(
+          'Phòng đã được đặt trong khoảng thời gian này',
+        );
 
       const totalPrice = nights * hotel.price;
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
@@ -63,7 +68,13 @@ export class BookingsService {
       where: { userId },
       include: {
         hotel: {
-          select: { id: true, name: true, slug: true, address: true, images: true },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            address: true,
+            images: true,
+          },
         },
         payment: true,
       },
@@ -78,8 +89,10 @@ export class BookingsService {
     });
 
     if (!booking) throw new BadRequestException('Booking không tồn tại');
-    if (booking.userId !== userId) throw new BadRequestException('Không phải booking của bạn');
-    if (booking.status !== 'pending') throw new BadRequestException('Chỉ có thể hủy booking đang pending');
+    if (booking.userId !== userId)
+      throw new BadRequestException('Không phải booking của bạn');
+    if (booking.status !== 'pending')
+      throw new BadRequestException('Chỉ có thể hủy booking đang pending');
 
     return this.prisma.booking.update({
       where: { id: bookingId },

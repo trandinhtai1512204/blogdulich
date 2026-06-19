@@ -9,16 +9,21 @@ async function bootstrap() {
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   // Raw body cho Stripe webhook — phải đặt TRƯỚC mọi thứ
-  app.use('/api/payments/webhook', bodyParser.raw({ type: 'application/json' }));
+  app.use(
+    '/api/payments/webhook',
+    bodyParser.raw({ type: 'application/json' }),
+  );
 
   // Cookie parser — cần cho httpOnly auth cookies
   app.use(cookieParser());
 
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   const allowedOrigins = [
     'http://localhost:3000',
@@ -30,7 +35,7 @@ async function bootstrap() {
 
   app.enableCors({
     origin: allowedOrigins,
-    credentials: true,   // bắt buộc để cookie hoạt động cross-origin
+    credentials: true, // bắt buộc để cookie hoạt động cross-origin
   });
 
   app.setGlobalPrefix('api');

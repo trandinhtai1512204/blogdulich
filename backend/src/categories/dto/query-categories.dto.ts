@@ -14,4 +14,3 @@ export class QueryCategoriesDto {
   @IsString()
   parentId?: string;
 }
-

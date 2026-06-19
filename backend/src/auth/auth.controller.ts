@@ -92,7 +92,8 @@ function getClientOriginFromState(pkceState?: string) {
 
   try {
     const parsed = JSON.parse(Buffer.from(pkceState, 'base64').toString());
-    const clientUrl = typeof parsed.clientUrl === 'string' ? parsed.clientUrl : undefined;
+    const clientUrl =
+      typeof parsed.clientUrl === 'string' ? parsed.clientUrl : undefined;
 
     if (clientUrl && ALLOWED_CLIENT_ORIGINS.includes(clientUrl)) {
       return clientUrl;
@@ -215,7 +216,8 @@ export class AuthController {
   ) {
     const pkceState = getCookie(req, 'pkce_state');
     res.clearCookie('pkce_state', PKCE_COOKIE_OPTIONS);
-    const clientUrl = getClientOriginFromState(pkceState) || getClientOrigin(req);
+    const clientUrl =
+      getClientOriginFromState(pkceState) || getClientOrigin(req);
 
     if (!code || !pkceState) {
       return res.redirect(`${clientUrl}/login?error=oauth_failed`);

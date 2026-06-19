@@ -41,10 +41,14 @@ export class AuthService {
       }
 
       return {
-        message: 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.',
+        message:
+          'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.',
       };
     } catch (err) {
-      if (err instanceof ConflictException || err instanceof BadRequestException) {
+      if (
+        err instanceof ConflictException ||
+        err instanceof BadRequestException
+      ) {
         throw err;
       }
       throw new InternalServerErrorException('Lỗi đăng ký, vui lòng thử lại');
@@ -86,7 +90,7 @@ export class AuthService {
           id: prismaUser.id,
           email: prismaUser.email,
           name: prismaUser.name,
-          role: prismaUser.role,   // role lấy từ Prisma, không trust JWT
+          role: prismaUser.role, // role lấy từ Prisma, không trust JWT
           avatar: prismaUser.avatar,
         },
       };
@@ -100,7 +104,14 @@ export class AuthService {
     try {
       const user = await this.prisma.user.findUnique({
         where: { id: supabaseUserId },
-        select: { id: true, email: true, name: true, role: true, avatar: true, createdAt: true },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          avatar: true,
+          createdAt: true,
+        },
       });
 
       if (!user) throw new UnauthorizedException('User không tồn tại');
@@ -118,7 +129,9 @@ export class AuthService {
       });
 
       if (error || !data.session) {
-        throw new UnauthorizedException('Refresh token không hợp lệ hoặc đã hết hạn');
+        throw new UnauthorizedException(
+          'Refresh token không hợp lệ hoặc đã hết hạn',
+        );
       }
 
       return data.session;
@@ -144,14 +157,25 @@ export class AuthService {
       const pkceStore: Record<string, string> = {};
       const storage = {
         getItem: (key: string) => pkceStore[key] ?? null,
-        setItem: (key: string, value: string) => { pkceStore[key] = value; },
-        removeItem: (key: string) => { delete pkceStore[key]; },
+        setItem: (key: string, value: string) => {
+          pkceStore[key] = value;
+        },
+        removeItem: (key: string) => {
+          delete pkceStore[key];
+        },
       };
 
       const client = createClient(
         process.env.SUPABASE_URL!,
         process.env.SUPABASE_ANON_KEY!,
-        { auth: { storage, autoRefreshToken: false, persistSession: true, flowType: 'pkce', } },
+        {
+          auth: {
+            storage,
+            autoRefreshToken: false,
+            persistSession: true,
+            flowType: 'pkce',
+          },
+        },
       );
 
       const { data, error } = await client.auth.signInWithOAuth({
@@ -190,14 +214,25 @@ export class AuthService {
 
       const storage = {
         getItem: (key: string) => pkceStore[key] ?? null,
-        setItem: (key: string, value: string) => { pkceStore[key] = value; },
-        removeItem: (key: string) => { delete pkceStore[key]; },
+        setItem: (key: string, value: string) => {
+          pkceStore[key] = value;
+        },
+        removeItem: (key: string) => {
+          delete pkceStore[key];
+        },
       };
 
       const client = createClient(
         process.env.SUPABASE_URL!,
         process.env.SUPABASE_ANON_KEY!,
-        { auth: { storage, autoRefreshToken: false, persistSession: true, flowType: 'pkce', } },
+        {
+          auth: {
+            storage,
+            autoRefreshToken: false,
+            persistSession: true,
+            flowType: 'pkce',
+          },
+        },
       );
 
       const { data, error } = await client.auth.exchangeCodeForSession(code);
@@ -243,19 +278,19 @@ export class AuthService {
         },
       });
     } catch (err) {
-    // P2002: email tồn tại với Supabase ID khác
-    // (user đã đăng ký email/password, nay login Google cùng email)
-    if ((err as any)?.code === 'P2002') {
-      return await this.prisma.user.update({
-        where: { email },           // tìm theo email (unique)
-        data: {
-          id: supabaseId,           // cập nhật ID sang OAuth Supabase ID
-          ...(name && { name }),
-          ...(avatar && { avatar }),
-        },
-      });
+      // P2002: email tồn tại với Supabase ID khác
+      // (user đã đăng ký email/password, nay login Google cùng email)
+      if (err?.code === 'P2002') {
+        return await this.prisma.user.update({
+          where: { email }, // tìm theo email (unique)
+          data: {
+            id: supabaseId, // cập nhật ID sang OAuth Supabase ID
+            ...(name && { name }),
+            ...(avatar && { avatar }),
+          },
+        });
+      }
+      throw new InternalServerErrorException('Lỗi đồng bộ user profile');
     }
-    throw new InternalServerErrorException('Lỗi đồng bộ user profile');
-  }
   }
 }

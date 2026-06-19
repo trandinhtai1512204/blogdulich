@@ -1,6 +1,10 @@
 // payments.service.ts
 import Stripe from 'stripe';
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -16,8 +20,10 @@ export class PaymentsService {
     });
 
     if (!booking) throw new NotFoundException('Booking không tồn tại');
-    if (booking.userId !== userId) throw new BadRequestException('Không phải booking của bạn');
-    if (booking.status !== 'pending') throw new BadRequestException('Booking không hợp lệ');
+    if (booking.userId !== userId)
+      throw new BadRequestException('Không phải booking của bạn');
+    if (booking.status !== 'pending')
+      throw new BadRequestException('Booking không hợp lệ');
 
     // Kiểm tra chưa thanh toán
     const existingPayment = await this.prisma.payment.findUnique({

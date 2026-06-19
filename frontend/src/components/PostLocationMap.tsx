@@ -90,14 +90,14 @@ export function PostLocationMap({ title, location, latitude, longitude }: Props)
     <section className="mt-8 rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
       <div className="flex items-center justify-between gap-3 mb-3">
         <h2 className="text-lg font-bold text-gray-900 inline-flex items-center gap-2">
-          <MapPin size={16} className="text-violet-600" />
+          <MapPin size={16} className="text-[#F37021]" />
           Vị trí trên bản đồ
         </h2>
         <a
           href={googleMapsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-sm text-violet-600 font-semibold hover:text-violet-700"
+          className="inline-flex items-center gap-1 text-sm text-[#F37021] font-semibold hover:text-[#d95f18]"
         >
           Mở Google Maps <ExternalLink size={13} />
         </a>

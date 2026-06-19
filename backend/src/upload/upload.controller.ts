@@ -1,4 +1,10 @@
-import { Controller, Post, UploadedFile, UseInterceptors, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+  UseGuards,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
@@ -15,23 +21,32 @@ cloudinary.config({
 export class UploadController {
   @UseGuards(SupabaseAuthGuard, AdminGuard)
   @Post('image')
-  @UseInterceptors(FileInterceptor('file', {
-    storage: memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (_, file, cb) => {
-      if (!file.mimetype.startsWith('image/')) {
-        cb(new Error('Chỉ chấp nhận file ảnh'), false);
-      } else {
-        cb(null, true);
-      }
-    },
-  }))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (_, file, cb) => {
+        if (!file.mimetype.startsWith('image/')) {
+          cb(new Error('Chỉ chấp nhận file ảnh'), false);
+        } else {
+          cb(null, true);
+        }
+      },
+    }),
+  )
   async uploadImage(@UploadedFile() file: Express.Multer.File) {
     const result = await new Promise<any>((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        { folder: 'tripviet', transformation: [{ width: 1200, quality: 'auto', fetch_format: 'auto' }] },
-        (error, result) => error ? reject(error) : resolve(result)
-      ).end(file.buffer);
+      cloudinary.uploader
+        .upload_stream(
+          {
+            folder: 'tripviet',
+            transformation: [
+              { width: 1200, quality: 'auto', fetch_format: 'auto' },
+            ],
+          },
+          (error, result) => (error ? reject(error) : resolve(result)),
+        )
+        .end(file.buffer);
     });
     return { url: result.secure_url };
   }

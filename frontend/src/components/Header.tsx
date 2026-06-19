@@ -28,14 +28,14 @@ export default function Header() {
 
         {/* Nav */}
         <nav className="hidden md:flex items-center gap-8">
-          <Link href="/hotels" className="text-gray-600 hover:text-[#6B4EFF] font-medium transition text-sm">
+          <Link href="/hotels" className="text-gray-600 hover:text-[#0A2D5B] font-medium transition text-sm">
             Khách sạn
           </Link>
-          <Link href="/posts" className="text-gray-600 hover:text-[#6B4EFF] font-medium transition text-sm">
+          <Link href="/posts" className="text-gray-600 hover:text-[#0A2D5B] font-medium transition text-sm">
             Blog du lịch
           </Link>
           {user?.role === 'admin' && (
-            <Link href="/admin" className="text-gray-600 hover:text-[#6B4EFF] font-medium transition text-sm">
+            <Link href="/admin" className="text-gray-600 hover:text-[#0A2D5B] font-medium transition text-sm">
               Quản trị
             </Link>
           )}
@@ -85,7 +85,7 @@ export default function Header() {
             <>
               <Link
                 href="/login"
-                className="text-sm font-medium text-gray-700 hover:text-[#6B4EFF] transition"
+                className="text-sm font-medium text-gray-700 hover:text-[#0A2D5B] transition"
               >
                 Đăng nhập
               </Link>

@@ -8,7 +8,14 @@ export class HotelsService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(query: QueryHotelsDto) {
-    const { cityId, search, minPrice, maxPrice, page = '1', limit = '10' } = query;
+    const {
+      cityId,
+      search,
+      minPrice,
+      maxPrice,
+      page = '1',
+      limit = '10',
+    } = query;
 
     const pageNumber = parseInt(page);
     const limitNumber = parseInt(limit);
@@ -35,7 +42,12 @@ export class HotelsService {
 
     return {
       data,
-      meta: { total, page: pageNumber, limit: limitNumber, totalPages: Math.ceil(total / limitNumber) },
+      meta: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(total / limitNumber),
+      },
     };
   }
 

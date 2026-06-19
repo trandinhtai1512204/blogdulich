@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CATEGORY_WITH_ANCESTORS_SELECT, computePostCanonicalPath } from '../posts/post-canonical';
+import {
+  CATEGORY_WITH_ANCESTORS_SELECT,
+  computePostCanonicalPath,
+} from '../posts/post-canonical';
 
 type CategoryNode = {
   id: string;
@@ -15,8 +18,21 @@ type CityNode = { id: string; name: string; slug: string };
 
 type ResolveResult =
   | { kind: 'city'; city: CityNode; canonicalPath: string }
-  | { kind: 'category'; city: CityNode | null; category: CategoryNode; chain: CategoryNode[]; canonicalPath: string }
-  | { kind: 'post'; city: CityNode | null; category: CategoryNode | null; chain: CategoryNode[]; post: any; canonicalPath: string }
+  | {
+      kind: 'category';
+      city: CityNode | null;
+      category: CategoryNode;
+      chain: CategoryNode[];
+      canonicalPath: string;
+    }
+  | {
+      kind: 'post';
+      city: CityNode | null;
+      category: CategoryNode | null;
+      chain: CategoryNode[];
+      post: any;
+      canonicalPath: string;
+    }
   | { kind: 'not_found' };
 
 const CAT_SELECT = {
@@ -29,12 +45,23 @@ const CAT_SELECT = {
   cityId: true,
 } as const;
 
-const REVIEW_HAS_SUB = new Set(['review-tour', 'review-khach-san']);
-
 const REVIEW_SUBTYPE_SLUGS = new Set([
-  'review-tour', 'review-khach-san', 'review-combo',
-  'review-resort', 'review-du-thuyen', 'review-nha-hang',
+  'review-tour',
+  'review-khach-san',
+  'review-combo',
+  'review-resort',
+  'review-du-thuyen',
+  'review-nha-hang',
 ]);
+
+const REVIEW_PUBLIC_TO_INTERNAL: Record<string, string> = {
+  tour: 'review-tour',
+  'khach-san': 'review-khach-san',
+  combo: 'review-combo',
+  resort: 'review-resort',
+  'du-thuyen': 'review-du-thuyen',
+  'nha-hang': 'review-nha-hang',
+};
 
 const POST_LIST_SELECT = {
   id: true,
@@ -59,54 +86,76 @@ export class TaxonomyService {
    * Strict per-module dispatch — sitemap v2 is the source of truth, no infer,
    * no fallbacks. Each module has its own depth and slug-prefix rules.
    *
-   *   /lich-trinh-du-lich                 → itinerary ROOT index
-   *   /lich-trinh-du-lich-{city}          → itinerary CITY landing
-   *   /lich-trinh-du-lich-{city}/{post}   → itinerary post
+   *   /lich-trinh                         → itinerary ROOT index
+   *   /lich-trinh/{city}                  → itinerary CITY landing
+   *   /lich-trinh/{city}/{post}           → itinerary post
    *
    *   /kinh-nghiem                        → experience ROOT index
-   *   /kinh-nghiem-du-lich-{city}         → experience CITY landing
-   *   /kinh-nghiem-du-lich-{city}/{post}  → experience post
+   *   /kinh-nghiem/{city}                 → experience CITY landing
+   *   /kinh-nghiem/{city}/{post}          → experience post
    *
    *   /review                             → review ROOT index
-   *   /review-{subtype}                   → review SUBTYPE listing
-   *   /review-{subtype}/{city}            → review CITY listing
-   *   /review-{subtype}/{city}/{sub}      → review SUB listing  (tour, khach-san)
-   *   /review-{subtype}/{city}/{sub}/{p}  → review post         (tour, khach-san)
-   *   /review-{subtype}/{city}/{post}     → review post         (combo, resort, du-thuyen, nha-hang)
+   *   /review/{subtype}                   → review SUBTYPE listing
+   *   /review/{subtype}/{city}            → review CITY listing
+   *   /review/{subtype}/{city}/{post}     → review post
    *
-   *   /{city}                             → destination CITY (a City record)
-   *   /{city}/{sub}                       → destination SUB listing
-   *   /{city}/{sub}/{post}                → destination post
-   *
-   * Note: `diem-den` ROOT slug is INTERNAL ONLY — never appears in URL.
+   *   /diem-den                           → destination ROOT index
+   *   /diem-den/{city}                    → destination CITY (a City record)
+   *   /diem-den/{city}/{sub}              → destination SUB listing
+   *   /diem-den/{city}/{sub}/{post}       → destination post
    */
   async resolve(slugs: string[]): Promise<ResolveResult> {
     if (!slugs.length) return { kind: 'not_found' };
     const canonicalPath = '/' + slugs.join('/');
     const first = slugs[0];
 
-    // Module ROOT index pages (3 of 4 — diem-den is not URL-accessible).
-    if (first === 'lich-trinh-du-lich' || first === 'kinh-nghiem' || first === 'review') {
-      return this.resolveModuleRoot(first, slugs.slice(1), canonicalPath);
+    if (first === 'diem-den') {
+      if (slugs.length === 1) {
+        return this.resolveModuleRoot('diem-den', [], canonicalPath);
+      }
+      return this.resolveDestination(slugs.slice(1), canonicalPath);
     }
 
-    // Itinerary city landing — flat slug `lich-trinh-du-lich-{city}`.
-    if (first.startsWith('lich-trinh-du-lich-')) {
-      return this.resolveFlatCityVertical('lich-trinh-du-lich', first, slugs.slice(1), canonicalPath);
+    if (first === 'lich-trinh') {
+      if (slugs.length === 1) {
+        return this.resolveModuleRoot(
+          'lich-trinh-du-lich',
+          [],
+          canonicalPath,
+        );
+      }
+      return this.resolveNestedCityVertical(
+        'lich-trinh-du-lich',
+        'lich-trinh-du-lich',
+        slugs[1],
+        slugs.slice(2),
+        canonicalPath,
+      );
     }
 
-    // Experience city landing — flat slug `kinh-nghiem-du-lich-{city}`.
-    if (first.startsWith('kinh-nghiem-du-lich-')) {
-      return this.resolveFlatCityVertical('kinh-nghiem', first, slugs.slice(1), canonicalPath);
+    if (first === 'kinh-nghiem') {
+      if (slugs.length === 1) {
+        return this.resolveModuleRoot('kinh-nghiem', [], canonicalPath);
+      }
+      return this.resolveNestedCityVertical(
+        'kinh-nghiem',
+        'kinh-nghiem-du-lich',
+        slugs[1],
+        slugs.slice(2),
+        canonicalPath,
+      );
     }
 
-    // Review subtype tree.
-    if (first.startsWith('review-')) {
-      return this.resolveReview(first, slugs.slice(1), canonicalPath);
+    if (first === 'review') {
+      if (slugs.length === 1) {
+        return this.resolveModuleRoot('review', [], canonicalPath);
+      }
+      const subtypeSlug = REVIEW_PUBLIC_TO_INTERNAL[slugs[1]];
+      if (!subtypeSlug) return { kind: 'not_found' };
+      return this.resolveReview(subtypeSlug, slugs.slice(2), canonicalPath);
     }
 
-    // Default: destination tree, first slug = city slug.
-    return this.resolveDestination(slugs, canonicalPath);
+    return { kind: 'not_found' };
   }
 
   // -------- Module ROOT index --------------------------------------------
@@ -130,9 +179,10 @@ export class TaxonomyService {
     };
   }
 
-  // -------- Itinerary / Experience: flat city + optional post -----------
-  private async resolveFlatCityVertical(
+  // -------- Itinerary / Experience: nested city + optional post ----------
+  private async resolveNestedCityVertical(
     rootSlug: string,
+    citySlugPrefix: string,
     citySlug: string,
     rest: string[],
     canonicalPath: string,
@@ -144,7 +194,11 @@ export class TaxonomyService {
     if (!root) return { kind: 'not_found' };
 
     const cityCat = await this.prisma.category.findFirst({
-      where: { slug: citySlug, parentId: root.id, level: 'CITY' },
+      where: {
+        slug: `${citySlugPrefix}-${citySlug}`,
+        parentId: root.id,
+        level: 'CITY',
+      },
       select: CAT_SELECT,
     });
     if (!cityCat) return { kind: 'not_found' };
@@ -160,19 +214,13 @@ export class TaxonomyService {
         canonicalPath,
       };
     }
-    if (rest.length === 1) {
-      const post = await this.loadPost(rest[0], cityCat.id);
-      if (!post || post.categoryId !== cityCat.id) return { kind: 'not_found' };
-      return {
-        kind: 'post',
-        city,
-        category: cityCat as CategoryNode,
-        chain: [cityCat as CategoryNode],
-        post,
-        canonicalPath: computePostCanonicalPath(post as any),
-      };
-    }
-    return { kind: 'not_found' };
+    return this.resolveCityMixedNode(
+      cityCat as CategoryNode,
+      city,
+      rest,
+      [cityCat as CategoryNode],
+      canonicalPath,
+    );
   }
 
   // -------- Review tree -------------------------------------------------
@@ -223,55 +271,75 @@ export class TaxonomyService {
       };
     }
 
-    if (REVIEW_HAS_SUB.has(subtypeSlug)) {
-      // rest[1] = sub category, rest[2] = post (optional)
+    return this.resolveCityMixedNode(
+      cityCat as CategoryNode,
+      city,
+      rest.slice(1),
+      [subtype as CategoryNode],
+      canonicalPath,
+    );
+  }
+
+  private async resolveCityMixedNode(
+    cityCat: CategoryNode,
+    city: CityNode | null,
+    rest: string[],
+    parentChain: CategoryNode[],
+    canonicalPath: string,
+  ): Promise<ResolveResult> {
+    if (rest.length === 1) {
       const subCat = await this.prisma.category.findFirst({
-        where: { slug: rest[1], parentId: cityCat.id, level: 'SUB' },
+        where: { slug: rest[0], parentId: cityCat.id, level: 'SUB' },
         select: CAT_SELECT,
       });
-      if (!subCat) return { kind: 'not_found' };
-
-      if (rest.length === 2) {
+      if (subCat) {
         return {
           kind: 'category',
           city,
           category: subCat as CategoryNode,
-          chain: [subtype as CategoryNode, subCat as CategoryNode],
+          chain: [...parentChain, subCat as CategoryNode],
           canonicalPath,
         };
       }
-      if (rest.length === 3) {
-        const post = await this.loadPost(rest[2], subCat.id);
-        if (!post || post.categoryId !== subCat.id) return { kind: 'not_found' };
-        return {
-          kind: 'post',
-          city,
-          category: subCat as CategoryNode,
-          chain: [subtype as CategoryNode, subCat as CategoryNode],
-          post,
-          canonicalPath: computePostCanonicalPath(post as any),
-        };
-      }
-      return { kind: 'not_found' };
+
+      const post = await this.loadPost(rest[0], cityCat.id);
+      if (!post || post.categoryId !== cityCat.id) return { kind: 'not_found' };
+      return {
+        kind: 'post',
+        city,
+        category: cityCat,
+        chain: parentChain,
+        post,
+        canonicalPath: computePostCanonicalPath(post as any),
+      };
     }
 
-    // Subtypes without SUB: combo, resort, du-thuyen, nha-hang.
-    // rest[1] = post slug (no deeper level).
-    if (rest.length !== 2) return { kind: 'not_found' };
-    const post = await this.loadPost(rest[1], cityCat.id);
-    if (!post || post.categoryId !== cityCat.id) return { kind: 'not_found' };
-    return {
-      kind: 'post',
-      city,
-      category: cityCat as CategoryNode,
-      chain: [subtype as CategoryNode],
-      post,
-      canonicalPath: computePostCanonicalPath(post as any),
-    };
+    if (rest.length === 2) {
+      const subCat = await this.prisma.category.findFirst({
+        where: { slug: rest[0], parentId: cityCat.id, level: 'SUB' },
+        select: CAT_SELECT,
+      });
+      if (!subCat) return { kind: 'not_found' };
+      const post = await this.loadPost(rest[1], subCat.id);
+      if (!post || post.categoryId !== subCat.id) return { kind: 'not_found' };
+      return {
+        kind: 'post',
+        city,
+        category: subCat as CategoryNode,
+        chain: [...parentChain, subCat as CategoryNode],
+        post,
+        canonicalPath: computePostCanonicalPath(post as any),
+      };
+    }
+
+    return { kind: 'not_found' };
   }
 
   // -------- Destination tree (no /diem-den/ prefix in URL) --------------
-  private async resolveDestination(slugs: string[], canonicalPath: string): Promise<ResolveResult> {
+  private async resolveDestination(
+    slugs: string[],
+    canonicalPath: string,
+  ): Promise<ResolveResult> {
     const citySlug = slugs[0];
     const city = await this.prisma.city.findUnique({
       where: { slug: citySlug },
@@ -295,19 +363,30 @@ export class TaxonomyService {
     if (!cityCat) return { kind: 'not_found' };
 
     if (slugs.length === 2) {
-      // /{city}/{sub}
+      // /{city}/{sub} — try sub-category first, then direct post (mixed node)
       const subCat = await this.prisma.category.findFirst({
         where: { slug: slugs[1], parentId: cityCat.id, level: 'SUB' },
         select: CAT_SELECT,
       });
-      if (!subCat) return { kind: 'not_found' };
-      // Chain omits cityCat — its slug == city.slug; breadcrumb uses city object.
+      if (subCat) {
+        return {
+          kind: 'category',
+          city,
+          category: subCat as CategoryNode,
+          chain: [subCat as CategoryNode],
+          canonicalPath,
+        };
+      }
+      // Fallback: direct post under city (e.g. /ha-noi/an-gi)
+      const post = await this.loadPost(slugs[1], cityCat.id);
+      if (!post) return { kind: 'not_found' };
       return {
-        kind: 'category',
+        kind: 'post',
         city,
-        category: subCat as CategoryNode,
-        chain: [subCat as CategoryNode],
-        canonicalPath,
+        category: cityCat as CategoryNode,
+        chain: [],
+        post,
+        canonicalPath: computePostCanonicalPath(post as any),
       };
     }
 
@@ -353,13 +432,20 @@ export class TaxonomyService {
       const destCatIds = navCats.map((c) => c.id);
       const rawPosts = destCatIds.length
         ? await this.prisma.post.findMany({
-            where: { published: true, cityId: resolved.city.id, categoryId: { in: destCatIds } },
+            where: {
+              published: true,
+              cityId: resolved.city.id,
+              categoryId: { in: destCatIds },
+            },
             take: 12,
             orderBy: { createdAt: 'desc' },
             select: POST_LIST_SELECT,
           })
         : [];
-      const posts = rawPosts.map((p) => ({ ...p, canonicalUrl: computePostCanonicalPath(p as any) }));
+      const posts = rawPosts.map((p) => ({
+        ...p,
+        canonicalUrl: computePostCanonicalPath(p as any),
+      }));
       return { resolved, children: navCats, cityPills: [], posts };
     }
 
@@ -367,7 +453,8 @@ export class TaxonomyService {
     const catId = resolved.category.id;
     const cityId = resolved.city?.id ?? null;
     const citySlug = resolved.city?.slug ?? null;
-    const isReviewSubtypeL2 = REVIEW_SUBTYPE_SLUGS.has(resolved.category.slug) && !resolved.city;
+    const isReviewSubtypeL2 =
+      REVIEW_SUBTYPE_SLUGS.has(resolved.category.slug) && !resolved.city;
 
     if (isReviewSubtypeL2) {
       const [cities, rawPosts] = await Promise.all([
@@ -382,7 +469,10 @@ export class TaxonomyService {
           select: POST_LIST_SELECT,
         }),
       ]);
-      const posts = rawPosts.map((p) => ({ ...p, canonicalUrl: computePostCanonicalPath(p as any) }));
+      const posts = rawPosts.map((p) => ({
+        ...p,
+        canonicalUrl: computePostCanonicalPath(p as any),
+      }));
       return { resolved, children: [], cityPills: cities, posts };
     }
 
@@ -402,9 +492,15 @@ export class TaxonomyService {
       }),
     ]);
     const filteredChildren = cityId
-      ? allChildren.filter((c) => (c.cityId == null || c.cityId === cityId) && c.slug !== citySlug)
+      ? allChildren.filter(
+          (c) =>
+            (c.cityId == null || c.cityId === cityId) && c.slug !== citySlug,
+        )
       : allChildren;
-    const posts = rawPosts.map((p) => ({ ...p, canonicalUrl: computePostCanonicalPath(p as any) }));
+    const posts = rawPosts.map((p) => ({
+      ...p,
+      canonicalUrl: computePostCanonicalPath(p as any),
+    }));
     return { resolved, children: filteredChildren, cityPills: [], posts };
   }
 

@@ -92,6 +92,7 @@ model Post {
   location   String?
   latitude   Float?
   longitude  Float?
+  viewCount  Int        @default(0)
   published  Boolean   @default(false)
   status     PostStatus @default(pending)
   authorId   String?
@@ -109,8 +110,28 @@ model Post {
   @@index([categoryId])
   @@index([status, createdAt(sort: Desc)])
   @@index([published, createdAt(sort: Desc)])
+  @@index([published, viewCount(sort: Desc), createdAt(sort: Desc)])
   @@index([categoryId, published, createdAt(sort: Desc)])
+  @@index([cityId, published, viewCount(sort: Desc), createdAt(sort: Desc)])
   @@map("posts")
+}
+
+model Faq {
+  id         String        @id @default(cuid())
+  targetType FaqTargetType
+  targetId   String?
+  module     CategoryType?
+  question   String
+  answer     String
+  sortOrder  Int           @default(0)
+  published  Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([targetType, targetId])
+  @@index([module])
+  @@index([published])
+  @@map("faqs")
 }
 
 model Booking {
@@ -189,6 +210,13 @@ enum CategoryType {
   itinerary
   review
   experience
+}
+
+enum FaqTargetType {
+  global
+  category
+  city
+  post
 }
 
 enum CategoryLevel {

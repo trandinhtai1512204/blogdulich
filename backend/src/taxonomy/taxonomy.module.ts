@@ -7,4 +7,3 @@ import { TaxonomyService } from './taxonomy.service';
   controllers: [TaxonomyController],
 })
 export class TaxonomyModule {}
-

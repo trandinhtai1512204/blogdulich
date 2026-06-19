@@ -12,6 +12,21 @@ import {
   computePostCanonicalPath,
 } from './post-canonical';
 
+type CitySectionType = 'destination' | 'itinerary' | 'experience';
+type RankedPostRow = { id: string; viewCount: number };
+type ReviewSubtype = { slug: string; name: string };
+
+const CITY_SECTION_LIMIT = 6;
+const REVIEW_GROUP_LIMIT = 3;
+const REVIEW_SUBTYPES: ReviewSubtype[] = [
+  { slug: 'review-tour', name: 'Review Tour' },
+  { slug: 'review-khach-san', name: 'Review Khách Sạn' },
+  { slug: 'review-combo', name: 'Review Combo' },
+  { slug: 'review-resort', name: 'Review Resort' },
+  { slug: 'review-du-thuyen', name: 'Review Du Thuyền' },
+  { slug: 'review-nha-hang', name: 'Review Nhà Hàng' },
+];
+
 @Injectable()
 export class PostsService {
   constructor(private prisma: PrismaService) {}
@@ -29,7 +44,15 @@ export class PostsService {
   }
 
   async findAll(query: QueryPostsDto) {
-    const { cityId, categoryId, search, page = '1', limit = '10', type } = query;
+    const {
+      cityId,
+      categoryId,
+      search,
+      page = '1',
+      limit = '10',
+      type,
+      sort,
+    } = query;
 
     const pageNumber = parseInt(page);
     const limitNumber = parseInt(limit);
@@ -37,7 +60,7 @@ export class PostsService {
 
     if (cityId) where.cityId = cityId;
     if (categoryId) where.categoryId = categoryId;
-    if (type) where.category = { type: type as any };
+    if (type) where.category = { type };
     if (search) {
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
@@ -45,29 +68,31 @@ export class PostsService {
       ];
     }
 
-    const [data, total] = await Promise.all([
-      this.prisma.post.findMany({
-        where,
-        skip: (pageNumber - 1) * limitNumber,
-        take: limitNumber,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          excerpt: true,
-          thumbnail: true,
-          published: true,
-          cityId: true,
-          categoryId: true,
-          createdAt: true,
-          city: { select: { id: true, name: true, slug: true } },
-          category: { select: CATEGORY_WITH_ANCESTORS_SELECT },
-          author: { select: { id: true, name: true, avatar: true } },
-        },
-      }),
-      this.prisma.post.count({ where }),
-    ]);
+    const data = await this.prisma.post.findMany({
+      where,
+      skip: (pageNumber - 1) * limitNumber,
+      take: limitNumber,
+      orderBy:
+        sort === 'hot'
+          ? [{ viewCount: 'desc' }, { createdAt: 'desc' }]
+          : { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        excerpt: true,
+        thumbnail: true,
+        viewCount: true,
+        published: true,
+        cityId: true,
+        categoryId: true,
+        createdAt: true,
+        city: { select: { id: true, name: true, slug: true } },
+        category: { select: CATEGORY_WITH_ANCESTORS_SELECT },
+        author: { select: { id: true, name: true, avatar: true } },
+      },
+    });
+    const total = await this.prisma.post.count({ where });
 
     const enriched = data.map((p) => ({
       ...p,
@@ -96,6 +121,68 @@ export class PostsService {
     });
     if (!post) throw new NotFoundException('Bài viết không tồn tại');
     return post;
+  }
+
+  async findCityFeatured(citySlug: string) {
+    const city = await this.prisma.city.findUnique({
+      where: { slug: citySlug },
+      select: { id: true, name: true, slug: true },
+    });
+    if (!city) throw new NotFoundException('Tỉnh thành không tồn tại');
+
+    const [destination, itinerary, experience, reviewGroups] =
+      await Promise.all([
+        this.findTopPostsByCityAndType(
+          city.id,
+          'destination',
+          CITY_SECTION_LIMIT,
+        ),
+        this.findTopPostsByCityAndType(
+          city.id,
+          'itinerary',
+          CITY_SECTION_LIMIT,
+        ),
+        this.findTopPostsByCityAndType(
+          city.id,
+          'experience',
+          CITY_SECTION_LIMIT,
+        ),
+        Promise.all(
+          REVIEW_SUBTYPES.map(async (subtype) => ({
+            ...subtype,
+            posts: await this.findTopReviewPostsBySubtype(
+              city.id,
+              subtype.slug,
+              REVIEW_GROUP_LIMIT,
+            ),
+          })),
+        ),
+      ]);
+
+    return {
+      city,
+      destination,
+      itinerary,
+      experience,
+      review: {
+        groups: reviewGroups,
+        posts: reviewGroups.flatMap((group) => group.posts),
+      },
+    };
+  }
+
+  async incrementViewCount(id: string) {
+    const rows = await this.prisma.$queryRaw<
+      { id: string; viewCount: number }[]
+    >`
+      UPDATE "posts"
+      SET "viewCount" = "viewCount" + 1
+      WHERE "id" = ${id}
+      RETURNING "id", "viewCount"
+    `;
+    const updated = rows[0];
+    if (!updated) throw new NotFoundException('Bài viết không tồn tại');
+    return updated;
   }
 
   async create(dto: CreatePostDto) {
@@ -264,5 +351,82 @@ export class PostsService {
     const post = await this.prisma.post.findUnique({ where: { id } });
     if (!post) throw new NotFoundException('Bài viết không tồn tại');
     return this.prisma.post.delete({ where: { id } });
+  }
+
+  private async findTopPostsByCityAndType(
+    cityId: string,
+    type: CitySectionType,
+    limit: number,
+  ) {
+    const rows = await this.prisma.$queryRaw<RankedPostRow[]>`
+      SELECT p."id", p."viewCount"
+      FROM "posts" p
+      INNER JOIN "categories" c ON c."id" = p."categoryId"
+      WHERE p."published" = true
+        AND p."cityId" = ${cityId}
+        AND c."type"::text = ${type}
+      ORDER BY p."viewCount" DESC, p."createdAt" DESC
+      LIMIT ${limit}
+    `;
+
+    return this.hydrateRankedPosts(rows);
+  }
+
+  private async findTopReviewPostsBySubtype(
+    cityId: string,
+    subtypeSlug: string,
+    limit: number,
+  ) {
+    const rows = await this.prisma.$queryRaw<RankedPostRow[]>`
+      SELECT p."id", p."viewCount"
+      FROM "posts" p
+      INNER JOIN "categories" c ON c."id" = p."categoryId"
+      LEFT JOIN "categories" parent ON parent."id" = c."parentId"
+      LEFT JOIN "categories" grandparent ON grandparent."id" = parent."parentId"
+      WHERE p."published" = true
+        AND p."cityId" = ${cityId}
+        AND c."type"::text = 'review'
+        AND (
+          c."slug" = ${subtypeSlug}
+          OR parent."slug" = ${subtypeSlug}
+          OR grandparent."slug" = ${subtypeSlug}
+        )
+      ORDER BY p."viewCount" DESC, p."createdAt" DESC
+      LIMIT ${limit}
+    `;
+
+    return this.hydrateRankedPosts(rows);
+  }
+
+  private async hydrateRankedPosts(rows: RankedPostRow[]) {
+    if (rows.length === 0) return [];
+
+    const viewCountById = new Map(rows.map((row) => [row.id, row.viewCount]));
+    const orderById = new Map(rows.map((row, index) => [row.id, index]));
+    const posts = await this.prisma.post.findMany({
+      where: { id: { in: rows.map((row) => row.id) } },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        excerpt: true,
+        thumbnail: true,
+        published: true,
+        cityId: true,
+        categoryId: true,
+        createdAt: true,
+        city: { select: { id: true, name: true, slug: true } },
+        category: { select: CATEGORY_WITH_ANCESTORS_SELECT },
+        author: { select: { id: true, name: true, avatar: true } },
+      },
+    });
+
+    return posts
+      .map((post) => ({
+        ...post,
+        viewCount: viewCountById.get(post.id) ?? 0,
+        canonicalUrl: computePostCanonicalPath(post as any),
+      }))
+      .sort((a, b) => (orderById.get(a.id) ?? 0) - (orderById.get(b.id) ?? 0));
   }
 }

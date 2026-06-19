@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ChevronDown, ChevronRight, FileText, MapPin, Folder,
-  Plus, Pencil, Trash2, Eye, EyeOff, X,
+  Plus, Pencil, Trash2, Eye, EyeOff, X, HelpCircle,
 } from 'lucide-react';
 import api from '@/lib/axios';
 import { TiptapEditor } from '@/components/TiptapEditor';
@@ -19,13 +19,13 @@ const MODULES: Array<{ key: Module; label: string; rootSlug: string; emoji: stri
   { key: 'experience',  label: 'Kinh nghiệm', rootSlug: 'kinh-nghiem',       emoji: '📖', cityPrefix: 'kinh-nghiem-du-lich-' },
 ];
 
-const REVIEW_SUBTYPES: Array<{ slug: string; label: string; hasSub: boolean }> = [
-  { slug: 'review-tour',       label: 'Tour',       hasSub: true },
-  { slug: 'review-khach-san',  label: 'Khách sạn',  hasSub: true },
-  { slug: 'review-combo',      label: 'Combo',      hasSub: false },
-  { slug: 'review-resort',     label: 'Resort',     hasSub: false },
-  { slug: 'review-du-thuyen',  label: 'Du thuyền',  hasSub: false },
-  { slug: 'review-nha-hang',   label: 'Nhà hàng',   hasSub: false },
+const REVIEW_SUBTYPES: Array<{ slug: string; label: string }> = [
+  { slug: 'review-tour',       label: 'Tour' },
+  { slug: 'review-khach-san',  label: 'Khách sạn' },
+  { slug: 'review-combo',      label: 'Combo' },
+  { slug: 'review-resort',     label: 'Resort' },
+  { slug: 'review-du-thuyen',  label: 'Du thuyền' },
+  { slug: 'review-nha-hang',   label: 'Nhà hàng' },
 ];
 
 interface Category {
@@ -43,6 +43,13 @@ interface Post {
 }
 
 interface City { id: string; name: string; slug: string; }
+interface FaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  sortOrder: number;
+  published: boolean;
+}
 
 // ----- Helpers --------------------------------------------------------------
 function buildChildrenMap(categories: Category[]) {
@@ -72,24 +79,16 @@ const errMsg = (e: unknown) => {
 
 // Determine if a node is a "leaf" — i.e. posts attach directly to it.
 function isLeafNode(cat: Category, mod: Module, subtypeSlug?: string): boolean {
-  if (mod === 'destination') return cat.level === 'SUB';
-  if (mod === 'itinerary' || mod === 'experience') return cat.level === 'CITY';
-  if (mod === 'review') {
-    const sub = REVIEW_SUBTYPES.find((s) => s.slug === subtypeSlug);
-    return sub?.hasSub ? cat.level === 'SUB' : cat.level === 'CITY';
+  if (mod === 'destination' || mod === 'itinerary' || mod === 'experience') {
+    return cat.level === 'CITY' || cat.level === 'SUB';
   }
+  if (mod === 'review') return cat.level === 'CITY' || cat.level === 'SUB';
   return false;
 }
 
-// Determine if the node should accept SUB children (only destination + review-tour/khach-san CITY).
+// Determine if the node should accept SUB children.
 function canHaveSubChildren(cat: Category, mod: Module, subtypeSlug?: string): boolean {
-  if (cat.level !== 'CITY') return false;
-  if (mod === 'destination') return true;
-  if (mod === 'review') {
-    const sub = REVIEW_SUBTYPES.find((s) => s.slug === subtypeSlug);
-    return sub?.hasSub ?? false;
-  }
-  return false;
+  return cat.level === 'CITY';
 }
 
 // ============================================================================
@@ -101,6 +100,7 @@ type ModalState =
   | { kind: 'edit-category'; category: Category }
   | { kind: 'add-post'; parentCategory: Category }
   | { kind: 'edit-post'; post: Post; parentCategory: Category }
+  | { kind: 'manage-faqs'; targetType: 'category' | 'post'; targetId: string; module: Module; title: string }
   | null;
 
 export default function AdminContentPage() {
@@ -235,7 +235,7 @@ export default function AdminContentPage() {
                   : 'bg-white text-gray-500 border-gray-200 hover:border-amber-300'
               }`}
             >
-              {s.label} {!s.hasSub && <span className="text-[10px] opacity-60 ml-1">· city/post</span>}
+              {s.label}
             </button>
           ))}
         </div>
@@ -297,6 +297,20 @@ export default function AdminContentPage() {
                 onEditPost={(p) => setModal({ kind: 'edit-post', post: p, parentCategory: selected })}
                 onDeletePost={handleDeletePost}
                 onTogglePublished={handleTogglePublished}
+                onManageCategoryFaqs={() => setModal({
+                  kind: 'manage-faqs',
+                  targetType: 'category',
+                  targetId: selected.id,
+                  module: activeModule,
+                  title: selected.name,
+                })}
+                onManagePostFaqs={(p) => setModal({
+                  kind: 'manage-faqs',
+                  targetType: 'post',
+                  targetId: p.id,
+                  module: activeModule,
+                  title: p.title,
+                })}
               />
             )}
           </div>
@@ -338,6 +352,15 @@ export default function AdminContentPage() {
               editing={modal.kind === 'edit-post' ? modal.post : null}
               onClose={() => setModal(null)}
               onSaved={() => { setModal(null); refetchAll(); }}
+            />
+          )}
+          {modal.kind === 'manage-faqs' && (
+            <FaqManager
+              targetType={modal.targetType}
+              targetId={modal.targetId}
+              module={modal.module}
+              title={modal.title}
+              onClose={() => setModal(null)}
             />
           )}
         </ModalShell>
@@ -390,9 +413,12 @@ function ModuleTree(props: {
     return (
       <div className="space-y-0.5">
         {cityList.map((city) => (
-          <TreeNode key={city.id} cat={city} icon={<MapPin size={13} />}
-            selected={selected} onSelect={onSelect} indent={0}
-            onEdit={onEdit} onDelete={onDelete} />
+          <CityWithSubs
+            key={city.id} city={city} canAddSub
+            childrenMap={childrenMap} expanded={expanded}
+            selected={selected} onSelect={onSelect} onToggle={onToggle}
+            onAddSub={onAddSub} onEdit={onEdit} onDelete={onDelete}
+          />
         ))}
       </div>
     );
@@ -400,23 +426,17 @@ function ModuleTree(props: {
 
   if (activeModule === 'review') {
     if (!reviewSubtypeNode) return <EmptyTree text={`Subtype ${activeSubtype} chưa được seed.`} />;
-    const subtypeMeta = REVIEW_SUBTYPES.find((s) => s.slug === activeSubtype);
-    const hasSub = subtypeMeta?.hasSub ?? false;
     const reviewCities = (childrenMap.get(reviewSubtypeNode.id) ?? []).filter((c) => c.level === 'CITY');
     if (reviewCities.length === 0) return <EmptyTree text="Chưa có tỉnh nào trong subtype này. Bấm + Tỉnh." />;
     return (
       <div className="space-y-0.5">
         {reviewCities.map((city) => (
-          hasSub
-            ? <CityWithSubs
-                key={city.id} city={city} canAddSub
-                childrenMap={childrenMap} expanded={expanded}
-                selected={selected} onSelect={onSelect} onToggle={onToggle}
-                onAddSub={onAddSub} onEdit={onEdit} onDelete={onDelete}
-              />
-            : <TreeNode key={city.id} cat={city} icon={<MapPin size={13} />}
-                selected={selected} onSelect={onSelect} indent={0}
-                onEdit={onEdit} onDelete={onDelete} />
+          <CityWithSubs
+            key={city.id} city={city} canAddSub
+            childrenMap={childrenMap} expanded={expanded}
+            selected={selected} onSelect={onSelect} onToggle={onToggle}
+            onAddSub={onAddSub} onEdit={onEdit} onDelete={onDelete}
+          />
         ))}
       </div>
     );
@@ -543,9 +563,12 @@ function DetailPanel(props: {
   onEditPost: (p: Post) => void;
   onDeletePost: (p: Post) => void;
   onTogglePublished: (p: Post) => void;
+  onManageCategoryFaqs: () => void;
+  onManagePostFaqs: (p: Post) => void;
 }) {
   const { category, posts, postsLoading, cities, isLeaf, canAddSub,
-          onAddSub, onAddPost, onEditPost, onDeletePost, onTogglePublished } = props;
+          onAddSub, onAddPost, onEditPost, onDeletePost, onTogglePublished,
+          onManageCategoryFaqs, onManagePostFaqs } = props;
   const cityName = category.cityId ? cities.find((c) => c.id === category.cityId)?.name : null;
 
   return (
@@ -560,6 +583,10 @@ function DetailPanel(props: {
           {cityName && <p className="text-xs text-gray-500 mt-1">Tỉnh: {cityName}</p>}
         </div>
         <div className="flex gap-2">
+          <button onClick={onManageCategoryFaqs}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-sky-200 text-sky-700 rounded-xl text-xs font-semibold hover:bg-sky-50">
+            <HelpCircle size={12} /> FAQ
+          </button>
           {canAddSub && (
             <button onClick={onAddSub}
               className="flex items-center gap-1.5 px-3 py-2 bg-white border border-violet-200 text-violet-700 rounded-xl text-xs font-semibold hover:bg-violet-50">
@@ -613,6 +640,9 @@ function DetailPanel(props: {
                 {p.published ? 'Công khai' : 'Ẩn'}
               </button>
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={() => onManagePostFaqs(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-sky-600 hover:bg-sky-50">
+                  <HelpCircle size={12} />
+                </button>
                 <button onClick={() => onEditPost(p)} className="p-1.5 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50">
                   <Pencil size={12} />
                 </button>
@@ -725,7 +755,7 @@ function AddCityForm(props: {
   );
 }
 
-// AddSubForm — tạo SUB level dưới CITY (destination + review-tour/khach-san).
+// AddSubForm — tạo SUB level dưới CITY.
 function AddSubForm(props: {
   parentCity: Category;
   onClose: () => void;
@@ -978,6 +1008,205 @@ function PostForm(props: {
         disabled={!title || !slug || !content}
         saveLabel={editing ? 'Cập nhật' : 'Tạo bài'} />
     </>
+  );
+}
+
+function FaqManager(props: {
+  targetType: 'category' | 'post';
+  targetId: string;
+  module: Module;
+  title: string;
+  onClose: () => void;
+}) {
+  const { targetType, targetId, module, title, onClose } = props;
+  const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [question, setQuestion] = useState('');
+  const [answer, setAnswer] = useState('');
+  const [sortOrder, setSortOrder] = useState('0');
+  const [published, setPublished] = useState(true);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const loadFaqs = () => {
+    setLoading(true);
+    api.get(`/faqs?targetType=${targetType}&targetId=${targetId}&includeUnpublished=true`)
+      .then((r) => setFaqs(r.data ?? []))
+      .catch((e) => setError(errMsg(e)))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadFaqs();
+  }, [targetType, targetId]);
+
+  const handleCreate = async () => {
+    if (!question.trim() || !answer.trim()) {
+      setError('Điền câu hỏi và câu trả lời');
+      return;
+    }
+    setSaving(true); setError('');
+    try {
+      await api.post('/faqs', {
+        targetType,
+        targetId,
+        module,
+        question: question.trim(),
+        answer: answer.trim(),
+        sortOrder: Number(sortOrder) || 0,
+        published,
+      });
+      setQuestion('');
+      setAnswer('');
+      setSortOrder('0');
+      setPublished(true);
+      loadFaqs();
+    } catch (e) {
+      setError(errMsg(e));
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <>
+      <ModalHeader title={`FAQ — ${title}`} onClose={onClose} />
+      <div className="p-5 space-y-5">
+        {error && <div className="bg-red-50 text-red-600 text-sm px-3 py-2 rounded-lg">{error}</div>}
+        <div className="rounded-xl bg-sky-50 p-3 text-xs text-sky-800">
+          FAQ này gắn riêng vào {targetType === 'post' ? 'bài viết' : 'chuyên mục'}: <span className="font-semibold">{title}</span>.
+        </div>
+
+        <div className="space-y-3 rounded-2xl border border-gray-100 p-4">
+          <p className="text-sm font-bold text-gray-900">Thêm FAQ</p>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-gray-700">Câu hỏi *</label>
+            <input
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-gray-700">Câu trả lời *</label>
+            <textarea
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              rows={4}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-sky-400"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-24">
+              <label className="mb-1 block text-xs font-semibold text-gray-700">Thứ tự</label>
+              <input
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                type="number"
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+              />
+            </div>
+            <label className="mt-5 flex items-center gap-2 text-sm font-medium text-gray-700">
+              <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} className="h-4 w-4 accent-sky-600" />
+              Công khai
+            </label>
+          </div>
+          <button
+            onClick={handleCreate}
+            disabled={saving || !question || !answer}
+            className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50"
+          >
+            {saving ? 'Đang lưu...' : 'Thêm FAQ'}
+          </button>
+        </div>
+
+        <div>
+          <p className="mb-3 text-sm font-bold text-gray-900">FAQ hiện có ({faqs.length})</p>
+          {loading ? (
+            <div className="py-6 text-center text-sm text-gray-400">Đang tải...</div>
+          ) : faqs.length === 0 ? (
+            <div className="rounded-xl bg-gray-50 p-6 text-center text-sm text-gray-500">Chưa có FAQ riêng.</div>
+          ) : (
+            <div className="space-y-3">
+              {faqs.map((faq) => (
+                <FaqEditorRow key={faq.id} faq={faq} onChanged={loadFaqs} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function FaqEditorRow({ faq, onChanged }: { faq: FaqItem; onChanged: () => void }) {
+  const [question, setQuestion] = useState(faq.question);
+  const [answer, setAnswer] = useState(faq.answer);
+  const [sortOrder, setSortOrder] = useState(String(faq.sortOrder));
+  const [published, setPublished] = useState(faq.published);
+  const [saving, setSaving] = useState(false);
+
+  const handleUpdate = async () => {
+    setSaving(true);
+    try {
+      await api.patch(`/faqs/${faq.id}`, {
+        question: question.trim(),
+        answer: answer.trim(),
+        sortOrder: Number(sortOrder) || 0,
+        published,
+      });
+      onChanged();
+    } catch (e) {
+      alert(errMsg(e));
+    } finally { setSaving(false); }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Xoá FAQ này?')) return;
+    try {
+      await api.delete(`/faqs/${faq.id}`);
+      onChanged();
+    } catch (e) {
+      alert(errMsg(e));
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-gray-100 p-4">
+      <div className="grid gap-3">
+        <input
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-400"
+        />
+        <textarea
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          rows={3}
+          className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-sky-400"
+        />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <input
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              type="number"
+              className="w-20 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+            />
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} className="h-4 w-4 accent-sky-600" />
+              Công khai
+            </label>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleUpdate} disabled={saving || !question || !answer} className="rounded-xl bg-gray-900 px-3 py-2 text-xs font-semibold text-white hover:bg-gray-800 disabled:opacity-50">
+              {saving ? 'Lưu...' : 'Lưu'}
+            </button>
+            <button onClick={handleDelete} className="rounded-xl border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50">
+              Xoá
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

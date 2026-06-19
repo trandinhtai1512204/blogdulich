@@ -10,6 +10,12 @@ export function middleware(request: NextRequest) {
   const hasSessionCookie = !!accessToken || !!refreshToken;
   const hasActiveSession = !!accessToken;
 
+  if (pathname === '/lich-trinh-du-lich') {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = '/lich-trinh';
+    return NextResponse.redirect(redirectUrl, 308);
+  }
+
   const isProtected = PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
 

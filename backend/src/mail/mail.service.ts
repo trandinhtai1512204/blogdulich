@@ -15,7 +15,7 @@ export class MailService {
     bookingId: string;
   }) {
     const nights = Math.floor(
-      (data.checkOut.getTime() - data.checkIn.getTime()) / 86400000
+      (data.checkOut.getTime() - data.checkIn.getTime()) / 86400000,
     );
 
     await this.resend.emails.send({

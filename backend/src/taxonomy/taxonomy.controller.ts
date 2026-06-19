@@ -6,7 +6,7 @@ export class TaxonomyController {
   constructor(private taxonomy: TaxonomyService) {}
 
   /**
-   * GET /api/taxonomy/resolve?path=review-tour/tieu-muc-1/bai-viet-1
+   * GET /api/taxonomy/resolve?path=review/tour/ha-noi/review-tour-2025
    */
   @Get('resolve')
   async resolve(@Query('path') path: string) {
@@ -30,4 +30,3 @@ export class TaxonomyController {
     return this.taxonomy.resolvePage(slugs);
   }
 }
-

@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuthStore } from '@/store/auth.store';
 import { useRouter } from 'next/navigation';
 import { Globe, User, BookOpen, MapPin, Route, Star, Menu, X } from 'lucide-react';
 
-export function Navbar({ opaque = false }: { opaque?: boolean }) {
+export function Navbar({ opaque = false, logoOnlyUntilScroll = false }: { opaque?: boolean; logoOnlyUntilScroll?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const isOpaque = opaque || scrolled;
+  const logoOnly = logoOnlyUntilScroll && !isOpaque;
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout } = useAuthStore();
@@ -21,9 +23,9 @@ export function Navbar({ opaque = false }: { opaque?: boolean }) {
   }, []);
 
   const navLinks = [
-    
+
     { label: 'Điểm đến ', href: '/diem-den', icon: <MapPin size={15} /> },
-    { label: 'Lịch trình ', href: '/lich-trinh-du-lich', icon: <Route size={15} /> },
+    { label: 'Lịch trình ', href: '/lich-trinh', icon: <Route size={15} /> },
     { label: 'Review', href: '/review', icon: <Star size={15} /> },
     { label: 'Kinh nghiệm', href: '/kinh-nghiem', icon: <BookOpen size={15} /> },
   ];
@@ -32,27 +34,28 @@ export function Navbar({ opaque = false }: { opaque?: boolean }) {
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
       isOpaque ? 'bg-white/95 backdrop-blur-md shadow-md' : 'bg-transparent'
     }`}>
-      <div className="w-full px-4 md:px-6 h-[72px] flex items-center justify-between">
+      <div className="w-full px-6 md:px-10 lg:px-14 h-[72px] flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-full bg-linear-to-br from-sky-500 to-blue-700 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform select-none">
-            <span style={{ fontFamily: 'Georgia, serif', fontSize: '17px', fontWeight: 700, color: 'white', fontStyle: 'italic', lineHeight: 1 }}>B</span>
-          </div>
-          <span className={`text-lg md:text-xl tracking-tight transition-colors font-bold ${isOpaque ? 'text-gray-900' : 'text-white'}`}
-            style={{ letterSpacing: '-0.02em' }}>
-            blogdulich
-          </span>
+        <Link href="/" className="flex items-center">
+          <Image
+            src={logoOnly ? '/logo-black.png' : isOpaque ? '/logo-color.png' : '/logo-white.png'}
+            alt="BlogDuLich.vn"
+            width={623}
+            height={120}
+            className="h-9 w-auto object-contain"
+            priority
+          />
         </Link>
 
         {/* Center Nav Links */}
-<div className="hidden lg:flex items-center gap-1">
+<div className={`${logoOnly ? 'hidden' : 'hidden lg:flex'} items-center gap-1`}>
   {navLinks.map((link) => (
     <Link
       key={link.label}
       href={link.href}
-      className={`flex items-center gap-1.5 px-5 py-2 rounded-full transition-all duration-200 text-sm font-medium ${
+      className={`flex items-center gap-1.5 px-5 py-2 rounded-full transition-all duration-200 text-sm font-bold ${
         isOpaque
-          ? 'text-gray-600 hover:bg-gray-100 hover:text-violet-600'
+          ? 'text-gray-950 hover:bg-[#F37021]/10 hover:text-[#0A2D5B]'
           : 'text-white hover:text-white hover:bg-white/10'
       }`}
     >
@@ -63,10 +66,10 @@ export function Navbar({ opaque = false }: { opaque?: boolean }) {
 </div>
 
         {/* Right Side */}
-        
-        <div className="flex items-center gap-3">
+
+        <div className={`${logoOnly ? 'hidden' : 'flex'} items-center gap-3`}>
           <button className={`p-2 rounded-full transition-all ${
-            isOpaque ? 'text-gray-600 hover:bg-gray-100' : 'text-white/80 hover:bg-white/10'
+            isOpaque ? 'text-gray-950 hover:bg-gray-100' : 'text-white/80 hover:bg-white/10'
           }`}>
             <Globe size={20} />
           </button>
@@ -74,7 +77,7 @@ export function Navbar({ opaque = false }: { opaque?: boolean }) {
           <button
             onClick={() => setMobileMenuOpen((v) => !v)}
             className={`lg:hidden p-2 rounded-full transition-all ${
-              isOpaque ? 'text-gray-700 hover:bg-gray-100' : 'text-white hover:bg-white/10'
+              isOpaque ? 'text-gray-950 hover:bg-gray-100' : 'text-white hover:bg-white/10'
             }`}
             aria-label="Mở menu"
           >
@@ -85,14 +88,14 @@ export function Navbar({ opaque = false }: { opaque?: boolean }) {
             <div className="relative">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all text-sm font-medium ${
-                  isOpaque ? 'text-gray-600 hover:bg-gray-100' : 'text-white/80 hover:bg-white/10'
+                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all text-sm font-bold ${
+                  isOpaque ? 'text-gray-950 hover:bg-gray-100' : 'text-white/80 hover:bg-white/10'
                 }`}
               >
                 <img
                   src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(user.email)}`}
                   alt={user.name || user.email}
-                  className="w-7 h-7 rounded-full bg-violet-100 object-cover"
+                  className="w-7 h-7 rounded-full bg-[#F37021]/10 object-cover"
                 />
                 <span className="hidden md:inline">{user.name || user.email.split('@')[0]}</span>
               </button>
@@ -100,7 +103,7 @@ export function Navbar({ opaque = false }: { opaque?: boolean }) {
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
                   {user.role === 'admin' && (
                     <Link href="/admin" onClick={() => setMenuOpen(false)}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                      className="block px-4 py-2 text-sm font-semibold text-gray-950 hover:bg-gray-50">
                       ⚙️ Quản trị
                     </Link>
                   )}
@@ -115,8 +118,8 @@ export function Navbar({ opaque = false }: { opaque?: boolean }) {
           ) : (
             <div className="hidden md:flex items-center gap-3">
               <Link href="/login"
-                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all text-sm font-medium ${
-                  isOpaque ? 'text-gray-600 hover:bg-gray-100' : 'text-white/80 hover:bg-white/10'
+                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all text-sm font-bold ${
+                  isOpaque ? 'text-gray-950 hover:bg-gray-100' : 'text-white/80 hover:bg-white/10'
                 }`}>
                 <User size={18} />
                 Đăng nhập
@@ -124,7 +127,7 @@ export function Navbar({ opaque = false }: { opaque?: boolean }) {
               <Link href="/register"
                 className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all hover:scale-105 active:scale-95 ${
                   scrolled
-                    ? 'bg-violet-600 text-white shadow-md hover:bg-violet-700'
+                    ? 'bg-[#F37021] text-white shadow-md hover:bg-[#d95f18]'
                     : 'bg-white text-gray-900 shadow-lg hover:bg-gray-50'
                 }`}>
                 Đăng ký
@@ -142,7 +145,7 @@ export function Navbar({ opaque = false }: { opaque?: boolean }) {
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm ${
-                  isOpaque ? 'text-gray-700 hover:bg-gray-100' : 'text-white hover:bg-white/10'
+                  isOpaque ? 'font-bold text-gray-950 hover:bg-gray-100' : 'text-white hover:bg-white/10'
                 }`}
               >
                 {link.icon}
@@ -152,11 +155,11 @@ export function Navbar({ opaque = false }: { opaque?: boolean }) {
             {!user && (
               <div className="flex items-center gap-2 mt-2">
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)}
-                  className={`flex-1 text-center py-2 rounded-lg text-sm font-semibold ${isOpaque ? 'bg-gray-100 text-gray-700' : 'bg-white/15 text-white'}`}>
+                  className={`flex-1 text-center py-2 rounded-lg text-sm font-bold ${isOpaque ? 'bg-gray-100 text-gray-950' : 'bg-white/15 text-white'}`}>
                   Đăng nhập
                 </Link>
                 <Link href="/register" onClick={() => setMobileMenuOpen(false)}
-                  className="flex-1 text-center py-2 rounded-lg text-sm font-semibold bg-violet-600 text-white">
+                  className="flex-1 text-center py-2 rounded-lg text-sm font-semibold bg-[#F37021] text-white">
                   Đăng ký
                 </Link>
               </div>

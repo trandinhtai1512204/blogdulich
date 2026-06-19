@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, CalendarRange, Clock, BookOpen, MapPin, Search, FileText, X, Radius } from 'lucide-react';
+import { ArrowUpRight, CalendarRange, Clock, BookOpen, MapPin, Search, FileText, X } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
+import { FaqSection } from '@/components/FaqSection';
+import InteractiveVietnamMap from '@/components/map/InteractiveVietnamMap';
 import api from '@/lib/axios';
 
 const CITY_IMAGES: Record<string, string> = {
@@ -21,8 +23,6 @@ const CITY_IMAGES: Record<string, string> = {
   'can-tho': 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&q=80',
 };
 const DEFAULT_IMG = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&q=80';
-const HERO_IMAGE = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1600&q=80';
-
 type ItineraryCategory = { id: string; name: string; slug: string; cityId?: string | null };
 type Post = {
   id: string;
@@ -90,65 +90,81 @@ export default function ItinerariesIndexPage() {
     : allPosts.slice(0, 5);
 
   const showDropdown = focused && (matchedCities.length > 0 || matchedPosts.length > 0);
+  const activeMapSlugs = new Set(categories.map((c) => getCitySlugFromItinerary(c.slug)));
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   return (
-    <div className="min-h-screen bg-white">
-      <Navbar />
+    <div className="relative isolate min-h-screen overflow-hidden bg-white text-[#0A2D5B]">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[url('/blogdulich-bg-linework-1440.png')] bg-[length:100%_auto] bg-top bg-repeat-y opacity-[0.4]"
+        style={{
+          WebkitMaskImage:
+            'linear-gradient(to bottom, #000 0, #000 65vh, rgba(0,0,0,0.28) 105vh, rgba(0,0,0,0.28) 100%)',
+          maskImage:
+            'linear-gradient(to bottom, #000 0, #000 65vh, rgba(0,0,0,0.28) 105vh, rgba(0,0,0,0.28) 100%)',
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_86%_20%,rgba(255,255,255,0.66)_0%,rgba(255,255,255,0.38)_18%,rgba(255,255,255,0)_38%),radial-gradient(ellipse_at_88%_30%,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.46)_24%,rgba(255,255,255,0)_48%),radial-gradient(ellipse_at_86%_55%,rgba(255,255,255,0.64)_0%,rgba(255,255,255,0.34)_22%,rgba(255,255,255,0)_46%)]"
+        style={{ zIndex: -9 }}
+      />
+      <Navbar logoOnlyUntilScroll />
 
         {/* ── HERO ── */}
-        <div className="bg-white px-3 pt-3 pb-0">
-          <section
-            className="relative w-full flex flex-col items-center justify-center"
-            style={{ height: '70vh', minHeight: 480, borderRadius: 24 }}
-          >
-            {/* Background layer — overflow-hidden here chỉ để clip ảnh vào bo góc */}
-            <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: 24 }}>
-              <img
-                src={HERO_IMAGE}
-                alt="Lịch trình du lịch"
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-linear-to-b from-black/50 via-black/35 to-black/60" />
-            </div>
+          <section className="relative z-10 overflow-hidden">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute left-[30%] top-1/2 z-0 h-[76%] w-[72%] max-w-[1080px] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.58)_0%,rgba(255,255,255,0.30)_48%,rgba(255,255,255,0)_76%)]"
+            />
 
-            {/* Content layer — KHÔNG overflow-hidden để dropdown thoát ra ngoài */}
-            <div className="relative z-10 flex flex-col items-center text-center px-4 w-full max-w-2xl mx-auto">
-                {/* <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white/90 text-xs font-semibold mb-5">
-                  <CalendarRange size={13} />
-                  {categories.length > 0 ? `${categories.length} điểm đến` : 'Gợi ý lịch trình'}
-                </div> */}
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight tracking-tight mb-4">
-                Lịch trình<br className="hidden sm:block" /> du lịch
+            <div className="relative z-10 mx-auto grid min-h-[720px] max-w-[1440px] grid-cols-1 items-stretch lg:h-[min(860px,calc(100vh-74px))] lg:grid-cols-[60%_40%]">
+            <div className="relative flex min-h-[560px] flex-col justify-center overflow-visible px-5 py-16 sm:px-8 lg:min-h-[720px] lg:px-14 xl:px-20">
+            <div className="relative z-10 w-full max-w-xl">
+              <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-2 text-sm font-bold text-[#0A2D5B]/70">
+                <Link href="/" className="transition-colors hover:text-[#F37021]">Trang chủ</Link>
+                <span className="text-[#0A2D5B]/35">/</span>
+                <span className="text-[#0A2D5B]">Lịch trình du lịch</span>
+              </nav>
+
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/75 px-3 py-1 text-xs font-bold text-[#0A2D5B] shadow-[0_8px_24px_rgba(10,45,91,0.08)] backdrop-blur">
+                <CalendarRange size={13} />
+                {categories.length > 0 ? `${categories.length} lịch trình` : 'Gợi ý lịch trình'}
+              </div>
+
+              <h1 className="max-w-lg text-5xl font-extrabold leading-[1.02] tracking-normal text-[#0A2D5B] sm:text-6xl lg:text-7xl">
+                Lịch trình du lịch
               </h1>
+              <p className="mt-5 max-w-md text-base font-semibold leading-7 text-[#0A2D5B]/72">
+                Tìm lịch trình theo thành phố, số ngày và cảm hứng chuyến đi để bắt đầu nhanh hơn.
+              </p>
 
               {/* ── SEARCH BOX ── */}
-              <div className="relative w-full max-w-lg">
+              <div className="relative mt-8 w-full max-w-xl">
                 {/* Input */}
-                <div className="flex items-center rounded-4xl overflow-visible"
-                  style={{  background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.22)' }}>
-                  <MapPin size={17} className="ml-4 shrink-0 text-white/60" />
+                <div className="flex items-center overflow-visible rounded-full bg-white/94 shadow-[0_18px_60px_rgba(10,45,91,0.14)] ring-1 ring-[#0A2D5B]/10 backdrop-blur-sm">
+                  <MapPin size={17} className="ml-5 shrink-0 text-[#0A2D5B]/42" />
                   <input
                     ref={inputRef}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onFocus={() => setFocused(true)}
                     placeholder="Tìm lịch trình, thành phố..."
-                    className="flex-1 py-3.5 px-3 text-white placeholder-white/50 text-sm outline-none bg-transparent"
+                    className="min-w-0 flex-1 bg-transparent px-4 py-4 text-base font-semibold text-[#0A2D5B] outline-none placeholder:text-[#0A2D5B]/48"
                   />
                   {query && (
                     <button
                       onClick={() => { setQuery(''); inputRef.current?.focus(); }}
-                      className="p-1.5 mr-1 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                      className="mr-2 rounded-full p-1 text-[#0A2D5B]/40 transition-colors hover:bg-[#0A2D5B]/5 hover:text-[#0A2D5B]"
                     >
                       <X size={15} />
                     </button>
                   )}
                   <button
-                    className="m-1.5 w-9 h-9 rounded-4xl flex items-center justify-center shrink-0 transition-all hover:scale-105 active:scale-95"
-                    style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}
+                    className="m-2 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0A2D5B] shadow-lg transition-all hover:scale-105 hover:bg-[#0A2D5B]/90 active:scale-95"
                   >
                     <Search size={16} className="text-white" />
                   </button>
@@ -158,16 +174,15 @@ export default function ItinerariesIndexPage() {
                 {showDropdown && (
                   <div
                     ref={dropdownRef}
-                    className="absolute left-0 right-0 top-full mt-2 rounded-2xl shadow-2xl z-50 overflow-hidden"
-                    style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.15)' }}
+                    className="absolute left-0 right-0 top-full z-50 mt-3 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)]"
                   >
                   <div className="max-h-[380px] overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#d1d5db transparent' }}>
                     {/* Cities section */}
                     {matchedCities.length > 0 && (
                       <div className="pt-3 pb-1">
                         <div className="flex items-center gap-2 px-4 pb-2">
-                          <MapPin size={12} className="text-white/60" />
-                          <span className="text-[11px] font-bold uppercase tracking-widest text-white/60">
+                          <MapPin size={12} className="text-neutral-400" />
+                          <span className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">
                             Thành phố
                           </span>
                         </div>
@@ -177,20 +192,20 @@ export default function ItinerariesIndexPage() {
                           return (
                             <Link
                               key={cat.id}
-                              href={`/${cat.slug}`}
+                              href={`/lich-trinh/${citySlug}`}
                               onClick={() => setFocused(false)}
-                              className="flex items-center gap-3 px-4 py-2.5 hover:bg-violet-50/80 transition-colors group"
+                              className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-neutral-50"
                             >
                               <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 ring-2 ring-white shadow-sm">
                                 <img src={img} alt={cat.name} className="w-full h-full object-cover" />
                               </div>
                               <div className="flex-1 min-w-0 text-left">
-                                <p className="text-sm font-semibold text-white leading-tight group-hover:text-violet-700 transition-colors">
+                                <p className="text-sm font-semibold text-neutral-950 leading-tight transition-colors group-hover:text-neutral-700">
                                   {cat.name}
                                 </p>
-                                <p className="text-xs text-white/60 mt-0.5">Việt Nam</p>
+                                <p className="text-xs text-neutral-400 mt-0.5">Việt Nam</p>
                               </div>
-                              <ArrowUpRight size={14} className="text-white/30 group-hover:text-violet-500 shrink-0 transition-colors" />
+                              <ArrowUpRight size={14} className="shrink-0 text-neutral-300 transition-colors group-hover:text-neutral-950" />
                             </Link>
                           );
                         })}
@@ -199,46 +214,46 @@ export default function ItinerariesIndexPage() {
 
                     {/* Divider */}
                     {matchedCities.length > 0 && matchedPosts.length > 0 && (
-                      <div className="mx-4 border-t border-gray-100" />
+                      <div className="mx-4 border-t border-neutral-100" />
                     )}
 
                     {/* Posts section */}
                     {matchedPosts.length > 0 && (
                       <div className="pt-2 pb-3">
                         <div className="flex items-center gap-2 px-4 pb-2">
-                          <FileText size={12} className="text-white/60" />
-                          <span className="text-[11px] font-bold uppercase tracking-widest text-white/60">
+                          <FileText size={12} className="text-neutral-400" />
+                          <span className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">
                             Bài viết
                           </span>
                         </div>
                         {matchedPosts.map((post) => (
                           <Link
                             key={post.id}
-                            href={post.canonicalUrl ?? (post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`)}
+                            href={post.canonicalUrl ?? (post.category?.slug ? `/lich-trinh/${getCitySlugFromItinerary(post.category.slug)}/${post.slug}` : `/posts/${post.slug}`)}
                             onClick={() => setFocused(false)}
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-violet-50/80 transition-colors group"
+                            className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-neutral-50"
                           >
-                            <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-violet-100 shadow-sm">
+                            <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-[#F37021]/10 shadow-sm">
                               {post.thumbnail ? (
                                 <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
-                                  <BookOpen size={14} className="text-violet-300" />
+                                  <BookOpen size={14} className="text-[#F37021]/40" />
                                 </div>
                               )}
                             </div>
                             <div className="flex-1 min-w-0 text-left">
-                              <p className="text-sm font-semibold text-white leading-tight truncate group-hover:text-violet-700 transition-colors">
+                              <p className="truncate text-sm font-semibold text-neutral-950 leading-tight transition-colors group-hover:text-neutral-700">
                                 {post.title}
                               </p>
                               {(post.city?.name || post.category?.name) && (
-                                <p className="text-xs text-white/60 mt-0.5 flex items-center gap-1">
+                                <p className="mt-0.5 flex items-center gap-1 text-xs text-neutral-400">
                                   <MapPin size={10} />
                                   {post.city?.name ?? post.category?.name}
                                 </p>
                               )}
                             </div>
-                            <ArrowUpRight size={14} className="text-white/30 group-hover:text-violet-500 shrink-0 transition-colors" />
+                            <ArrowUpRight size={14} className="shrink-0 text-neutral-300 transition-colors group-hover:text-neutral-950" />
                           </Link>
                         ))}
                       </div>
@@ -246,7 +261,7 @@ export default function ItinerariesIndexPage() {
 
                     {/* No result */}
                     {hasQuery && matchedCities.length === 0 && matchedPosts.length === 0 && (
-                      <div className="py-8 text-center text-sm text-white/60">
+                      <div className="py-8 text-center text-sm text-neutral-500">
                         Không tìm thấy kết quả phù hợp.
                       </div>
                     )}
@@ -255,108 +270,85 @@ export default function ItinerariesIndexPage() {
                 )}
               </div>
             </div>
+            </div>
+            <div className="relative min-h-[640px] overflow-hidden bg-transparent lg:min-h-[720px]">
+              <InteractiveVietnamMap
+                activeSlugs={activeMapSlugs}
+                hrefForSlug={(slug) => `/lich-trinh/${slug}`}
+                className="relative mx-auto h-full min-h-[640px] w-full select-none overflow-hidden bg-transparent lg:min-h-[720px] [&_svg]:object-contain"
+              />
+            </div>
+            </div>
           </section>
-        </div>
 
         <div className="max-w-[1180px] mx-auto px-4 md:px-6 py-10">
 
-          {/* ── CITY ITINERARY CARDS ── */}
-          {categories.length > 0 && (
-            <section className="mb-14">
-              <div className="flex items-end justify-between mb-6">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-violet-500 mb-1">
-                    Theo điểm đến
-                  </p>
-                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
-                    Lịch trình theo thành phố
-                  </h2>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {categories.map((cat) => {
-                  const citySlug = getCitySlugFromItinerary(cat.slug);
-                  const img = CITY_IMAGES[citySlug] ?? DEFAULT_IMG;
-                  return (
-                    <Link
-                      key={cat.id}
-                      href={`/${cat.slug}`}
-                      className="group relative overflow-hidden rounded-2xl h-48 block shadow-sm hover:shadow-lg transition-shadow duration-200"
-                    >
-                      <img
-                        src={img}
-                        alt={cat.name}
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/20 to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <p className="text-white font-bold text-sm leading-tight line-clamp-2 mb-1">
-                          {cat.name}
-                        </p>
-                        <p className="text-white/60 text-xs flex items-center gap-1">
-                          Xem lịch trình <ArrowUpRight size={11} />
-                        </p>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
           {/* ── FEATURED POSTS ── */}
           {featuredPosts.length > 0 && (
-            <section>
-              <div className="flex items-end justify-between mb-6">
+          <section>
+              <div className="mb-8 grid gap-7 lg:grid-cols-[0.92fr_1.08fr] lg:items-end lg:gap-20">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-violet-500 mb-1">
+                  <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#F37021]">
                     Gợi ý mới nhất
                   </p>
-                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
+                  <h2 className="text-4xl font-extrabold leading-[1.06] tracking-tight text-[#0A2D5B] md:text-5xl">
                     Lịch trình nổi bật
                   </h2>
                 </div>
+                <p className="text-base font-medium leading-8 text-[#0A2D5B]/68 md:text-lg">
+                  Các lịch trình mới được biên tập theo điểm đến, phù hợp để tham khảo nhanh trước khi lên đường.
+                </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {featuredPosts.map((post) => (
                   <Link
                     key={post.id}
-                    href={post.canonicalUrl ?? (post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`)}
-                    className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg hover:border-violet-200 transition-all duration-200"
+                    href={post.canonicalUrl ?? (post.category?.slug ? `/lich-trinh/${getCitySlugFromItinerary(post.category.slug)}/${post.slug}` : `/posts/${post.slug}`)}
+                    className="group flex min-h-full flex-col overflow-hidden bg-white/94 shadow-[0_18px_45px_rgba(10,45,91,0.11)] ring-1 ring-[#0A2D5B]/10 backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1"
                   >
                     {post.thumbnail ? (
-                      <div className="h-44 overflow-hidden">
+                      <div className="aspect-[3/2] overflow-hidden bg-[#0A2D5B]/5">
                         <img
                           src={post.thumbnail}
                           alt={post.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                       </div>
                     ) : (
-                      <div className="h-44 bg-linear-to-br from-violet-50 to-indigo-100 flex items-center justify-center">
-                        <BookOpen size={32} className="text-violet-200" />
+                      <div className="flex aspect-[3/2] items-center justify-center bg-gradient-to-br from-[#0A2D5B] to-[#F37021]">
+                        <BookOpen size={30} className="text-white/55" />
                       </div>
                     )}
-                    <div className="p-4">
+                    <div className="flex flex-1 flex-col p-5 pb-0">
                       {post.category && (
-                        <span className="inline-flex items-center gap-1 text-xs text-violet-600 font-semibold mb-2">
-                          <MapPin size={11} /> {post.category.name}
+                        <span className="mb-3 inline-flex w-fit bg-[#ddd6c7] px-2.5 py-1.5 text-xs font-semibold text-[#1d2738]">
+                          {post.category.name}
                         </span>
                       )}
-                      <h3 className="font-bold text-gray-900 line-clamp-2 leading-snug mb-2 group-hover:text-violet-700 transition-colors">
+                      <h3
+                        className="line-clamp-3 text-[1.35rem] leading-[1.12] text-[#071f3d] transition-colors group-hover:text-[#F37021] md:text-[1.48rem]"
+                        style={{ fontFamily: 'Georgia, Cambria, \"Times New Roman\", serif' }}
+                      >
                         {post.title}
                       </h3>
                       {post.excerpt && (
-                        <p className="text-xs text-gray-500 line-clamp-2 mb-3">{post.excerpt}</p>
+                        <p className="mt-3 line-clamp-2 text-sm font-medium leading-6 text-[#0A2D5B]/58">{post.excerpt}</p>
                       )}
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-white/60 flex items-center gap-1">
-                          <Clock size={11} /> {formatDate(post.createdAt)}
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-violet-600 font-semibold">
-                          Đọc <ArrowUpRight size={12} />
+                      <div className="mt-auto space-y-2 pb-4 pt-4 text-sm font-medium text-[#1d2738]/80">
+                        {(post.city?.name || post.category?.name) && (
+                          <span className="flex items-center gap-3">
+                            <MapPin size={15} className="shrink-0 fill-[#071f3d] text-[#071f3d]" />
+                            {post.city?.name ?? post.category?.name}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-3">
+                          <Clock size={15} className="shrink-0 text-[#071f3d]" />
+                          {formatDate(post.createdAt)}
                         </span>
                       </div>
+                    </div>
+                    <div className="mt-auto px-5 py-3.5 text-center text-sm font-extrabold uppercase tracking-[0.14em] text-[#0A2D5B] transition-colors group-hover:text-[#F37021]">
+                      Xem bài
                     </div>
                   </Link>
                 ))}
@@ -369,12 +361,17 @@ export default function ItinerariesIndexPage() {
             <div className="flex flex-col items-center py-24 text-white/60">
               <CalendarRange size={44} className="mb-4 opacity-25" />
               <p className="font-semibold text-base">Chưa có lịch trình nào.</p>
-              <Link href="/" className="mt-4 text-sm font-semibold text-violet-600 hover:text-violet-700">
+              <Link href="/" className="mt-4 text-sm font-semibold text-[#F37021] hover:text-[#d95f18]">
                 Về trang chủ
               </Link>
             </div>
           )}
         </div>
+        <FaqSection
+          targetType="global"
+          module="itinerary"
+          heading="Những câu hỏi thường gặp về lịch trình du lịch"
+        />
     </div>
   );
 }

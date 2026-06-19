@@ -17,6 +17,7 @@ import { UploadModule } from './upload/upload.module';
 import { MailModule } from './mail/mail.module';
 import { CategoriesModule } from './categories/categories.module';
 import { TaxonomyModule } from './taxonomy/taxonomy.module';
+import { FaqsModule } from './faqs/faqs.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { TaxonomyModule } from './taxonomy/taxonomy.module';
     PostsModule,
     CategoriesModule,
     TaxonomyModule,
+    FaqsModule,
     BookingsModule,
     PaymentsModule,
     ReviewsModule,

@@ -25,7 +25,7 @@ export default function SearchGlass({
           text-white
           placeholder-white/70
           focus:outline-none
-          focus:ring-2 focus:ring-violet-500
+          focus:ring-2 focus:ring-[#F37021]
           transition
         "
       />
@@ -36,10 +36,10 @@ export default function SearchGlass({
           absolute right-2 top-1/2 -translate-y-1/2
           w-10 h-10
           rounded-full
-          bg-violet-600
+          bg-[#F37021]
           flex items-center justify-center
           text-white
-          hover:bg-violet-700
+          hover:bg-[#d95f18]
         "
       >
         🔍

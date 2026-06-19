@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { QueryCategoriesDto } from './dto/query-categories.dto';
@@ -21,16 +26,6 @@ type CategoryNode = {
   level: CategoryLevel;
   parentId: string | null;
 };
-
-// Module → does it allow SUB level?
-// Sitemap v2:
-//   destination       : ROOT → CITY → SUB → Post  ✓ has SUB
-//   itinerary         : ROOT → CITY → Post        ✗ no SUB
-//   experience        : ROOT → CITY → Post        ✗ no SUB
-//   review-tour       : ROOT → SUBTYPE → CITY → SUB → Post  ✓ has SUB
-//   review-khach-san  : ROOT → SUBTYPE → CITY → SUB → Post  ✓ has SUB
-//   review-combo/resort/du-thuyen/nha-hang : ROOT → SUBTYPE → CITY → Post  ✗ no SUB
-const REVIEW_SUBTYPES_WITH_SUB = new Set(['review-tour', 'review-khach-san']);
 
 @Injectable()
 export class CategoriesService implements OnModuleInit {
@@ -60,9 +55,14 @@ export class CategoriesService implements OnModuleInit {
           cityId: null,
         };
         if (existing) {
-          await this.prisma.category.update({ where: { id: existing.id }, data });
+          await this.prisma.category.update({
+            where: { id: existing.id },
+            data,
+          });
         } else {
-          await this.prisma.category.create({ data: { ...data, slug: root.slug } });
+          await this.prisma.category.create({
+            data: { ...data, slug: root.slug },
+          });
         }
       }),
     );
@@ -74,16 +74,25 @@ export class CategoriesService implements OnModuleInit {
    */
   private async walkParentChain(categoryId: string): Promise<CategoryNode[]> {
     const select = {
-      id: true, name: true, slug: true, type: true, level: true, parentId: true,
+      id: true,
+      name: true,
+      slug: true,
+      type: true,
+      level: true,
+      parentId: true,
     } as const;
     const chain: CategoryNode[] = [];
-    const first = await this.prisma.category.findUnique({ where: { id: categoryId }, select });
+    const first = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+      select,
+    });
     if (!first) throw new NotFoundException('Chuyên mục cha không tồn tại');
     chain.push(first as CategoryNode);
     let parentId: string | null = first.parentId;
     while (parentId) {
       const parent = await this.prisma.category.findUnique({
-        where: { id: parentId }, select,
+        where: { id: parentId },
+        select,
       });
       if (!parent) break;
       chain.push(parent as CategoryNode);
@@ -96,14 +105,18 @@ export class CategoriesService implements OnModuleInit {
    * Given the parent (leaf of its own chain), compute the level the new child
    * should have, following sitemap v2 hierarchy rules.
    */
-  private computeChildLevel(parent: CategoryNode, childSlug: string): CategoryLevel {
+  private computeChildLevel(
+    parent: CategoryNode,
+    childSlug: string,
+  ): CategoryLevel {
     if (parent.level === 'SUB') {
       throw new BadRequestException(
         'Sitemap chỉ cho phép tối đa 4 cấp — không thể tạo cấp con dưới SUB',
       );
     }
     if (parent.level === 'ROOT') {
-      if (parent.slug === 'review' && childSlug.startsWith('review-')) return 'SUBTYPE';
+      if (parent.slug === 'review' && childSlug.startsWith('review-'))
+        return 'SUBTYPE';
       return 'CITY';
     }
     if (parent.level === 'SUBTYPE') return 'CITY';
@@ -112,36 +125,25 @@ export class CategoriesService implements OnModuleInit {
   }
 
   /**
-   * Module-aware guard: SUB only valid for destination + review-tour + review-khach-san.
+   * Destination keeps a SUB layer for city content. Review must attach posts
+   * directly to CITY so public URLs stay at /review/{type}/{city}/{post}.
    */
-  private validateChildLevelByModule(level: CategoryLevel, parentChain: CategoryNode[]) {
+  private validateChildLevelByModule(
+    level: CategoryLevel,
+    parentChain: CategoryNode[],
+  ) {
     if (level !== 'SUB') return;
     const root = parentChain[parentChain.length - 1];
     if (!root || root.level !== 'ROOT') {
-      throw new BadRequestException('Không tìm thấy gốc taxonomy của chuyên mục cha');
-    }
-    if (root.slug === 'lich-trinh-du-lich') {
       throw new BadRequestException(
-        'Module Lịch trình không có sub-tiểu-mục — bài viết gắn trực tiếp vào tỉnh thành.',
-      );
-    }
-    if (root.slug === 'kinh-nghiem') {
-      throw new BadRequestException(
-        'Module Kinh nghiệm không có sub-tiểu-mục — bài viết gắn trực tiếp vào tỉnh thành.',
+        'Không tìm thấy gốc taxonomy của chuyên mục cha',
       );
     }
     if (root.slug === 'review') {
-      const subtype = parentChain.find((c) => c.level === 'SUBTYPE');
-      if (!subtype) {
-        throw new BadRequestException('SUB của Review phải nằm dưới một SUBTYPE');
-      }
-      if (!REVIEW_SUBTYPES_WITH_SUB.has(subtype.slug)) {
-        throw new BadRequestException(
-          `Mục "${subtype.name}" theo sitemap không có chuyên mục con. Bài viết Combo/Resort/Du thuyền/Nhà hàng gắn trực tiếp vào "Thành phố".`,
-        );
-      }
+      throw new BadRequestException(
+        'Review không dùng cấp tiểu mục; hãy tạo bài viết trực tiếp dưới tỉnh/thành',
+      );
     }
-    // root.slug === 'diem-den' → SUB always allowed
   }
 
   private isSystemRootSlug(slug: string) {
@@ -184,10 +186,14 @@ export class CategoriesService implements OnModuleInit {
 
   async create(dto: CreateCategoryDto) {
     if (!dto.parentId) {
-      throw new BadRequestException('Chỉ cho phép tạo chuyên mục bên dưới danh mục trụ cột');
+      throw new BadRequestException(
+        'Chỉ cho phép tạo chuyên mục bên dưới danh mục trụ cột',
+      );
     }
     if (this.isSystemRootSlug(dto.slug)) {
-      throw new BadRequestException('Slug này thuộc danh mục trụ cột hệ thống, vui lòng dùng slug khác');
+      throw new BadRequestException(
+        'Slug này thuộc danh mục trụ cột hệ thống, vui lòng dùng slug khác',
+      );
     }
 
     const parentChain = await this.walkParentChain(dto.parentId);
@@ -220,17 +226,22 @@ export class CategoriesService implements OnModuleInit {
 
     const isRoot = !cat.parentId && this.isSystemRootSlug(cat.slug);
     if (isRoot && dto.parentId !== undefined && dto.parentId !== null) {
-      throw new BadRequestException('Không thể chuyển danh mục trụ cột thành mục con');
+      throw new BadRequestException(
+        'Không thể chuyển danh mục trụ cột thành mục con',
+      );
     }
     if (!isRoot && dto.parentId !== undefined && dto.parentId === null) {
-      throw new BadRequestException('Không thể chuyển mục con thành danh mục gốc');
+      throw new BadRequestException(
+        'Không thể chuyển mục con thành danh mục gốc',
+      );
     }
     if (!isRoot && dto.slug && this.isSystemRootSlug(dto.slug)) {
       throw new BadRequestException('Slug này thuộc danh mục trụ cột hệ thống');
     }
 
     const data: any = { ...dto };
-    const targetParentId = dto.parentId === undefined ? cat.parentId : dto.parentId;
+    const targetParentId =
+      dto.parentId === undefined ? cat.parentId : dto.parentId;
     if (targetParentId) {
       const parentChain = await this.walkParentChain(targetParentId);
       const parent = parentChain[0];
@@ -256,10 +267,14 @@ export class CategoriesService implements OnModuleInit {
       this.prisma.post.count({ where: { categoryId: id } }),
     ]);
     if (childrenCount > 0) {
-      throw new BadRequestException('Không thể xoá: chuyên mục đang có mục con');
+      throw new BadRequestException(
+        'Không thể xoá: chuyên mục đang có mục con',
+      );
     }
     if (postsCount > 0) {
-      throw new BadRequestException('Không thể xoá: chuyên mục đang có bài viết');
+      throw new BadRequestException(
+        'Không thể xoá: chuyên mục đang có bài viết',
+      );
     }
 
     return this.prisma.category.delete({ where: { id } });
@@ -270,7 +285,16 @@ export class CategoriesService implements OnModuleInit {
     return this.prisma.category.findMany({
       where: { parentId: null, slug: { in: SYSTEM_ROOTS.map((x) => x.slug) } },
       orderBy: { createdAt: 'asc' },
-      select: { id: true, name: true, slug: true, type: true, level: true, parentId: true, cityId: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        type: true,
+        level: true,
+        parentId: true,
+        cityId: true,
+        createdAt: true,
+      },
     });
   }
 }

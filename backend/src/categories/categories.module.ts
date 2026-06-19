@@ -7,4 +7,3 @@ import { CategoriesService } from './categories.service';
   controllers: [CategoriesController],
 })
 export class CategoriesModule {}
-

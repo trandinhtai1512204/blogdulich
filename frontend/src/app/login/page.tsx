@@ -156,7 +156,7 @@ export default function LoginPage() {
 
               <button type="submit" disabled={loading}
                 className="w-full py-3 rounded-xl font-bold text-white text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60 hover:opacity-90 active:scale-[0.98]"
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}>
+                style={{ background: 'linear-gradient(135deg, #F37021, #0A2D5B)' }}>
                 {loading ? (
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (

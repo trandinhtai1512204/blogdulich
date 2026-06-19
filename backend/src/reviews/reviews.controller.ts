@@ -1,4 +1,13 @@
-import { Controller, Post, Get, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
@@ -9,7 +18,11 @@ export class ReviewsController {
 
   @UseGuards(SupabaseAuthGuard)
   @Post('hotel/:hotelId')
-  create(@Param('hotelId') hotelId: string, @Req() req: any, @Body() dto: CreateReviewDto) {
+  create(
+    @Param('hotelId') hotelId: string,
+    @Req() req: any,
+    @Body() dto: CreateReviewDto,
+  ) {
     return this.reviewsService.create(req.user.sub, hotelId, dto);
   }
 

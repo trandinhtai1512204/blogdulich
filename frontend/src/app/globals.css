@@ -7,6 +7,9 @@
   --font-size: 16px;
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);
+  --brand-navy: #0A2D5B;
+  --brand-orange: #F37021;
+  --brand-orange-dark: #d95f18;
   --card: #ffffff;
   --primary: #030213;
   --primary-foreground: oklch(1 0 0);
@@ -15,6 +18,124 @@
   --muted-foreground: #717182;
   --border: rgba(0, 0, 0, 0.1);
   --radius: 0.625rem;
+}
+
+/* Brand accent remap: old violet utilities now follow the Blogdulich logo palette. */
+.text-violet-200,
+.text-violet-300,
+.text-violet-400,
+.text-violet-500,
+.text-violet-600 {
+  color: var(--brand-orange) !important;
+}
+
+.text-violet-700,
+.text-violet-800,
+.text-purple-700 {
+  color: var(--brand-navy) !important;
+}
+
+.bg-violet-50,
+.bg-violet-100,
+.bg-purple-100,
+.bg-indigo-100 {
+  background-color: rgb(243 112 33 / 0.1) !important;
+}
+
+.bg-violet-50\/40 {
+  background-color: rgb(243 112 33 / 0.08) !important;
+}
+
+.bg-violet-500\/80 {
+  background-color: rgb(243 112 33 / 0.86) !important;
+}
+
+.bg-violet-400,
+.bg-violet-500,
+.bg-violet-600 {
+  background-color: var(--brand-orange) !important;
+}
+
+.bg-violet-700 {
+  background-color: var(--brand-orange-dark) !important;
+}
+
+.border-violet-100,
+.border-violet-200,
+.border-violet-300,
+.border-violet-400,
+.border-violet-600 {
+  border-color: rgb(243 112 33 / 0.35) !important;
+}
+
+.from-violet-50,
+.from-violet-100,
+.from-violet-400,
+.from-violet-500 {
+  --tw-gradient-from: rgb(243 112 33 / 0.18) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(243 112 33 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.to-purple-600,
+.to-purple-700,
+.to-indigo-100,
+.to-violet-900 {
+  --tw-gradient-to: rgb(10 45 91 / 0.2) var(--tw-gradient-to-position) !important;
+}
+
+.hover\:text-violet-300:hover,
+.hover\:text-violet-400:hover,
+.hover\:text-violet-500:hover,
+.hover\:text-violet-600:hover {
+  color: var(--brand-orange) !important;
+}
+
+.hover\:text-violet-700:hover,
+.hover\:text-violet-800:hover {
+  color: var(--brand-navy) !important;
+}
+
+.hover\:bg-violet-50:hover,
+.hover\:bg-violet-100:hover {
+  background-color: rgb(243 112 33 / 0.1) !important;
+}
+
+.hover\:bg-violet-50\/80:hover {
+  background-color: rgb(243 112 33 / 0.1) !important;
+}
+
+.hover\:bg-violet-700:hover {
+  background-color: var(--brand-orange-dark) !important;
+}
+
+.hover\:border-violet-200:hover,
+.hover\:border-violet-300:hover,
+.hover\:border-violet-400:hover {
+  border-color: rgb(243 112 33 / 0.45) !important;
+}
+
+.focus\:border-violet-400:focus {
+  border-color: rgb(243 112 33 / 0.65) !important;
+}
+
+.focus\:ring-violet-400:focus,
+.focus\:ring-violet-500:focus,
+.focus\:ring-violet-500\/20:focus,
+.focus-within\:ring-violet-400:focus-within {
+  --tw-ring-color: rgb(243 112 33 / 0.35) !important;
+}
+
+.group:hover .group-hover\:text-violet-300,
+.group:hover .group-hover\:text-violet-400,
+.group:hover .group-hover\:text-violet-500,
+.group:hover .group-hover\:text-violet-600 {
+  color: var(--brand-orange) !important;
+}
+
+.group:hover .group-hover\:text-violet-700,
+.group:hover .group-hover\:text-violet-800 {
+  color: var(--brand-navy) !important;
 }
 
 @theme inline {
@@ -30,7 +151,7 @@
     box-sizing: border-box;
   }
   body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-be-vietnam-pro), system-ui, -apple-system, sans-serif;
     background: var(--background);
     color: var(--foreground);
   }
@@ -51,10 +172,29 @@
 .tiptap ul { list-style: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
 .tiptap ol { list-style: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
 .tiptap li { margin: 0.25rem 0; }
-.tiptap blockquote { border-left: 3px solid #7c3aed; padding-left: 1rem; color: #6b7280; margin: 0.75rem 0; }
+.tiptap blockquote { border-left: 3px solid var(--brand-orange); padding-left: 1rem; color: #6b7280; margin: 0.75rem 0; }
 .tiptap hr { border: none; border-top: 1px solid #e5e7eb; margin: 1rem 0; }
-.tiptap a { color: #7c3aed; text-decoration: underline; }
+.tiptap a { color: var(--brand-orange); text-decoration: underline; }
 .tiptap img { max-width: 100%; border-radius: 0.75rem; margin: 0.75rem auto; display: block; }
+
+/* Homepage scroll-reveal. Static (no motion) under reduced-motion. */
+.reveal {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+  .reveal[data-shown='true'] {
+    opacity: 1;
+    transform: none;
+  }
+}
 
 @layer utilities {
   .scrollbar-hide {

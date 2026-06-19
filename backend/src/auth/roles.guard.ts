@@ -31,7 +31,11 @@ export class AdminGuard implements CanActivate {
 
       return true;
     } catch (err) {
-      if (err instanceof ForbiddenException || err instanceof UnauthorizedException) throw err;
+      if (
+        err instanceof ForbiddenException ||
+        err instanceof UnauthorizedException
+      )
+        throw err;
       throw new ForbiddenException('Không thể xác minh quyền admin');
     }
   }

@@ -31,6 +31,11 @@ export class PostsController {
     return this.postsService.findAll(query);
   }
 
+  @Get('city-featured/:citySlug')
+  findCityFeatured(@Param('citySlug') citySlug: string) {
+    return this.postsService.findCityFeatured(citySlug);
+  }
+
   @UseGuards(SupabaseAuthGuard)
   @Post('community')
   submitCommunityPost(
@@ -55,6 +60,11 @@ export class PostsController {
   @Get(':slug')
   findOne(@Param('slug') slug: string) {
     return this.postsService.findOne(slug);
+  }
+
+  @Post(':id/view')
+  incrementViewCount(@Param('id') id: string) {
+    return this.postsService.incrementViewCount(id);
   }
 
   // Admin only

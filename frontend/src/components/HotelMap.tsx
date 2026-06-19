@@ -59,7 +59,7 @@ export function HotelMap({ address, hotelName, cityName }: Props) {
           const icon = L.divIcon({
             html: `
               <div style="
-                background: linear-gradient(135deg, #7c3aed, #6d28d9);
+                background: linear-gradient(135deg, #F37021, #0A2D5B);
                 width: 36px; height: 36px;
                 border-radius: 50% 50% 50% 0;
                 transform: rotate(-45deg);
@@ -122,14 +122,14 @@ export function HotelMap({ address, hotelName, cityName }: Props) {
         <div className="absolute bottom-3 left-3 right-3 z-[1000]">
           <div className="bg-white/95 backdrop-blur-sm rounded-xl px-3 py-2.5 shadow-lg flex items-center justify-between border border-gray-100">
             <div className="flex items-center gap-2 min-w-0">
-              <MapPin size={13} className="text-violet-500 flex-shrink-0" />
+              <MapPin size={13} className="text-[#F37021] flex-shrink-0" />
               <p className="text-xs text-gray-700 font-medium truncate">{address}, {cityName}</p>
             </div>
             <a
               href={googleMapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-violet-600 font-semibold hover:text-violet-800 transition-colors flex-shrink-0 ml-2"
+              className="flex items-center gap-1 text-xs text-[#F37021] font-semibold hover:text-[#d95f18] transition-colors flex-shrink-0 ml-2"
             >
               <ExternalLink size={11} />
               Maps

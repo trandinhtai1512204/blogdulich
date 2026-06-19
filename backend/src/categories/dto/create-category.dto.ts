@@ -26,4 +26,3 @@ export class CreateCategoryDto {
   @IsString()
   parentId?: string | null;
 }
-

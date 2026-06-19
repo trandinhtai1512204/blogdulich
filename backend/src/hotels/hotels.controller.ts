@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { HotelsService } from './hotels.service';
 import { QueryHotelsDto } from './dto/query-hotels.dto';
 import { CreateHotelDto } from './dto/create-hotel.dto';

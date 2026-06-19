@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, Star, BookOpen, MapPin, Search, FileText, X, MessageSquareQuote } from 'lucide-react';
+import { ArrowUpRight, Star, BookOpen, MapPin, Search, FileText, X, MessageSquareQuote, ChevronRight } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
+import { FaqSection } from '@/components/FaqSection';
 import api from '@/lib/axios';
 
 const REVIEW_IMAGES: Record<string, string> = {
@@ -18,13 +19,15 @@ const REVIEW_IMAGES: Record<string, string> = {
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1600&q=80';
 
 const REVIEW_TYPES = [
-  { label: 'Review Tour Du Lịch', href: '/review-tour' },
-  { label: 'Review Khách Sạn', href: '/review-khach-san' },
-  { label: 'Review Combo', href: '/review-combo' },
-  { label: 'Review Resort', href: '/review-resort' },
-  { label: 'Review Du Thuyền', href: '/review-du-thuyen' },
-  { label: 'Review Nhà Hàng', href: '/review-nha-hang' },
+  { label: 'Review Tour Du Lịch', href: '/review/tour' },
+  { label: 'Review Khách Sạn', href: '/review/khach-san' },
+  { label: 'Review Combo', href: '/review/combo' },
+  { label: 'Review Resort', href: '/review/resort' },
+  { label: 'Review Du Thuyền', href: '/review/du-thuyen' },
+  { label: 'Review Nhà Hàng', href: '/review/nha-hang' },
 ];
+
+const reviewImageKey = (href: string) => `review-${href.split('/').filter(Boolean).at(-1) ?? ''}`;
 
 type Post = {
   id: string;
@@ -111,6 +114,11 @@ export default function ReviewIndexPage() {
           </div>
 
           <div className="relative z-10 flex flex-col items-center text-center px-4 w-full max-w-2xl mx-auto">
+            <nav className="flex items-center gap-1.5 text-white/60 text-xs mb-5">
+              <Link href="/" className="hover:text-white transition-colors">Trang chủ</Link>
+              <ChevronRight size={11} className="text-white/40" />
+              <span className="text-white/90 font-medium">Review</span>
+            </nav>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-tight tracking-tight mb-4">
               Review<br className="hidden sm:block" /> du lịch
             </h1>
@@ -140,7 +148,7 @@ export default function ReviewIndexPage() {
                 )}
                 <button
                   className="m-1.5 w-9 h-9 rounded-4xl flex items-center justify-center shrink-0 transition-all hover:scale-105 active:scale-95"
-                  style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}
+                  style={{ background: 'linear-gradient(135deg, #F37021, #0A2D5B)' }}
                 >
                   <Search size={16} className="text-white" />
                 </button>
@@ -168,7 +176,7 @@ export default function ReviewIndexPage() {
                             className="flex items-center gap-3 px-4 py-2.5 hover:bg-violet-50/80 transition-colors group"
                           >
                             <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0">
-                              <img src={REVIEW_IMAGES[t.href.slice(1)] ?? HERO_IMAGE} alt={t.label} className="w-full h-full object-cover" />
+                              <img src={REVIEW_IMAGES[reviewImageKey(t.href)] ?? HERO_IMAGE} alt={t.label} className="w-full h-full object-cover" />
                             </div>
                             <div className="flex-1 min-w-0 text-left">
                               <p className="text-sm font-semibold text-white leading-tight group-hover:text-violet-300 transition-colors">{t.label}</p>
@@ -242,7 +250,7 @@ export default function ReviewIndexPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {REVIEW_TYPES.map((t) => {
-              const imgKey = t.href.slice(1);
+              const imgKey = reviewImageKey(t.href);
               return (
                 <Link
                   key={t.href}
@@ -317,6 +325,11 @@ export default function ReviewIndexPage() {
           </section>
         )}
       </div>
+      <FaqSection
+        targetType="global"
+        module="review"
+        heading="Những câu hỏi thường gặp về review du lịch"
+      />
     </div>
   );
 }

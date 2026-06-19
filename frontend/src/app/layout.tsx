@@ -1,9 +1,14 @@
 import type { Metadata } from 'next';
-import { DM_Sans } from 'next/font/google';
+import { Be_Vietnam_Pro } from 'next/font/google';
 import './globals.css';
 import Providers from './providers';
+import { Footer } from '@/components/Footer';
 
-const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-dm-sans' });
+const beVietnamPro = Be_Vietnam_Pro({
+  subsets: ['latin', 'vietnamese'],
+  weight: ['400', '500', '600', '700', '800', '900'],
+  variable: '--font-be-vietnam-pro',
+});
 
 export const metadata: Metadata = {
   robots: {
@@ -46,10 +51,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="vi" className={dmSans.variable}>
-      <body className="font-[family-name:var(--font-dm-sans)]">
+    <html lang="vi" className={beVietnamPro.variable}>
+      <body className="font-[family-name:var(--font-be-vietnam-pro)]">
         <Providers>
           {children}
+          <Footer />
         </Providers>
       </body>
     </html>

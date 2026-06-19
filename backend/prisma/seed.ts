@@ -1,27 +1,75 @@
 /**
- * Seed script — 10 thành phố, ~30 subcategories, ~50 bài viết, ảnh Unsplash thật.
- * Idempotent: upsert, chạy lại không trùng.
+ * Seed script — reset taxonomy content, then fill categories/posts by site brief.
+ * Cities are read from the DB; the hard-coded list only backfills known defaults.
  * Run: npm run seed
  */
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// ─── 10 thành phố du lịch nổi tiếng nhất ────────────────────────────────────
+// ─── 34 tỉnh/thành Việt Nam (đơn vị hành chính sau sáp nhập 2025) ───────────
 const CITIES = [
-  { name: 'Hà Nội',        slug: 'ha-noi',      photo: 'photo-1601108644994-1e450e786d3d' },
-  { name: 'TP. Hồ Chí Minh', slug: 'sai-gon',   photo: 'photo-1583417319070-4a69db38a482' },
-  { name: 'Đà Nẵng',       slug: 'da-nang',     photo: 'photo-1696993545232-2b2717676c40' },
-  { name: 'Huế',           slug: 'hue',         photo: 'photo-1555041469-a586c61ea9bc'   },
-  { name: 'Khánh Hòa',     slug: 'khanh-hoa',   photo: 'photo-1508009603885-50cf7c8dd0d5' },
-  { name: 'Lâm Đồng',      slug: 'lam-dong',    photo: 'photo-1587474260584-136574528ed5' },
-  { name: 'Quảng Ninh',    slug: 'quang-ninh',  photo: 'photo-1528360983277-13d401cdc186' },
-  { name: 'Lào Cai',       slug: 'lao-cai',     photo: 'photo-1528127269322-539801943592' },
-  { name: 'Cần Thơ',       slug: 'can-tho',     photo: 'photo-1528127269322-539801943592' },
-  { name: 'Ninh Bình',     slug: 'ninh-binh',   photo: 'photo-1573790387438-4da905039392' },
+  // Miền Bắc
+  { name: 'Hà Nội',           slug: 'ha-noi',       photo: 'photo-1601108644994-1e450e786d3d' },
+  { name: 'Hải Phòng',        slug: 'hai-phong',    photo: 'photo-1573790387438-4da905039392' },
+  { name: 'Quảng Ninh',       slug: 'quang-ninh',   photo: 'photo-1528360983277-13d401cdc186' },
+  { name: 'Lào Cai',          slug: 'lao-cai',      photo: 'photo-1528127269322-539801943592' },
+  { name: 'Lai Châu',         slug: 'lai-chau',     photo: 'photo-1528127269322-539801943592' },
+  { name: 'Điện Biên',        slug: 'dien-bien',    photo: 'photo-1555041469-a586c61ea9bc' },
+  { name: 'Sơn La',           slug: 'son-la',       photo: 'photo-1587474260584-136574528ed5' },
+  { name: 'Cao Bằng',         slug: 'cao-bang',     photo: 'photo-1528360983277-13d401cdc186' },
+  { name: 'Lạng Sơn',         slug: 'lang-son',     photo: 'photo-1573790387438-4da905039392' },
+  { name: 'Tuyên Quang',      slug: 'tuyen-quang',  photo: 'photo-1528127269322-539801943592' },
+  { name: 'Thái Nguyên',      slug: 'thai-nguyen',  photo: 'photo-1573790387438-4da905039392' },
+  { name: 'Phú Thọ',          slug: 'phu-tho',      photo: 'photo-1601108644994-1e450e786d3d' },
+  { name: 'Bắc Ninh',         slug: 'bac-ninh',     photo: 'photo-1601108644994-1e450e786d3d' },
+  { name: 'Hưng Yên',         slug: 'hung-yen',     photo: 'photo-1601108644994-1e450e786d3d' },
+  { name: 'Ninh Bình',        slug: 'ninh-binh',    photo: 'photo-1573790387438-4da905039392' },
+  // Miền Trung
+  { name: 'Thanh Hóa',        slug: 'thanh-hoa',    photo: 'photo-1508009603885-50cf7c8dd0d5' },
+  { name: 'Nghệ An',          slug: 'nghe-an',      photo: 'photo-1508009603885-50cf7c8dd0d5' },
+  { name: 'Hà Tĩnh',          slug: 'ha-tinh',      photo: 'photo-1508009603885-50cf7c8dd0d5' },
+  { name: 'Quảng Trị',        slug: 'quang-tri',    photo: 'photo-1573790387438-4da905039392' },
+  { name: 'Huế',              slug: 'hue',          photo: 'photo-1555041469-a586c61ea9bc' },
+  { name: 'Đà Nẵng',          slug: 'da-nang',      photo: 'photo-1696993545232-2b2717676c40' },
+  { name: 'Quảng Ngãi',       slug: 'quang-ngai',   photo: 'photo-1508009603885-50cf7c8dd0d5' },
+  // Tây Nguyên & Nam Trung Bộ
+  { name: 'Gia Lai',          slug: 'gia-lai',      photo: 'photo-1587474260584-136574528ed5' },
+  { name: 'Khánh Hòa',        slug: 'khanh-hoa',    photo: 'photo-1508009603885-50cf7c8dd0d5' },
+  { name: 'Đắk Lắk',          slug: 'dak-lak',      photo: 'photo-1587474260584-136574528ed5' },
+  { name: 'Lâm Đồng',         slug: 'lam-dong',     photo: 'photo-1587474260584-136574528ed5' },
+  // Miền Nam
+  { name: 'TP. Hồ Chí Minh',  slug: 'sai-gon',      photo: 'photo-1583417319070-4a69db38a482' },
+  { name: 'Đồng Nai',         slug: 'dong-nai',     photo: 'photo-1583417319070-4a69db38a482' },
+  { name: 'Tây Ninh',         slug: 'tay-ninh',     photo: 'photo-1583417319070-4a69db38a482' },
+  { name: 'Cần Thơ',          slug: 'can-tho',      photo: 'photo-1583417319070-4a69db38a482' },
+  { name: 'Vĩnh Long',        slug: 'vinh-long',    photo: 'photo-1583417319070-4a69db38a482' },
+  { name: 'Đồng Tháp',        slug: 'dong-thap',    photo: 'photo-1583417319070-4a69db38a482' },
+  { name: 'An Giang',         slug: 'an-giang',     photo: 'photo-1583417319070-4a69db38a482' },
+  { name: 'Cà Mau',           slug: 'ca-mau',       photo: 'photo-1583417319070-4a69db38a482' },
 ];
 
-const IMG = (photo: string) => `https://images.unsplash.com/${photo}?w=1200&q=80`;
+// Sub-categories cho mỗi thành phố điểm đến
+const DEST_SUBS = [
+  { name: 'Địa điểm tham quan', slug: 'dia-diem-tham-quan' },
+  { name: 'Địa điểm vui chơi',  slug: 'dia-diem-vui-choi' },
+  { name: 'Di tích lịch sử',    slug: 'di-tich-lich-su' },
+  { name: 'Bảo tàng',           slug: 'bao-tang' },
+  { name: 'Ở đâu',              slug: 'o-dau' },
+];
+
+const SPECIAL_DEST_SUBS: Record<string, { name: string; slug: string }[]> = {
+  'hai-phong': [
+    { name: 'Biển Hải Phòng', slug: 'bien' },
+    { name: 'Du lịch Cát Bà', slug: 'cat-ba' },
+  ],
+  'da-nang': [
+    { name: 'Bãi biển Đà Nẵng', slug: 'bai-bien' },
+    { name: 'Du lịch Sơn Trà', slug: 'son-tra' },
+    { name: 'Du lịch Bà Nà Hills', slug: 'ba-na-hills' },
+  ],
+};
 
 const REVIEW_SUBTYPES = [
   { name: 'Tour',       slug: 'review-tour' },
@@ -32,8 +80,22 @@ const REVIEW_SUBTYPES = [
   { name: 'Nhà hàng',   slug: 'review-nha-hang' },
 ];
 
-// Top 5 thành phố có review
-const REVIEW_CITIES = CITIES.slice(0, 5);
+const IMG = (photo: string) => `https://images.unsplash.com/${photo}?w=1200&q=80`;
+const CITY_PHOTO_MAP = new Map(CITIES.map((c) => [c.slug, c.photo]));
+const VALID_CITY_SLUGS = new Set(CITIES.map((c) => c.slug));
+const DEFAULT_PHOTO = 'photo-1528360983277-13d401cdc186';
+
+type SeedCity = { id: string; name: string; slug: string; photo: string };
+
+function postImage(...parts: string[]) {
+  const seed = parts
+    .join('-')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `https://picsum.photos/seed/blogdulich-${seed}/1200/800`;
+}
 
 // ─── Content generators ───────────────────────────────────────────────────────
 
@@ -82,23 +144,56 @@ function experienceContent(city: string): string {
 </ul>`;
 }
 
-function destinationContent(city: string): string {
-  return `<h2>Top địa điểm du lịch ${city} đẹp nhất không thể bỏ qua</h2>
-<p>${city} sở hữu nhiều địa điểm hấp dẫn, từ cảnh quan thiên nhiên tươi đẹp đến di tích lịch sử văn hóa phong phú. Cùng khám phá những điểm đến không thể bỏ qua khi đến ${city}!</p>
-<h3>1. Trung tâm lịch sử và văn hóa</h3>
-<p>Khu vực trung tâm ${city} với các di tích lịch sử, bảo tàng và kiến trúc cổ kính là điểm đến đầu tiên không thể bỏ qua. Nơi đây lưu giữ những giá trị văn hóa và lịch sử quý báu.</p>
-<h3>2. Thiên nhiên và cảnh quan</h3>
-<p>${city} có hệ sinh thái phong phú với nhiều cảnh đẹp thiên nhiên, tạo nên vẻ đẹp đặc trưng của vùng đất này.</p>
-<h3>3. Khu phố đặc sắc và ẩm thực</h3>
-<p>Khu phố cổ và chợ truyền thống tại ${city} là nơi bạn hòa mình vào nhịp sống địa phương, thưởng thức ẩm thực đặc sản và mua sắm đồ thủ công độc đáo.</p>
-<h3>4. Điểm vui chơi giải trí</h3>
-<p>Bên cạnh các điểm tham quan văn hóa, ${city} còn có nhiều khu vui chơi giải trí hiện đại, phù hợp với mọi lứa tuổi và sở thích.</p>
-<h3>Lời khuyên khi tham quan ${city}</h3>
+function destinationSubContent(city: string, subName: string): string {
+  return `<h2>${subName} tại ${city} đáng ghé thăm nhất</h2>
+<p>${city} sở hữu nhiều ${subName.toLowerCase()} hấp dẫn, từ cảnh quan thiên nhiên tươi đẹp đến di tích văn hóa lịch sử phong phú.</p>
+<h3>Những địa điểm nổi bật</h3>
+<p>Khu vực trung tâm ${city} tập trung nhiều ${subName.toLowerCase()} tiêu biểu, mang đậm bản sắc văn hóa và lịch sử địa phương.</p>
+<h3>Kinh nghiệm tham quan</h3>
 <ul>
 <li>Đến buổi sáng sớm để tránh đông và có ánh sáng đẹp chụp ảnh</li>
 <li>Mặc trang phục lịch sự khi tham quan địa điểm tôn giáo</li>
-<li>Thuê xe máy hoặc xe đạp để dễ dàng di chuyển khám phá</li>
-<li>Thử món ăn đường phố địa phương để có trải nghiệm chân thực nhất</li>
+<li>Thuê hướng dẫn viên địa phương để hiểu rõ hơn về lịch sử và văn hóa</li>
+</ul>`;
+}
+
+function anGiContent(city: string): string {
+  return `<h2>Ăn gì ở ${city}? Top món ngon không thể bỏ qua</h2>
+<p>${city} nổi tiếng với nền ẩm thực phong phú, đậm đà bản sắc địa phương. Dưới đây là những món ăn và địa chỉ ẩm thực bạn nhất định phải thử khi đến ${city}.</p>
+<h3>Những món ngon đặc trưng của ${city}</h3>
+<p>Ẩm thực ${city} mang đậm nét đặc trưng vùng miền, kết hợp hài hòa giữa các nguyên liệu tươi ngon địa phương và công thức gia truyền độc đáo.</p>
+<h3>Địa chỉ ăn uống ngon tại ${city}</h3>
+<p><strong>Khu ăn uống trung tâm:</strong> Tập trung nhiều hàng quán đa dạng, phục vụ cả ẩm thực địa phương lẫn món ăn quốc tế.</p>
+<p><strong>Chợ đêm và phố ẩm thực:</strong> Nơi lý tưởng để thưởng thức đặc sản ${city} với giá cả phải chăng.</p>
+<p><strong>Nhà hàng đặc sản:</strong> Phục vụ những món ăn truyền thống được chế biến cầu kỳ, phù hợp cho các bữa ăn đặc biệt.</p>
+<h3>Những lưu ý khi ăn uống tại ${city}</h3>
+<ul>
+<li>Thử đặc sản địa phương tại các quán ăn bình dân để có trải nghiệm chân thực nhất</li>
+<li>Hỏi người dân địa phương để được giới thiệu quán ngon, giá tốt</li>
+<li>Ẩm thực đường phố ${city} rất phong phú và an toàn tại các khu tập trung</li>
+</ul>`;
+}
+
+function oDauContent(city: string): string {
+  return `<h2>Ở đâu tại ${city}? Gợi ý khách sạn, homestay tốt nhất</h2>
+<p>Lưu trú tại ${city} có rất nhiều lựa chọn phù hợp với mọi ngân sách, từ homestay ấm cúng đến resort cao cấp. Dưới đây là hướng dẫn chọn nơi ở lý tưởng tại ${city}.</p>
+<h3>Các khu vực lưu trú tốt nhất tại ${city}</h3>
+<p><strong>Trung tâm thành phố:</strong> Thuận tiện di chuyển, gần các điểm tham quan và ẩm thực. Phù hợp với du khách muốn khám phá toàn bộ ${city}.</p>
+<p><strong>Khu phố du lịch:</strong> Sôi động, nhiều dịch vụ du lịch, phù hợp với khách trẻ và ưa khám phá.</p>
+<p><strong>Ngoại ô và resort:</strong> Yên tĩnh, gần thiên nhiên, lý tưởng cho kỳ nghỉ thư giãn.</p>
+<h3>Các loại hình lưu trú phổ biến</h3>
+<ul>
+<li><strong>Homestay:</strong> Trải nghiệm văn hóa địa phương, giá từ 150.000–400.000 đồng/đêm</li>
+<li><strong>Khách sạn mini / 3 sao:</strong> Tiện nghi đầy đủ, giá từ 400.000–800.000 đồng/đêm</li>
+<li><strong>Khách sạn 4–5 sao:</strong> Dịch vụ cao cấp, giá từ 1.000.000 đồng/đêm trở lên</li>
+<li><strong>Resort:</strong> Phù hợp cho kỳ nghỉ dưỡng, thường có hồ bơi và spa</li>
+</ul>
+<h3>Lưu ý khi đặt phòng tại ${city}</h3>
+<ul>
+<li>Đặt trước ít nhất 1–2 tuần vào mùa cao điểm</li>
+<li>So sánh giá trên nhiều nền tảng đặt phòng</li>
+<li>Đọc kỹ đánh giá của khách hàng trước khi đặt</li>
+<li>Kiểm tra vị trí so với các điểm bạn muốn tham quan</li>
 </ul>`;
 }
 
@@ -147,10 +242,75 @@ async function getRoot(slug: string) {
   return root;
 }
 
+async function loadSeedCities(): Promise<SeedCity[]> {
+  const cities = await prisma.city.findMany({
+    select: { id: true, name: true, slug: true },
+    orderBy: { slug: 'asc' },
+  });
+  return cities.map((city) => ({
+    ...city,
+    photo: CITY_PHOTO_MAP.get(city.slug) ?? DEFAULT_PHOTO,
+  }));
+}
+
+function destinationSubsForCity(citySlug: string) {
+  return [...DEST_SUBS, ...(SPECIAL_DEST_SUBS[citySlug] ?? [])];
+}
+
+function uniqueSlugItems(items: { name: string; slug: string }[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.slug)) return false;
+    seen.add(item.slug);
+    return true;
+  });
+}
+
+// ─── Cleanup ──────────────────────────────────────────────────────────────────
+
+async function resetTaxonomyContent() {
+  const deletedPosts = await prisma.post.deleteMany({});
+  console.log(`✓ Đã xóa ${deletedPosts.count} posts cũ`);
+
+  const deleteSub = await prisma.category.deleteMany({ where: { level: 'SUB' } });
+  const deleteCity = await prisma.category.deleteMany({ where: { level: 'CITY' } });
+  const deleteSubtype = await prisma.category.deleteMany({ where: { level: 'SUBTYPE' } });
+  const deleteBadRoots = await prisma.category.deleteMany({
+    where: {
+      parentId: null,
+      slug: { notIn: ['diem-den', 'lich-trinh-du-lich', 'review', 'kinh-nghiem'] },
+    },
+  });
+  console.log(
+    `✓ Đã xóa category con cũ: ${deleteSub.count} SUB, ${deleteCity.count} CITY, ${deleteSubtype.count} SUBTYPE, ${deleteBadRoots.count} root ngoài luồng`,
+  );
+}
+
+// Xoá các city không còn trong danh sách 34 tỉnh/thành. Chỉ xoá city không bị
+// hotel tham chiếu (FK Restrict) để không đụng dữ liệu booking/payment thật.
+async function pruneObsoleteCities() {
+  const obsolete = await prisma.city.findMany({
+    where: { slug: { notIn: [...VALID_CITY_SLUGS] } },
+    select: { id: true, slug: true, _count: { select: { hotels: true } } },
+  });
+  if (!obsolete.length) {
+    console.log('✓ Không có city thừa cần xoá');
+    return;
+  }
+  const deletable = obsolete.filter((c) => c._count.hotels === 0);
+  const blocked = obsolete.filter((c) => c._count.hotels > 0);
+  if (deletable.length) {
+    await prisma.city.deleteMany({ where: { id: { in: deletable.map((c) => c.id) } } });
+    console.log(`✓ Đã xoá ${deletable.length} city thừa: ${deletable.map((c) => c.slug).join(', ')}`);
+  }
+  if (blocked.length) {
+    console.warn(`⚠ Bỏ qua ${blocked.length} city còn hotel tham chiếu (xoá tay nếu cần): ${blocked.map((c) => c.slug).join(', ')}`);
+  }
+}
+
 // ─── Seed ─────────────────────────────────────────────────────────────────────
 
 async function seedCities() {
-  // Seed all 10 target cities
   for (const c of CITIES) {
     await prisma.city.upsert({
       where: { slug: c.slug },
@@ -158,78 +318,57 @@ async function seedCities() {
       update: { name: c.name },
     });
   }
-  console.log(`✓ ${CITIES.length} cities upserted`);
+  console.log(`✓ ${CITIES.length} city defaults ensured`);
 }
 
-async function cleanupWrongDestinationCategories() {
-  const wrong = await prisma.category.findMany({
-    where: { type: 'destination', level: 'CITY', slug: { startsWith: 'du-lich-' } },
-    select: { id: true },
-  });
-  if (!wrong.length) return;
-  const ids = wrong.map((c) => c.id);
-  await prisma.post.deleteMany({ where: { categoryId: { in: ids } } });
-  await prisma.category.deleteMany({ where: { id: { in: ids } } });
-  console.log(`✓ Dọn ${wrong.length} destination categories sai slug`);
-}
-
-async function seedCategories() {
-  const cityRecords = await prisma.city.findMany({
-    where: { slug: { in: CITIES.map((c) => c.slug) } },
-    select: { id: true, name: true, slug: true },
-  });
-  const cityMap = new Map(cityRecords.map((c) => [c.slug, c]));
-
-  // ─── Destination: CITY (structural, slug = citySlug, cityId = null)
-  //     + SUB 'diem-du-lich' (cityId = city.id → xuất hiện trong navCats)
-  //     URL: /{city}/diem-du-lich/{post}
+async function seedCategories(cities: SeedCity[]) {
+  // ── Destination: CITY (slug = city.slug, cityId = null) + SUBs per city ──
+  // URL: /{city}/{sub}/{post}  e.g. /ha-noi/dia-diem-tham-quan/post
+  // URL: /{city}/an-gi         e.g. /ha-noi/an-gi  (direct post, no sub)
   const destRoot = await getRoot('diem-den');
-  for (const c of CITIES) {
-    const city = cityMap.get(c.slug);
-    if (!city) continue;
+  for (const city of cities) {
     await prisma.category.upsert({
-      where: { parentId_slug: { parentId: destRoot.id, slug: c.slug } },
-      create: { name: city.name, slug: c.slug, type: 'destination', level: 'CITY', parentId: destRoot.id, cityId: null },
+      where: { parentId_slug: { parentId: destRoot.id, slug: city.slug } },
+      create: { name: city.name, slug: city.slug, type: 'destination', level: 'CITY', parentId: destRoot.id, cityId: null },
       update: { name: city.name, type: 'destination', cityId: null },
     });
   }
-  for (const c of CITIES) {
-    const city = cityMap.get(c.slug);
-    if (!city) continue;
+  for (const city of cities) {
     const cityCat = await prisma.category.findFirst({
-      where: { slug: c.slug, parentId: destRoot.id, level: 'CITY' },
+      where: { slug: city.slug, parentId: destRoot.id, level: 'CITY' },
       select: { id: true },
     });
     if (!cityCat) continue;
-    await prisma.category.upsert({
-      where: { parentId_slug: { parentId: cityCat.id, slug: 'diem-du-lich' } },
-      create: { name: 'Điểm du lịch', slug: 'diem-du-lich', type: 'destination', level: 'SUB', parentId: cityCat.id, cityId: city.id },
-      update: { name: 'Điểm du lịch', cityId: city.id },
-    });
+    for (const sub of uniqueSlugItems(destinationSubsForCity(city.slug))) {
+      await prisma.category.upsert({
+        where: { parentId_slug: { parentId: cityCat.id, slug: sub.slug } },
+        create: { name: sub.name, slug: sub.slug, type: 'destination', level: 'SUB', parentId: cityCat.id, cityId: city.id },
+        update: { name: sub.name, cityId: city.id },
+      });
+    }
   }
-  console.log(`✓ ${CITIES.length} destination CITY + SUB categories upserted`);
+  console.log(`✓ ${cities.length} destination CITY categories + sitebrief SUBs upserted`);
 
-  // ─── Itinerary + Experience CITY categories (flat URL pattern)
+  // ── Itinerary + Experience CITY categories (flat URL pattern) ──
+  // URL: /lich-trinh-du-lich-{city}/{post}  /kinh-nghiem-du-lich-{city}/{post}
   const flatVerticals = [
-    { rootSlug: 'lich-trinh-du-lich', type: 'itinerary'   as const, slugPrefix: 'lich-trinh-du-lich' },
-    { rootSlug: 'kinh-nghiem',        type: 'experience'  as const, slugPrefix: 'kinh-nghiem-du-lich' },
+    { rootSlug: 'lich-trinh-du-lich', type: 'itinerary'  as const, slugPrefix: 'lich-trinh-du-lich' },
+    { rootSlug: 'kinh-nghiem',        type: 'experience' as const, slugPrefix: 'kinh-nghiem-du-lich' },
   ];
   for (const v of flatVerticals) {
     const root = await getRoot(v.rootSlug);
-    for (const c of CITIES) {
-      const city = cityMap.get(c.slug);
-      if (!city) continue;
-      const slug = `${v.slugPrefix}-${c.slug}`;
+    for (const city of cities) {
+      const slug = `${v.slugPrefix}-${city.slug}`;
       await prisma.category.upsert({
         where: { parentId_slug: { parentId: root.id, slug } },
         create: { name: city.name, slug, type: v.type, level: 'CITY', parentId: root.id, cityId: city.id },
         update: { name: city.name, type: v.type, cityId: city.id },
       });
     }
-    console.log(`✓ ${CITIES.length} ${v.type} CITY categories upserted`);
+    console.log(`✓ ${cities.length} ${v.type} CITY categories upserted`);
   }
 
-  // Review subtypes (6)
+  // ── Review subtypes (6) ──
   const reviewRoot = await getRoot('review');
   for (const r of REVIEW_SUBTYPES) {
     await prisma.category.upsert({
@@ -240,63 +379,121 @@ async function seedCategories() {
   }
   console.log(`✓ ${REVIEW_SUBTYPES.length} review subtypes upserted`);
 
-  // Review CITY categories: top 5 cities × all 6 subtypes = 30
+  // ── Review CITY categories: slug = city.slug (NOT 'review-tour-ha-noi') ──
+  // URL: /review/{subtype}/{city}/{post}
   for (const subtype of REVIEW_SUBTYPES) {
     const subtypeCat = await prisma.category.findFirst({ where: { slug: subtype.slug, level: 'SUBTYPE' } });
     if (!subtypeCat) continue;
-    for (const c of REVIEW_CITIES) {
-      const city = cityMap.get(c.slug);
-      if (!city) continue;
-      const slug = `${subtype.slug}-${c.slug}`;
+    for (const city of cities) {
       await prisma.category.upsert({
-        where: { parentId_slug: { parentId: subtypeCat.id, slug } },
-        create: { name: city.name, slug, type: 'review', level: 'CITY', parentId: subtypeCat.id, cityId: city.id },
+        where: { parentId_slug: { parentId: subtypeCat.id, slug: city.slug } },
+        create: { name: city.name, slug: city.slug, type: 'review', level: 'CITY', parentId: subtypeCat.id, cityId: city.id },
         update: { name: city.name, cityId: city.id },
       });
     }
   }
-  console.log(`✓ ${REVIEW_CITIES.length * REVIEW_SUBTYPES.length} review CITY categories upserted`);
+  console.log(`✓ ${cities.length * REVIEW_SUBTYPES.length} review CITY categories upserted`);
+
+  console.log('✓ review CITY categories use direct L4 post URLs');
 }
 
-async function seedPosts() {
-  const cityRecords = await prisma.city.findMany({
-    where: { slug: { in: CITIES.map((c) => c.slug) } },
-    select: { id: true, name: true, slug: true },
-  });
-  const cityById = new Map(cityRecords.map((c) => [c.id, c]));
-  const photoBySlug = new Map(CITIES.map((c) => [c.slug, c.photo]));
+async function seedPosts(cities: SeedCity[]) {
+  const cityById = new Map(cities.map((c) => [c.id, c]));
+  const cityBySlug = new Map(cities.map((c) => [c.slug, c]));
   let total = 0;
 
-  // Destination posts — lấy từ SUB 'diem-du-lich', URL: /{city}/diem-du-lich/{post}
-  const destSubCats = await prisma.category.findMany({
-    where: { slug: 'diem-du-lich', level: 'SUB', type: 'destination' },
-    select: { id: true, cityId: true },
+  const destRoot = await getRoot('diem-den');
+
+  // ── Destination: direct posts under CITY (an-gi only) ──
+  // URL: /{city}/an-gi
+  const destCityCats = await prisma.category.findMany({
+    where: { parentId: destRoot.id, level: 'CITY', type: 'destination' },
+    select: { id: true, slug: true },
   });
+  for (const cityCat of destCityCats) {
+    const city = cityBySlug.get(cityCat.slug);
+    if (!city) continue;
+    const thumbnail = postImage('destination', city.slug, 'an-gi');
+
+    await prisma.post.upsert({
+      where: { categoryId_slug: { categoryId: cityCat.id, slug: 'an-gi' } },
+      create: {
+        title: `Ăn gì ở ${city.name}? Top món ngon không thể bỏ qua`,
+        slug: 'an-gi',
+        excerpt: `Tổng hợp những món ngon đặc sản ${city.name} và địa chỉ ăn uống được yêu thích nhất.`,
+        content: anGiContent(city.name),
+        thumbnail,
+        categoryId: cityCat.id,
+        cityId: city.id,
+        location: city.name,
+        published: true,
+        status: 'approved',
+      },
+      update: { thumbnail },
+    });
+    total++;
+  }
+  console.log(`✓ ${destCityCats.length} destination direct posts (an-gi)`);
+
+  // ── Destination: posts under each SUB category ──
+  // URL: /{city}/{sub}/{post}
+  const destSubCats = await prisma.category.findMany({
+    where: { level: 'SUB', type: 'destination' },
+    select: { id: true, name: true, slug: true, cityId: true },
+  });
+  const subPostMeta: Record<string, { slug: string; title: (c: string) => string }> = {
+    'dia-diem-tham-quan': {
+      slug: 'dia-diem-tham-quan-noi-bat',
+      title: (c) => `Top địa điểm tham quan ${c} đẹp nhất không thể bỏ lỡ`,
+    },
+    'dia-diem-vui-choi': {
+      slug: 'dia-diem-vui-choi-hot',
+      title: (c) => `Địa điểm vui chơi giải trí ${c} hot nhất hiện nay`,
+    },
+    'di-tich-lich-su': {
+      slug: 'di-tich-lich-su-noi-tieng',
+      title: (c) => `Di tích lịch sử ${c} nổi tiếng nhất bạn nên ghé thăm`,
+    },
+    'bao-tang': {
+      slug: 'bao-tang-phai-tham',
+      title: (c) => `Bảo tàng tại ${c} nhất định phải ghé một lần`,
+    },
+    'o-dau': {
+      slug: 'khach-san-homestay-tot-nhat',
+      title: (c) => `Ở đâu tại ${c}? Top khách sạn và homestay tốt nhất`,
+    },
+  };
   for (const cat of destSubCats) {
     const city = cat.cityId ? cityById.get(cat.cityId) : undefined;
     if (!city) continue;
-    const photo = photoBySlug.get(city.slug) ?? CITIES[0].photo;
+    const meta = subPostMeta[cat.slug] ?? {
+      slug: `${cat.slug}-noi-bat`,
+      title: (c: string) => `${cat.name} tại ${c} đáng trải nghiệm nhất`,
+    };
+    const thumbnail = postImage('destination', city.slug, cat.slug, meta.slug);
     await prisma.post.upsert({
-      where: { categoryId_slug: { categoryId: cat.id, slug: 'diem-den-khong-the-bo-qua' } },
+      where: { categoryId_slug: { categoryId: cat.id, slug: meta.slug } },
       create: {
-        title: `Top địa điểm du lịch ${city.name} đẹp nhất không thể bỏ qua`,
-        slug: 'diem-den-khong-the-bo-qua',
-        excerpt: `Tổng hợp những địa điểm du lịch ${city.name} đẹp nhất, ấn tượng nhất mà bạn không nên bỏ lỡ.`,
-        content: destinationContent(city.name),
-        thumbnail: IMG(photo),
+        title: meta.title(city.name),
+        slug: meta.slug,
+        excerpt: `Khám phá ${cat.name.toLowerCase()} tại ${city.name}: những địa điểm ấn tượng nhất dành cho du khách.`,
+        content: cat.slug === 'o-dau'
+          ? oDauContent(city.name)
+          : destinationSubContent(city.name, cat.name),
+        thumbnail,
         categoryId: cat.id,
         cityId: city.id,
         location: city.name,
         published: true,
         status: 'approved',
       },
-      update: {},
+      update: { thumbnail },
     });
     total++;
   }
-  console.log(`✓ ${destSubCats.length} destination posts`);
+  console.log(`✓ ${destSubCats.length} destination SUB posts`);
 
-  // Itinerary posts (10)
+  // ── Itinerary posts ──
   const itiRoot = await getRoot('lich-trinh-du-lich');
   const itiCats = await prisma.category.findMany({
     where: { parentId: itiRoot.id, level: 'CITY' },
@@ -305,28 +502,42 @@ async function seedPosts() {
   for (const cat of itiCats) {
     const city = cat.cityId ? cityById.get(cat.cityId) : undefined;
     if (!city) continue;
-    const photo = photoBySlug.get(city.slug) ?? CITIES[0].photo;
-    await prisma.post.upsert({
-      where: { categoryId_slug: { categoryId: cat.id, slug: 'lich-trinh-3-ngay-2-dem' } },
-      create: {
-        title: `Lịch trình du lịch ${city.name} 3 ngày 2 đêm chi tiết`,
-        slug: 'lich-trinh-3-ngay-2-dem',
+    const itineraryPosts = [
+      {
+        slug: '3-ngay-2-dem',
+        title: `Lịch trình du lịch ${city.name} 3 ngày 2 đêm`,
         excerpt: `Gợi ý lịch trình du lịch ${city.name} 3 ngày 2 đêm chi tiết, phù hợp cho gia đình, cặp đôi và nhóm bạn.`,
-        content: itineraryContent(city.name),
-        thumbnail: IMG(photo),
-        categoryId: cat.id,
-        cityId: city.id,
-        location: city.name,
-        published: true,
-        status: 'approved',
       },
-      update: {},
-    });
-    total++;
+      {
+        slug: '2-ngay-1-dem',
+        title: `Lịch trình du lịch ${city.name} 2 ngày 1 đêm`,
+        excerpt: `Gợi ý lịch trình du lịch ${city.name} 2 ngày 1 đêm gọn lịch, dễ đi và tối ưu thời gian.`,
+      },
+    ];
+    for (const item of itineraryPosts) {
+      const thumbnail = postImage('itinerary', city.slug, item.slug);
+      await prisma.post.upsert({
+        where: { categoryId_slug: { categoryId: cat.id, slug: item.slug } },
+        create: {
+          title: item.title,
+          slug: item.slug,
+          excerpt: item.excerpt,
+          content: itineraryContent(city.name),
+          thumbnail,
+          categoryId: cat.id,
+          cityId: city.id,
+          location: city.name,
+          published: true,
+          status: 'approved',
+        },
+        update: { title: item.title, excerpt: item.excerpt, thumbnail },
+      });
+      total++;
+    }
   }
-  console.log(`✓ ${itiCats.length} itinerary posts`);
+  console.log(`✓ ${itiCats.length * 2} itinerary posts`);
 
-  // Experience posts (10)
+  // ── Experience posts ──
   const expRoot = await getRoot('kinh-nghiem');
   const expCats = await prisma.category.findMany({
     where: { parentId: expRoot.id, level: 'CITY' },
@@ -335,28 +546,43 @@ async function seedPosts() {
   for (const cat of expCats) {
     const city = cat.cityId ? cityById.get(cat.cityId) : undefined;
     if (!city) continue;
-    const photo = photoBySlug.get(city.slug) ?? CITIES[0].photo;
-    await prisma.post.upsert({
-      where: { categoryId_slug: { categoryId: cat.id, slug: 'kinh-nghiem-tu-tuc-tu-a-den-z' } },
-      create: {
+    const experiencePosts = [
+      {
+        slug: 'tu-tuc',
         title: `Kinh nghiệm du lịch ${city.name} tự túc từ A đến Z`,
-        slug: 'kinh-nghiem-tu-tuc-tu-a-den-z',
         excerpt: `Tổng hợp kinh nghiệm du lịch ${city.name} tự túc đầy đủ nhất: di chuyển, ăn ở, tham quan và chi phí.`,
-        content: experienceContent(city.name),
-        thumbnail: IMG(photo),
-        categoryId: cat.id,
-        cityId: city.id,
-        location: city.name,
-        published: true,
-        status: 'approved',
       },
-      update: {},
-    });
-    total++;
+      {
+        slug: 'thang-10',
+        title: `Kinh nghiệm du lịch ${city.name} tháng 10 — thời điểm, thời tiết, gợi ý`,
+        excerpt: `Kinh nghiệm đi ${city.name} tháng 10: thời tiết, lịch trình gợi ý và những lưu ý cần biết.`,
+      },
+    ];
+    for (const item of experiencePosts) {
+      const thumbnail = postImage('experience', city.slug, item.slug);
+      await prisma.post.upsert({
+        where: { categoryId_slug: { categoryId: cat.id, slug: item.slug } },
+        create: {
+          title: item.title,
+          slug: item.slug,
+          excerpt: item.excerpt,
+          content: experienceContent(city.name),
+          thumbnail,
+          categoryId: cat.id,
+          cityId: city.id,
+          location: city.name,
+          published: true,
+          status: 'approved',
+        },
+        update: { title: item.title, excerpt: item.excerpt, thumbnail },
+      });
+      total++;
+    }
   }
-  console.log(`✓ ${expCats.length} experience posts`);
+  console.log(`✓ ${expCats.length * 2} experience posts`);
 
-  // Review posts: 5 cities × 6 subtypes = 30
+  // ── Review posts: cities × 6 subtypes ──
+  // URL: /review/{subtype}/{city}/{post}
   for (const subtype of REVIEW_SUBTYPES) {
     const subtypeCat = await prisma.category.findFirst({ where: { slug: subtype.slug, level: 'SUBTYPE' } });
     if (!subtypeCat) continue;
@@ -367,8 +593,8 @@ async function seedPosts() {
     for (const cat of reviewCats) {
       const city = cat.cityId ? cityById.get(cat.cityId) : undefined;
       if (!city) continue;
-      const photo = photoBySlug.get(city.slug) ?? CITIES[0].photo;
       const postSlug = `review-${subtype.slug.replace('review-', '')}-2025`;
+      const thumbnail = postImage('review', subtype.slug, city.slug, postSlug);
       await prisma.post.upsert({
         where: { categoryId_slug: { categoryId: cat.id, slug: postSlug } },
         create: {
@@ -376,27 +602,24 @@ async function seedPosts() {
           slug: postSlug,
           excerpt: `Đánh giá chi tiết dịch vụ ${subtype.name.toLowerCase()} tại ${city.name}: chất lượng, giá cả và những điểm nổi bật nhất.`,
           content: reviewContent(city.name, subtype.name),
-          thumbnail: IMG(photo),
+          thumbnail,
           categoryId: cat.id,
           cityId: city.id,
           location: city.name,
           published: true,
           status: 'approved',
         },
-        update: {},
+        update: { thumbnail },
       });
       total++;
     }
   }
-  console.log(`✓ ${REVIEW_CITIES.length * REVIEW_SUBTYPES.length} review posts`);
+  console.log(`✓ review posts upserted`);
 
   console.log(`\n✓ Tổng cộng ${total} posts`);
 }
 
 // ─── Fix thumbnails cho posts cũ không có ảnh ────────────────────────────────
-
-const CITY_PHOTO_MAP = new Map(CITIES.map((c) => [c.slug, c.photo]));
-const DEFAULT_PHOTO = 'photo-1528360983277-13d401cdc186'; // Ha Long Bay
 
 async function fixMissingThumbnails() {
   const posts = await prisma.post.findMany({
@@ -417,11 +640,14 @@ async function fixMissingThumbnails() {
 
 async function main() {
   console.log('▶ Seeding...\n');
-  await cleanupWrongDestinationCategories();
   await ensureSystemRoots();
+  await resetTaxonomyContent();
+  await pruneObsoleteCities();
   await seedCities();
-  await seedCategories();
-  await seedPosts();
+  const cities = await loadSeedCities();
+  console.log(`✓ Sử dụng ${cities.length} cities hiện có trong DB để fill taxonomy`);
+  await seedCategories(cities);
+  await seedPosts(cities);
   await fixMissingThumbnails();
   console.log('\n✅ Xong!');
 }

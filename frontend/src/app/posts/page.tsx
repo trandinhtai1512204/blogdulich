@@ -14,7 +14,7 @@ interface Post {
   thumbnail?: string;
   createdAt: string;
   city?: { name: string; slug: string };
-  category?: { name: string; slug: string };
+  category?: { name: string; slug: string; type?: string };
   canonicalUrl?: string;
 }
 
@@ -56,6 +56,20 @@ export default function PostsPage() {
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  const getPostHref = (post: Post) => {
+    if (post.canonicalUrl) return post.canonicalUrl;
+    if (post.category?.type === 'destination' && post.city?.slug) {
+      return `/diem-den/${post.city.slug}/${post.category.slug}/${post.slug}`;
+    }
+    if (post.category?.type === 'itinerary' && post.city?.slug) {
+      return `/lich-trinh/${post.city.slug}/${post.slug}`;
+    }
+    if (post.category?.type === 'experience' && post.city?.slug) {
+      return `/kinh-nghiem/${post.city.slug}/${post.slug}`;
+    }
+    return `/posts/${post.slug}`;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -115,7 +129,7 @@ export default function PostsPage() {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {posts.map((post, index) => (
-                <Link key={post.id} href={post.canonicalUrl ?? (post.category?.slug ? `/${post.category.slug}/${post.slug}` : `/posts/${post.slug}`)}
+                <Link key={post.id} href={getPostHref(post)}
                   className={`bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group ${
                     index === 0 ? 'md:col-span-2 lg:col-span-1' : ''
                   }`}>
