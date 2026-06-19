@@ -35,7 +35,9 @@ let BookingsService = class BookingsService {
                 where: {
                     hotelId,
                     status: 'confirmed',
-                    OR: [{ checkIn: { lt: checkOutDate }, checkOut: { gt: checkInDate } }],
+                    OR: [
+                        { checkIn: { lt: checkOutDate }, checkOut: { gt: checkInDate } },
+                    ],
                 },
             });
             if (overlap)
@@ -61,7 +63,13 @@ let BookingsService = class BookingsService {
             where: { userId },
             include: {
                 hotel: {
-                    select: { id: true, name: true, slug: true, address: true, images: true },
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        address: true,
+                        images: true,
+                    },
                 },
                 payment: true,
             },

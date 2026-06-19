@@ -62,9 +62,13 @@ export default function DestinationsPage() {
   useEffect(() => {
     api.get('/cities').then((r) => setCities(r.data ?? []));
 
-    api.get('/posts?type=destination&limit=120&sort=hot')
+    api.get('/posts?type=destination&limit=120')
       .then((r) => {
-        const posts: HotPost[] = r.data?.data ?? [];
+        const posts: HotPost[] = [...(r.data?.data ?? [])].sort(
+          (a, b) =>
+            (b.viewCount ?? 0) - (a.viewCount ?? 0)
+            || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
         setHotPosts(posts.slice(0, 6));
 
         const sectionMap = new Map<string, CategorySection>();

@@ -66,6 +66,13 @@ const SECTION_COPY: Record<CategoryType, { href: string; title: ReactNode; subti
   },
 };
 
+const sortPostsByHotness = (posts: Post[]) =>
+  [...posts].sort(
+    (a, b) =>
+      (b.viewCount ?? 0) - (a.viewCount ?? 0)
+      || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+
 const REGIONS = [
   {
     key: 'north',
@@ -138,15 +145,22 @@ export default function HomePage() {
   });
 
   useEffect(() => {
-    Promise.all([
-      api.get('/posts?type=destination&limit=120&sort=hot'),
-      ...TYPE_ORDER.map((type) => api.get(`/posts?type=${type}&limit=${type === 'destination' || type === 'review' ? 48 : type === 'itinerary' || type === 'experience' ? 16 : 10}&sort=hot`)),
+    Promise.allSettled([
+      api.get('/posts?type=destination&limit=120'),
+      ...TYPE_ORDER.map((type) => api.get(`/posts?type=${type}&limit=${type === 'destination' || type === 'review' ? 48 : type === 'itinerary' || type === 'experience' ? 16 : 10}`)),
     ])
       .then(([hotPostsRes, ...postResults]) => {
-        setRegionalPosts(hotPostsRes.data?.data ?? []);
+        setRegionalPosts(
+          hotPostsRes.status === 'fulfilled'
+            ? sortPostsByHotness(hotPostsRes.value.data?.data ?? [])
+            : [],
+        );
         const grouped = {} as Record<CategoryType, Post[]>;
         TYPE_ORDER.forEach((type, index) => {
-          grouped[type] = postResults[index].data?.data ?? [];
+          const result = postResults[index];
+          grouped[type] = result?.status === 'fulfilled'
+            ? sortPostsByHotness(result.value.data?.data ?? [])
+            : [];
         });
         setPostsByType(grouped);
       })

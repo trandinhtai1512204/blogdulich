@@ -18,7 +18,7 @@ let HotelsService = class HotelsService {
         this.prisma = prisma;
     }
     async findAll(query) {
-        const { cityId, search, minPrice, maxPrice, page = '1', limit = '10' } = query;
+        const { cityId, search, minPrice, maxPrice, page = '1', limit = '10', } = query;
         const pageNumber = parseInt(page);
         const limitNumber = parseInt(limit);
         const where = {};
@@ -45,7 +45,12 @@ let HotelsService = class HotelsService {
         ]);
         return {
             data,
-            meta: { total, page: pageNumber, limit: limitNumber, totalPages: Math.ceil(total / limitNumber) },
+            meta: {
+                total,
+                page: pageNumber,
+                limit: limitNumber,
+                totalPages: Math.ceil(total / limitNumber),
+            },
         };
     }
     async findOne(slug) {

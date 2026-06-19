@@ -27,6 +27,9 @@ let PostsController = class PostsController {
     findAll(query) {
         return this.postsService.findAll(query);
     }
+    findCityFeatured(citySlug) {
+        return this.postsService.findCityFeatured(citySlug);
+    }
     submitCommunityPost(dto, req) {
         return this.postsService.submitCommunityPost(dto, req.user.sub);
     }
@@ -38,6 +41,9 @@ let PostsController = class PostsController {
     }
     findOne(slug) {
         return this.postsService.findOne(slug);
+    }
+    incrementViewCount(id) {
+        return this.postsService.incrementViewCount(id);
     }
     create(dto) {
         return this.postsService.create(dto);
@@ -57,6 +63,13 @@ __decorate([
     __metadata("design:paramtypes", [query_posts_dto_1.QueryPostsDto]),
     __metadata("design:returntype", void 0)
 ], PostsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('city-featured/:citySlug'),
+    __param(0, (0, common_1.Param)('citySlug')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], PostsController.prototype, "findCityFeatured", null);
 __decorate([
     (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard),
     (0, common_1.Post)('community'),
@@ -89,6 +102,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], PostsController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.Post)(':id/view'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], PostsController.prototype, "incrementViewCount", null);
 __decorate([
     (0, common_1.UseGuards)(supabase_auth_guard_1.SupabaseAuthGuard, roles_guard_1.AdminGuard),
     (0, common_1.Post)(),

@@ -57,6 +57,7 @@ export declare class PostsService {
             title: string;
             excerpt: string | null;
             thumbnail: string | null;
+            viewCount: number;
             published: boolean;
             categoryId: string | null;
             author: {
@@ -111,10 +112,323 @@ export declare class PostsService {
         location: string | null;
         latitude: number | null;
         longitude: number | null;
+        viewCount: number;
         published: boolean;
         status: import(".prisma/client").$Enums.PostStatus;
         authorId: string | null;
         categoryId: string | null;
+    }>;
+    findCityFeatured(citySlug: string): Promise<{
+        city: {
+            id: string;
+            name: string;
+            slug: string;
+        };
+        destination: {
+            viewCount: number;
+            canonicalUrl: string;
+            category: {
+                id: string;
+                name: string;
+                slug: string;
+                cityId: string | null;
+                parentId: string | null;
+                type: import(".prisma/client").$Enums.CategoryType;
+                level: import(".prisma/client").$Enums.CategoryLevel;
+                parent: {
+                    id: string;
+                    name: string;
+                    slug: string;
+                    cityId: string | null;
+                    parentId: string | null;
+                    type: import(".prisma/client").$Enums.CategoryType;
+                    level: import(".prisma/client").$Enums.CategoryLevel;
+                    parent: {
+                        id: string;
+                        name: string;
+                        slug: string;
+                        cityId: string | null;
+                        parentId: string | null;
+                        type: import(".prisma/client").$Enums.CategoryType;
+                        level: import(".prisma/client").$Enums.CategoryLevel;
+                        parent: {
+                            id: string;
+                            name: string;
+                            slug: string;
+                            cityId: string | null;
+                            parentId: string | null;
+                            type: import(".prisma/client").$Enums.CategoryType;
+                            level: import(".prisma/client").$Enums.CategoryLevel;
+                        } | null;
+                    } | null;
+                } | null;
+            } | null;
+            id: string;
+            slug: string;
+            createdAt: Date;
+            cityId: string | null;
+            city: {
+                id: string;
+                name: string;
+                slug: string;
+            } | null;
+            title: string;
+            excerpt: string | null;
+            thumbnail: string | null;
+            published: boolean;
+            categoryId: string | null;
+            author: {
+                id: string;
+                name: string | null;
+                avatar: string | null;
+            } | null;
+        }[];
+        itinerary: {
+            viewCount: number;
+            canonicalUrl: string;
+            category: {
+                id: string;
+                name: string;
+                slug: string;
+                cityId: string | null;
+                parentId: string | null;
+                type: import(".prisma/client").$Enums.CategoryType;
+                level: import(".prisma/client").$Enums.CategoryLevel;
+                parent: {
+                    id: string;
+                    name: string;
+                    slug: string;
+                    cityId: string | null;
+                    parentId: string | null;
+                    type: import(".prisma/client").$Enums.CategoryType;
+                    level: import(".prisma/client").$Enums.CategoryLevel;
+                    parent: {
+                        id: string;
+                        name: string;
+                        slug: string;
+                        cityId: string | null;
+                        parentId: string | null;
+                        type: import(".prisma/client").$Enums.CategoryType;
+                        level: import(".prisma/client").$Enums.CategoryLevel;
+                        parent: {
+                            id: string;
+                            name: string;
+                            slug: string;
+                            cityId: string | null;
+                            parentId: string | null;
+                            type: import(".prisma/client").$Enums.CategoryType;
+                            level: import(".prisma/client").$Enums.CategoryLevel;
+                        } | null;
+                    } | null;
+                } | null;
+            } | null;
+            id: string;
+            slug: string;
+            createdAt: Date;
+            cityId: string | null;
+            city: {
+                id: string;
+                name: string;
+                slug: string;
+            } | null;
+            title: string;
+            excerpt: string | null;
+            thumbnail: string | null;
+            published: boolean;
+            categoryId: string | null;
+            author: {
+                id: string;
+                name: string | null;
+                avatar: string | null;
+            } | null;
+        }[];
+        experience: {
+            viewCount: number;
+            canonicalUrl: string;
+            category: {
+                id: string;
+                name: string;
+                slug: string;
+                cityId: string | null;
+                parentId: string | null;
+                type: import(".prisma/client").$Enums.CategoryType;
+                level: import(".prisma/client").$Enums.CategoryLevel;
+                parent: {
+                    id: string;
+                    name: string;
+                    slug: string;
+                    cityId: string | null;
+                    parentId: string | null;
+                    type: import(".prisma/client").$Enums.CategoryType;
+                    level: import(".prisma/client").$Enums.CategoryLevel;
+                    parent: {
+                        id: string;
+                        name: string;
+                        slug: string;
+                        cityId: string | null;
+                        parentId: string | null;
+                        type: import(".prisma/client").$Enums.CategoryType;
+                        level: import(".prisma/client").$Enums.CategoryLevel;
+                        parent: {
+                            id: string;
+                            name: string;
+                            slug: string;
+                            cityId: string | null;
+                            parentId: string | null;
+                            type: import(".prisma/client").$Enums.CategoryType;
+                            level: import(".prisma/client").$Enums.CategoryLevel;
+                        } | null;
+                    } | null;
+                } | null;
+            } | null;
+            id: string;
+            slug: string;
+            createdAt: Date;
+            cityId: string | null;
+            city: {
+                id: string;
+                name: string;
+                slug: string;
+            } | null;
+            title: string;
+            excerpt: string | null;
+            thumbnail: string | null;
+            published: boolean;
+            categoryId: string | null;
+            author: {
+                id: string;
+                name: string | null;
+                avatar: string | null;
+            } | null;
+        }[];
+        review: {
+            groups: {
+                posts: {
+                    viewCount: number;
+                    canonicalUrl: string;
+                    category: {
+                        id: string;
+                        name: string;
+                        slug: string;
+                        cityId: string | null;
+                        parentId: string | null;
+                        type: import(".prisma/client").$Enums.CategoryType;
+                        level: import(".prisma/client").$Enums.CategoryLevel;
+                        parent: {
+                            id: string;
+                            name: string;
+                            slug: string;
+                            cityId: string | null;
+                            parentId: string | null;
+                            type: import(".prisma/client").$Enums.CategoryType;
+                            level: import(".prisma/client").$Enums.CategoryLevel;
+                            parent: {
+                                id: string;
+                                name: string;
+                                slug: string;
+                                cityId: string | null;
+                                parentId: string | null;
+                                type: import(".prisma/client").$Enums.CategoryType;
+                                level: import(".prisma/client").$Enums.CategoryLevel;
+                                parent: {
+                                    id: string;
+                                    name: string;
+                                    slug: string;
+                                    cityId: string | null;
+                                    parentId: string | null;
+                                    type: import(".prisma/client").$Enums.CategoryType;
+                                    level: import(".prisma/client").$Enums.CategoryLevel;
+                                } | null;
+                            } | null;
+                        } | null;
+                    } | null;
+                    id: string;
+                    slug: string;
+                    createdAt: Date;
+                    cityId: string | null;
+                    city: {
+                        id: string;
+                        name: string;
+                        slug: string;
+                    } | null;
+                    title: string;
+                    excerpt: string | null;
+                    thumbnail: string | null;
+                    published: boolean;
+                    categoryId: string | null;
+                    author: {
+                        id: string;
+                        name: string | null;
+                        avatar: string | null;
+                    } | null;
+                }[];
+                slug: string;
+                name: string;
+            }[];
+            posts: {
+                viewCount: number;
+                canonicalUrl: string;
+                category: {
+                    id: string;
+                    name: string;
+                    slug: string;
+                    cityId: string | null;
+                    parentId: string | null;
+                    type: import(".prisma/client").$Enums.CategoryType;
+                    level: import(".prisma/client").$Enums.CategoryLevel;
+                    parent: {
+                        id: string;
+                        name: string;
+                        slug: string;
+                        cityId: string | null;
+                        parentId: string | null;
+                        type: import(".prisma/client").$Enums.CategoryType;
+                        level: import(".prisma/client").$Enums.CategoryLevel;
+                        parent: {
+                            id: string;
+                            name: string;
+                            slug: string;
+                            cityId: string | null;
+                            parentId: string | null;
+                            type: import(".prisma/client").$Enums.CategoryType;
+                            level: import(".prisma/client").$Enums.CategoryLevel;
+                            parent: {
+                                id: string;
+                                name: string;
+                                slug: string;
+                                cityId: string | null;
+                                parentId: string | null;
+                                type: import(".prisma/client").$Enums.CategoryType;
+                                level: import(".prisma/client").$Enums.CategoryLevel;
+                            } | null;
+                        } | null;
+                    } | null;
+                } | null;
+                id: string;
+                slug: string;
+                createdAt: Date;
+                cityId: string | null;
+                city: {
+                    id: string;
+                    name: string;
+                    slug: string;
+                } | null;
+                title: string;
+                excerpt: string | null;
+                thumbnail: string | null;
+                published: boolean;
+                categoryId: string | null;
+                author: {
+                    id: string;
+                    name: string | null;
+                    avatar: string | null;
+                } | null;
+            }[];
+        };
+    }>;
+    incrementViewCount(id: string): Promise<{
+        id: string;
+        viewCount: number;
     }>;
     create(dto: CreatePostDto): Promise<{
         id: string;
@@ -129,6 +443,7 @@ export declare class PostsService {
         location: string | null;
         latitude: number | null;
         longitude: number | null;
+        viewCount: number;
         published: boolean;
         status: import(".prisma/client").$Enums.PostStatus;
         authorId: string | null;
@@ -196,6 +511,7 @@ export declare class PostsService {
             location: string | null;
             latitude: number | null;
             longitude: number | null;
+            viewCount: number;
             published: boolean;
             status: import(".prisma/client").$Enums.PostStatus;
             authorId: string | null;
@@ -247,6 +563,7 @@ export declare class PostsService {
         location: string | null;
         latitude: number | null;
         longitude: number | null;
+        viewCount: number;
         published: boolean;
         status: import(".prisma/client").$Enums.PostStatus;
         authorId: string | null;
@@ -286,6 +603,7 @@ export declare class PostsService {
         location: string | null;
         latitude: number | null;
         longitude: number | null;
+        viewCount: number;
         published: boolean;
         status: import(".prisma/client").$Enums.PostStatus;
         authorId: string | null;
@@ -305,9 +623,13 @@ export declare class PostsService {
         location: string | null;
         latitude: number | null;
         longitude: number | null;
+        viewCount: number;
         published: boolean;
         status: import(".prisma/client").$Enums.PostStatus;
         authorId: string | null;
         categoryId: string | null;
     }>;
+    private findTopPostsByCityAndType;
+    private findTopReviewPostsBySubtype;
+    private hydrateRankedPosts;
 }

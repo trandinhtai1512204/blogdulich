@@ -2,7 +2,9 @@ type CatNode = {
     id: string;
     slug: string;
     type?: string | null;
+    level?: string | null;
     parentId: string | null;
+    cityId?: string | null;
     parent?: CatNode | null;
 };
 type PostInput = {

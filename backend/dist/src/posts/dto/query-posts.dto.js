@@ -10,6 +10,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.QueryPostsDto = void 0;
+const client_1 = require("@prisma/client");
 const class_validator_1 = require("class-validator");
 class QueryPostsDto {
     cityId;
@@ -18,6 +19,7 @@ class QueryPostsDto {
     page;
     limit;
     type;
+    sort;
 }
 exports.QueryPostsDto = QueryPostsDto;
 __decorate([
@@ -47,7 +49,12 @@ __decorate([
 ], QueryPostsDto.prototype, "limit", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsEnum)(client_1.CategoryType),
     __metadata("design:type", String)
 ], QueryPostsDto.prototype, "type", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsIn)(['latest', 'hot']),
+    __metadata("design:type", String)
+], QueryPostsDto.prototype, "sort", void 0);
 //# sourceMappingURL=query-posts.dto.js.map

@@ -38,8 +38,9 @@ export declare class TaxonomyService {
     constructor(prisma: PrismaService);
     resolve(slugs: string[]): Promise<ResolveResult>;
     private resolveModuleRoot;
-    private resolveFlatCityVertical;
+    private resolveNestedCityVertical;
     private resolveReview;
+    private resolveCityMixedNode;
     private resolveDestination;
     resolvePage(slugs: string[]): Promise<{
         resolved: {

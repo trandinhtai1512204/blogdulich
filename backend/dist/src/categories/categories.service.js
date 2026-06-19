@@ -18,7 +18,6 @@ const SYSTEM_ROOTS = [
     { name: 'Review', slug: 'review', type: 'review' },
     { name: 'Kinh nghiệm du lịch', slug: 'kinh-nghiem', type: 'experience' },
 ];
-const REVIEW_SUBTYPES_WITH_SUB = new Set(['review-tour', 'review-khach-san']);
 let CategoriesService = class CategoriesService {
     prisma;
     constructor(prisma) {
@@ -45,26 +44,40 @@ let CategoriesService = class CategoriesService {
                 cityId: null,
             };
             if (existing) {
-                await this.prisma.category.update({ where: { id: existing.id }, data });
+                await this.prisma.category.update({
+                    where: { id: existing.id },
+                    data,
+                });
             }
             else {
-                await this.prisma.category.create({ data: { ...data, slug: root.slug } });
+                await this.prisma.category.create({
+                    data: { ...data, slug: root.slug },
+                });
             }
         }));
     }
     async walkParentChain(categoryId) {
         const select = {
-            id: true, name: true, slug: true, type: true, level: true, parentId: true,
+            id: true,
+            name: true,
+            slug: true,
+            type: true,
+            level: true,
+            parentId: true,
         };
         const chain = [];
-        const first = await this.prisma.category.findUnique({ where: { id: categoryId }, select });
+        const first = await this.prisma.category.findUnique({
+            where: { id: categoryId },
+            select,
+        });
         if (!first)
             throw new common_1.NotFoundException('Chuyên mục cha không tồn tại');
         chain.push(first);
         let parentId = first.parentId;
         while (parentId) {
             const parent = await this.prisma.category.findUnique({
-                where: { id: parentId }, select,
+                where: { id: parentId },
+                select,
             });
             if (!parent)
                 break;
@@ -93,20 +106,8 @@ let CategoriesService = class CategoriesService {
         if (!root || root.level !== 'ROOT') {
             throw new common_1.BadRequestException('Không tìm thấy gốc taxonomy của chuyên mục cha');
         }
-        if (root.slug === 'lich-trinh-du-lich') {
-            throw new common_1.BadRequestException('Module Lịch trình không có sub-tiểu-mục — bài viết gắn trực tiếp vào tỉnh thành.');
-        }
-        if (root.slug === 'kinh-nghiem') {
-            throw new common_1.BadRequestException('Module Kinh nghiệm không có sub-tiểu-mục — bài viết gắn trực tiếp vào tỉnh thành.');
-        }
         if (root.slug === 'review') {
-            const subtype = parentChain.find((c) => c.level === 'SUBTYPE');
-            if (!subtype) {
-                throw new common_1.BadRequestException('SUB của Review phải nằm dưới một SUBTYPE');
-            }
-            if (!REVIEW_SUBTYPES_WITH_SUB.has(subtype.slug)) {
-                throw new common_1.BadRequestException(`Mục "${subtype.name}" theo sitemap không có chuyên mục con. Bài viết Combo/Resort/Du thuyền/Nhà hàng gắn trực tiếp vào "Thành phố".`);
-            }
+            throw new common_1.BadRequestException('Review không dùng cấp tiểu mục; hãy tạo bài viết trực tiếp dưới tỉnh/thành');
         }
     }
     isSystemRootSlug(slug) {
@@ -224,7 +225,16 @@ let CategoriesService = class CategoriesService {
         return this.prisma.category.findMany({
             where: { parentId: null, slug: { in: SYSTEM_ROOTS.map((x) => x.slug) } },
             orderBy: { createdAt: 'asc' },
-            select: { id: true, name: true, slug: true, type: true, level: true, parentId: true, cityId: true, createdAt: true },
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+                type: true,
+                level: true,
+                parentId: true,
+                cityId: true,
+                createdAt: true,
+            },
         });
     }
 };

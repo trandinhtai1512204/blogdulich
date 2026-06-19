@@ -8,12 +8,12 @@ export declare class BookingsService {
         createdAt: Date;
         updatedAt: Date;
         status: import(".prisma/client").$Enums.BookingStatus;
+        userId: string;
         hotelId: string;
         checkIn: Date;
         checkOut: Date;
         totalPrice: number;
         expiresAt: Date | null;
-        userId: string;
     }>;
     getMyBookings(userId: string): Promise<({
         hotel: {
@@ -39,23 +39,23 @@ export declare class BookingsService {
         createdAt: Date;
         updatedAt: Date;
         status: import(".prisma/client").$Enums.BookingStatus;
+        userId: string;
         hotelId: string;
         checkIn: Date;
         checkOut: Date;
         totalPrice: number;
         expiresAt: Date | null;
-        userId: string;
     })[]>;
     cancel(bookingId: string, userId: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
         status: import(".prisma/client").$Enums.BookingStatus;
+        userId: string;
         hotelId: string;
         checkIn: Date;
         checkOut: Date;
         totalPrice: number;
         expiresAt: Date | null;
-        userId: string;
     }>;
 }

@@ -33,7 +33,8 @@ let AdminGuard = class AdminGuard {
             return true;
         }
         catch (err) {
-            if (err instanceof common_1.ForbiddenException || err instanceof common_1.UnauthorizedException)
+            if (err instanceof common_1.ForbiddenException ||
+                err instanceof common_1.UnauthorizedException)
                 throw err;
             throw new common_1.ForbiddenException('Không thể xác minh quyền admin');
         }

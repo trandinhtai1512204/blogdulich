@@ -26,6 +26,7 @@ const upload_module_1 = require("./upload/upload.module");
 const mail_module_1 = require("./mail/mail.module");
 const categories_module_1 = require("./categories/categories.module");
 const taxonomy_module_1 = require("./taxonomy/taxonomy.module");
+const faqs_module_1 = require("./faqs/faqs.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -44,6 +45,7 @@ exports.AppModule = AppModule = __decorate([
             posts_module_1.PostsModule,
             categories_module_1.CategoriesModule,
             taxonomy_module_1.TaxonomyModule,
+            faqs_module_1.FaqsModule,
             bookings_module_1.BookingsModule,
             payments_module_1.PaymentsModule,
             reviews_module_1.ReviewsModule,

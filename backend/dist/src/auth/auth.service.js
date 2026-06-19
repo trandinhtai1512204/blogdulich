@@ -44,7 +44,8 @@ let AuthService = class AuthService {
             };
         }
         catch (err) {
-            if (err instanceof common_1.ConflictException || err instanceof common_1.BadRequestException) {
+            if (err instanceof common_1.ConflictException ||
+                err instanceof common_1.BadRequestException) {
                 throw err;
             }
             throw new common_1.InternalServerErrorException('Lỗi đăng ký, vui lòng thử lại');
@@ -88,7 +89,14 @@ let AuthService = class AuthService {
         try {
             const user = await this.prisma.user.findUnique({
                 where: { id: supabaseUserId },
-                select: { id: true, email: true, name: true, role: true, avatar: true, createdAt: true },
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    role: true,
+                    avatar: true,
+                    createdAt: true,
+                },
             });
             if (!user)
                 throw new common_1.UnauthorizedException('User không tồn tại');
@@ -123,10 +131,21 @@ let AuthService = class AuthService {
             const pkceStore = {};
             const storage = {
                 getItem: (key) => pkceStore[key] ?? null,
-                setItem: (key, value) => { pkceStore[key] = value; },
-                removeItem: (key) => { delete pkceStore[key]; },
+                setItem: (key, value) => {
+                    pkceStore[key] = value;
+                },
+                removeItem: (key) => {
+                    delete pkceStore[key];
+                },
             };
-            const client = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, { auth: { storage, autoRefreshToken: false, persistSession: true, flowType: 'pkce', } });
+            const client = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+                auth: {
+                    storage,
+                    autoRefreshToken: false,
+                    persistSession: true,
+                    flowType: 'pkce',
+                },
+            });
             const { data, error } = await client.auth.signInWithOAuth({
                 provider,
                 options: {
@@ -154,10 +173,21 @@ let AuthService = class AuthService {
                 : parsedState;
             const storage = {
                 getItem: (key) => pkceStore[key] ?? null,
-                setItem: (key, value) => { pkceStore[key] = value; },
-                removeItem: (key) => { delete pkceStore[key]; },
+                setItem: (key, value) => {
+                    pkceStore[key] = value;
+                },
+                removeItem: (key) => {
+                    delete pkceStore[key];
+                },
             };
-            const client = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, { auth: { storage, autoRefreshToken: false, persistSession: true, flowType: 'pkce', } });
+            const client = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+                auth: {
+                    storage,
+                    autoRefreshToken: false,
+                    persistSession: true,
+                    flowType: 'pkce',
+                },
+            });
             const { data, error } = await client.auth.exchangeCodeForSession(code);
             if (error || !data.session) {
                 throw new common_1.UnauthorizedException('OAuth callback thất bại');

@@ -27,7 +27,14 @@ cloudinary_1.v2.config({
 let UploadController = class UploadController {
     async uploadImage(file) {
         const result = await new Promise((resolve, reject) => {
-            cloudinary_1.v2.uploader.upload_stream({ folder: 'tripviet', transformation: [{ width: 1200, quality: 'auto', fetch_format: 'auto' }] }, (error, result) => error ? reject(error) : resolve(result)).end(file.buffer);
+            cloudinary_1.v2.uploader
+                .upload_stream({
+                folder: 'tripviet',
+                transformation: [
+                    { width: 1200, quality: 'auto', fetch_format: 'auto' },
+                ],
+            }, (error, result) => (error ? reject(error) : resolve(result)))
+                .end(file.buffer);
         });
         return { url: result.secure_url };
     }

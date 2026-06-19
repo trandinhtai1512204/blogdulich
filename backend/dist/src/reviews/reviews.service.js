@@ -18,7 +18,9 @@ let ReviewsService = class ReviewsService {
         this.prisma = prisma;
     }
     async create(userId, hotelId, dto) {
-        const hotel = await this.prisma.hotel.findUnique({ where: { id: hotelId } });
+        const hotel = await this.prisma.hotel.findUnique({
+            where: { id: hotelId },
+        });
         if (!hotel)
             throw new common_1.NotFoundException('Hotel không tồn tại');
         const booking = await this.prisma.booking.findFirst({
@@ -60,7 +62,9 @@ let ReviewsService = class ReviewsService {
         return { reviews, total, avg: Math.round(avg * 10) / 10, distribution };
     }
     async delete(reviewId, userId) {
-        const review = await this.prisma.review.findUnique({ where: { id: reviewId } });
+        const review = await this.prisma.review.findUnique({
+            where: { id: reviewId },
+        });
         if (!review)
             throw new common_1.NotFoundException('Review không tồn tại');
         if (review.userId !== userId)
