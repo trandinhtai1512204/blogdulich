@@ -1,0 +1,13 @@
+.codegraph
+.git
+.next
+node_modules
+backend/node_modules
+frontend/node_modules
+backend/dist
+frontend/.next
+.DS_Store
+reports
+LOGO.zip
+[Blogdulich.vn] - Site Brief.zip
+System Design for Travel Booking.zip
