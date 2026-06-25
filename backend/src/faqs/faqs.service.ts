@@ -102,9 +102,28 @@ const DEFAULT_FAQS: Record<CategoryType, Array<{ question: string; answer: strin
 
 @Injectable()
 export class FaqsService {
+  private findAllCache = new Map<
+    string,
+    { expiresAt: number; data: Awaited<ReturnType<FaqsService['buildFindAll']>> }
+  >();
+  private resolveCache = new Map<
+    string,
+    { expiresAt: number; data: Awaited<ReturnType<FaqsService['buildResolve']>> }
+  >();
+
   constructor(private prisma: PrismaService) {}
 
-  findAll(query: QueryFaqDto) {
+  async findAll(query: QueryFaqDto) {
+    const cacheKey = JSON.stringify(query ?? {});
+    const cached = this.findAllCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+    const data = await this.buildFindAll(query);
+    this.findAllCache.set(cacheKey, { data, expiresAt: Date.now() + 10 * 60 * 1000 });
+    return data;
+  }
+
+  private buildFindAll(query: QueryFaqDto) {
     const where: Prisma.FaqWhereInput = {};
     if (query.targetType) where.targetType = query.targetType;
     if (query.targetId) where.targetId = query.targetId;
@@ -119,6 +138,16 @@ export class FaqsService {
   }
 
   async resolve(query: ResolveFaqDto) {
+    const cacheKey = JSON.stringify(query ?? {});
+    const cached = this.resolveCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+    const data = await this.buildResolve(query);
+    this.resolveCache.set(cacheKey, { data, expiresAt: Date.now() + 10 * 60 * 1000 });
+    return data;
+  }
+
+  private async buildResolve(query: ResolveFaqDto) {
     const buckets = await this.resolveBuckets(query);
     const resolved = this.mergeFaqs(buckets);
     if (resolved.length > 0) return resolved;
@@ -128,6 +157,7 @@ export class FaqsService {
   }
 
   create(dto: CreateFaqDto) {
+    this.clearCaches();
     return this.prisma.faq.create({
       data: this.normalizeCreateDto(dto),
       select: FAQ_SELECT,
@@ -136,19 +166,28 @@ export class FaqsService {
 
   async update(id: string, dto: UpdateFaqDto) {
     await this.ensureExists(id);
-    return this.prisma.faq.update({
+    const updated = await this.prisma.faq.update({
       where: { id },
       data: this.normalizeUpdateDto(dto),
       select: FAQ_SELECT,
     });
+    this.clearCaches();
+    return updated;
   }
 
   async remove(id: string) {
     await this.ensureExists(id);
-    return this.prisma.faq.delete({
+    const deleted = await this.prisma.faq.delete({
       where: { id },
       select: { id: true },
     });
+    this.clearCaches();
+    return deleted;
+  }
+
+  private clearCaches() {
+    this.findAllCache.clear();
+    this.resolveCache.clear();
   }
 
   private normalizeCreateDto(dto: CreateFaqDto): Prisma.FaqCreateInput {

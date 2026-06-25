@@ -62,6 +62,12 @@ const REVIEW_PUBLIC_TO_INTERNAL: Record<string, string> = {
   'du-thuyen': 'review-du-thuyen',
   'nha-hang': 'review-nha-hang',
 };
+const REVIEW_INTERNAL_TO_PUBLIC = Object.fromEntries(
+  Object.entries(REVIEW_PUBLIC_TO_INTERNAL).map(([publicSlug, internalSlug]) => [
+    internalSlug,
+    publicSlug,
+  ]),
+) as Record<string, string>;
 
 const POST_LIST_SELECT = {
   id: true,
@@ -76,8 +82,36 @@ const POST_LIST_SELECT = {
   category: { select: CATEGORY_WITH_ANCESTORS_SELECT },
 } as const;
 
+const VIRTUAL_ROOT: Record<string, { label: string; href: string }> = {
+  destination: { label: 'Điểm đến', href: '/diem-den' },
+  itinerary: { label: 'Lịch trình du lịch', href: '/lich-trinh' },
+  review: { label: 'Review', href: '/review' },
+  experience: { label: 'Kinh nghiệm', href: '/kinh-nghiem' },
+};
+
+const PUBLIC_CATEGORY_LABEL: Record<string, string> = {
+  'diem-den': 'Điểm đến',
+  'lich-trinh-du-lich': 'Lịch trình du lịch',
+  'kinh-nghiem': 'Kinh nghiệm du lịch',
+  review: 'Review',
+  'review-tour': 'Tour du lịch',
+  'review-khach-san': 'Khách sạn',
+  'review-combo': 'Combo',
+  'review-resort': 'Resort',
+  'review-du-thuyen': 'Du thuyền',
+  'review-nha-hang': 'Nhà hàng',
+};
+
+const TAXONOMY_CACHE_TTL_MS = 10 * 60 * 1000;
+
 @Injectable()
 export class TaxonomyService {
+  private resolveCache = new Map<string, { expiresAt: number; data: ResolveResult }>();
+  private pageCache = new Map<
+    string,
+    { expiresAt: number; data: Awaited<ReturnType<TaxonomyService['buildPage']>> }
+  >();
+
   constructor(private prisma: PrismaService) {}
 
   /**
@@ -105,6 +139,19 @@ export class TaxonomyService {
    *   /diem-den/{city}/{sub}/{post}       → destination post
    */
   async resolve(slugs: string[]): Promise<ResolveResult> {
+    const cacheKey = slugs.join('/');
+    const cached = this.resolveCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+    const data = await this.buildResolve(slugs);
+    this.resolveCache.set(cacheKey, {
+      data,
+      expiresAt: Date.now() + TAXONOMY_CACHE_TTL_MS,
+    });
+    return data;
+  }
+
+  private async buildResolve(slugs: string[]): Promise<ResolveResult> {
     if (!slugs.length) return { kind: 'not_found' };
     const canonicalPath = '/' + slugs.join('/');
     const first = slugs[0];
@@ -154,6 +201,8 @@ export class TaxonomyService {
       if (!subtypeSlug) return { kind: 'not_found' };
       return this.resolveReview(subtypeSlug, slugs.slice(2), canonicalPath);
     }
+
+    if (slugs.length === 1) return this.resolveSupportingPost(slugs[0]);
 
     return { kind: 'not_found' };
   }
@@ -417,6 +466,19 @@ export class TaxonomyService {
    * Eliminates the client-side waterfall: resolve → then fetch children/posts.
    */
   async resolvePage(slugs: string[]) {
+    const cacheKey = slugs.join('/');
+    const cached = this.pageCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+    const data = await this.buildPage(slugs);
+    this.pageCache.set(cacheKey, {
+      data,
+      expiresAt: Date.now() + TAXONOMY_CACHE_TTL_MS,
+    });
+    return data;
+  }
+
+  private async buildPage(slugs: string[]) {
     const resolved = await this.resolve(slugs);
 
     if (resolved.kind === 'not_found' || resolved.kind === 'post') {
@@ -434,6 +496,7 @@ export class TaxonomyService {
         ? await this.prisma.post.findMany({
             where: {
               published: true,
+              kind: 'standard',
               cityId: resolved.city.id,
               categoryId: { in: destCatIds },
             },
@@ -463,7 +526,7 @@ export class TaxonomyService {
           orderBy: { createdAt: 'desc' },
         }),
         this.prisma.post.findMany({
-          where: { published: true, categoryId: catId },
+          where: { published: true, kind: 'standard', categoryId: catId },
           take: 12,
           orderBy: { createdAt: 'desc' },
           select: POST_LIST_SELECT,
@@ -476,7 +539,7 @@ export class TaxonomyService {
       return { resolved, children: [], cityPills: cities, posts };
     }
 
-    const postsWhere: any = { published: true, categoryId: catId };
+    const postsWhere: any = { published: true, kind: 'standard', categoryId: catId };
     if (cityId) postsWhere.cityId = cityId;
     const [allChildren, rawPosts] = await Promise.all([
       this.prisma.category.findMany({
@@ -516,13 +579,181 @@ export class TaxonomyService {
 
   private async loadPost(slug: string, categoryId: string) {
     const post = await this.prisma.post.findFirst({
-      where: { slug, categoryId },
+      where: { slug, categoryId, kind: 'standard' },
       include: {
         city: { select: { id: true, name: true, slug: true } },
         category: { select: CATEGORY_WITH_ANCESTORS_SELECT },
+        supportLinksFrom: {
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+          include: {
+            supportPost: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                supportingUrlSlug: true,
+                excerpt: true,
+                thumbnail: true,
+                published: true,
+                kind: true,
+              },
+            },
+          },
+        },
       },
     });
     if (!post || !post.published) return null;
     return post;
+  }
+
+  private async resolveSupportingPost(slug: string): Promise<ResolveResult> {
+    const post = await this.prisma.post.findFirst({
+      where: {
+        published: true,
+        kind: 'supporting',
+        OR: [{ supportingUrlSlug: slug }, { slug }],
+      },
+      include: {
+        city: { select: { id: true, name: true, slug: true } },
+        category: { select: CATEGORY_WITH_ANCESTORS_SELECT },
+        supportLinksTo: {
+          orderBy: [
+            { isPrimary: 'desc' },
+            { sortOrder: 'asc' },
+            { createdAt: 'asc' },
+          ],
+          include: {
+            mainPost: {
+              include: {
+                city: { select: { id: true, name: true, slug: true } },
+                category: { select: CATEGORY_WITH_ANCESTORS_SELECT },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!post) return { kind: 'not_found' };
+
+    const primaryLink = post.supportLinksTo[0] ?? null;
+    const mainPost = primaryLink?.mainPost ?? null;
+    const mainCanonicalPath = mainPost
+      ? computePostCanonicalPath(mainPost as any)
+      : null;
+    const canonicalPath = `/${post.supportingUrlSlug || post.slug}`;
+    const chain = mainPost?.category
+      ? this.categoryChainFromLeaf(mainPost.category as any)
+      : post.category
+        ? this.categoryChainFromLeaf(post.category as any)
+        : [];
+    const city = mainPost?.city ?? post.city ?? null;
+
+    return {
+      kind: 'post',
+      city,
+      category: mainPost?.category ?? post.category ?? null,
+      chain,
+      post: {
+        ...post,
+        canonicalUrl: canonicalPath,
+        supportingContext: mainPost
+          ? {
+              mainPost: {
+                id: mainPost.id,
+                title: mainPost.title,
+                canonicalUrl: mainCanonicalPath,
+              },
+              link: primaryLink
+                ? {
+                    anchorText: primaryLink.anchorText,
+                    secondaryKeywords: primaryLink.secondaryKeywords,
+                    isPrimary: primaryLink.isPrimary,
+                  }
+                : null,
+              breadcrumbItems: this.buildSupportingBreadcrumb(
+                post.title,
+                canonicalPath,
+                mainPost as any,
+              ),
+            }
+          : null,
+      },
+      canonicalPath,
+    };
+  }
+
+  private categoryChainFromLeaf(category: any): CategoryNode[] {
+    const chain: CategoryNode[] = [];
+    let current = category;
+    while (current) {
+      chain.push({
+        id: current.id,
+        name: current.name,
+        slug: current.slug,
+        type: current.type,
+        level: current.level,
+        parentId: current.parentId,
+        cityId: current.cityId,
+      });
+      current = current.parent;
+    }
+    return chain.reverse();
+  }
+
+  private buildSupportingBreadcrumb(title: string, canonicalPath: string, mainPost: any) {
+    const mainCanonicalPath = computePostCanonicalPath(mainPost);
+    const chain = mainPost.category
+      ? this.categoryChainFromLeaf(mainPost.category)
+      : [];
+    const city = mainPost.city ?? null;
+    const items = [{ label: 'Trang chủ', href: '/' }];
+    const rootType = chain[0]?.type ?? mainPost.category?.type;
+    if (rootType && VIRTUAL_ROOT[rootType]) items.push(VIRTUAL_ROOT[rootType]);
+
+    const mainSegments = mainCanonicalPath.split('/').filter(Boolean);
+    let cumulative = '';
+    let chainIndex = 0;
+    for (const segment of mainSegments) {
+      cumulative += `/${segment}`;
+      if (VIRTUAL_ROOT[rootType]?.href === cumulative) continue;
+      if (city && segment === city.slug) {
+        items.push({ label: city.name, href: cumulative });
+        while (chainIndex < chain.length && chain[chainIndex].slug === segment) {
+          chainIndex++;
+        }
+        continue;
+      }
+      while (chainIndex < chain.length && chain[chainIndex].level === 'ROOT') {
+        chainIndex++;
+      }
+      const category = chain[chainIndex];
+      if (category && segment === this.publicCategorySegment(category)) {
+        items.push({
+          label: PUBLIC_CATEGORY_LABEL[category.slug] ?? category.name,
+          href: cumulative,
+        });
+        chainIndex++;
+        continue;
+      }
+      if (segment === mainPost.slug) {
+        items.push({ label: mainPost.title, href: mainCanonicalPath });
+      }
+    }
+    items.push({ label: title, href: canonicalPath });
+    return items;
+  }
+
+  private publicCategorySegment(category: Pick<CategoryNode, 'slug' | 'type' | 'level'>) {
+    if (category.slug === 'lich-trinh-du-lich') return 'lich-trinh';
+    if (category.slug === 'review') return 'review';
+    if (category.slug === 'kinh-nghiem') return 'kinh-nghiem';
+    if (category.slug === 'diem-den') return 'diem-den';
+    if (category.type === 'itinerary' && category.level === 'CITY') {
+      return category.slug.replace(/^lich-trinh-du-lich-/, '');
+    }
+    if (category.type === 'experience' && category.level === 'CITY') {
+      return category.slug.replace(/^kinh-nghiem-du-lich-/, '');
+    }
+    return REVIEW_INTERNAL_TO_PUBLIC[category.slug] ?? category.slug;
   }
 }

@@ -6,9 +6,38 @@ import {
   Min,
   Max,
   IsEnum,
+  IsArray,
+  IsInt,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PostStatus } from '@prisma/client';
+import { PostKind, PostStatus } from '@prisma/client';
+
+export class SupportLinkDto {
+  @IsOptional()
+  @IsString()
+  mainPostId?: string;
+
+  @IsOptional()
+  @IsString()
+  supportPostId?: string;
+
+  @IsOptional()
+  @IsString()
+  anchorText?: string;
+
+  @IsOptional()
+  @IsString()
+  secondaryKeywords?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  sortOrder?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isPrimary?: boolean;
+}
 
 export class CreatePostDto {
   @IsString()
@@ -16,6 +45,14 @@ export class CreatePostDto {
 
   @IsString()
   slug: string;
+
+  @IsOptional()
+  @IsEnum(PostKind)
+  kind?: PostKind;
+
+  @IsOptional()
+  @IsString()
+  supportingUrlSlug?: string;
 
   @IsString()
   content: string;
@@ -61,6 +98,10 @@ export class CreatePostDto {
   @IsOptional()
   @IsString()
   categoryId?: string;
+
+  @IsOptional()
+  @IsArray()
+  supportLinks?: SupportLinkDto[];
 }
 
 export class SubmitPostDto {

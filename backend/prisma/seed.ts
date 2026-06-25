@@ -619,6 +619,191 @@ async function seedPosts(cities: SeedCity[]) {
   console.log(`\n✓ Tổng cộng ${total} posts`);
 }
 
+async function seedSupportingArticleSamples() {
+  const hanoi = await prisma.city.findUnique({ where: { slug: 'ha-noi' } });
+  if (!hanoi) {
+    console.warn('⚠ Bỏ qua L5 sample vì thiếu city Hà Nội');
+    return;
+  }
+
+  const destRoot = await getRoot('diem-den');
+  const hanoiDestCat = await prisma.category.findFirst({
+    where: { slug: 'ha-noi', parentId: destRoot.id, level: 'CITY' },
+    select: { id: true },
+  });
+  if (!hanoiDestCat) {
+    console.warn('⚠ Bỏ qua L5 sample vì thiếu category Hà Nội trong Điểm đến');
+    return;
+  }
+
+  const thamQuanCat = await prisma.category.findFirst({
+    where: {
+      slug: 'dia-diem-tham-quan',
+      parentId: hanoiDestCat.id,
+      level: 'SUB',
+    },
+    select: { id: true },
+  });
+  if (!thamQuanCat) {
+    console.warn('⚠ Bỏ qua L5 sample vì thiếu sub Địa điểm tham quan Hà Nội');
+    return;
+  }
+
+  const vanMieuL4 = await prisma.post.upsert({
+    where: {
+      categoryId_slug: {
+        categoryId: thamQuanCat.id,
+        slug: 'van-mieu-quoc-tu-giam',
+      },
+    },
+    create: {
+      title: 'Hành trình tham quan Văn Miếu Quốc Tử Giám',
+      slug: 'van-mieu-quoc-tu-giam',
+      excerpt: 'Gợi ý lộ trình tham quan Văn Miếu Quốc Tử Giám, các khu chính nên dừng lại và mẹo đi buổi sáng.',
+      content: `<h2>Hành trình tham quan Văn Miếu Quốc Tử Giám</h2>
+<p>Văn Miếu Quốc Tử Giám là một trong những điểm dừng giàu chiều sâu nhất khi du lịch Hà Nội. Bài viết này đóng vai trò bài L4 chính, còn các bài L5 bên dưới bổ trợ thêm lịch sử, kiến trúc và kinh nghiệm tham quan.</p>
+<h3>Lộ trình gợi ý</h3>
+<p>Bắt đầu từ cổng Văn Miếu, đi qua Đại Trung Môn, Khuê Văn Các, bia tiến sĩ và khu Thái Học. Nên dành khoảng 90-120 phút để tham quan kỹ.</p>`,
+      thumbnail: postImage('destination', 'ha-noi', 'van-mieu-quoc-tu-giam'),
+      categoryId: thamQuanCat.id,
+      cityId: hanoi.id,
+      location: 'Văn Miếu Quốc Tử Giám, Hà Nội',
+      latitude: 21.028764,
+      longitude: 105.835616,
+      published: true,
+      status: 'approved',
+      kind: 'standard',
+    },
+    update: {
+      title: 'Hành trình tham quan Văn Miếu Quốc Tử Giám',
+      excerpt: 'Gợi ý lộ trình tham quan Văn Miếu Quốc Tử Giám, các khu chính nên dừng lại và mẹo đi buổi sáng.',
+      kind: 'standard',
+      published: true,
+      status: 'approved',
+    },
+  });
+
+  const hoGuomL4 = await prisma.post.findFirst({
+    where: {
+      cityId: hanoi.id,
+      kind: 'standard',
+      published: true,
+      slug: 'dia-diem-tham-quan-noi-bat',
+    },
+  });
+
+  const lichSuL5 = await prisma.post.upsert({
+    where: {
+      categoryId_slug: {
+        categoryId: thamQuanCat.id,
+        slug: 'lich-su-van-mieu-quoc-tu-giam',
+      },
+    },
+    create: {
+      title: 'Lịch Sử Văn Miếu Quốc Tử Giám',
+      slug: 'lich-su-van-mieu-quoc-tu-giam',
+      supportingUrlSlug: 'lich-su-van-mieu-quoc-tu-giam',
+      excerpt: 'Tóm tắt lịch sử hình thành Văn Miếu Quốc Tử Giám và vai trò của di tích trong giáo dục Nho học Việt Nam.',
+      content: `<h2>Lịch Sử Văn Miếu Quốc Tử Giám</h2>
+<p>Văn Miếu được xây dựng từ thời Lý, sau đó Quốc Tử Giám trở thành trung tâm giáo dục quan trọng của kinh thành Thăng Long. Đây là bài L5 có URL độc lập nhưng breadcrumb mặc định đi theo bài L4 Văn Miếu.</p>
+<h3>Vì sao đây là bài bổ trợ?</h3>
+<p>Nội dung này đào sâu bối cảnh lịch sử, giúp bài L4 tham quan có thêm liên kết nội bộ giàu ngữ cảnh SEO.</p>`,
+      thumbnail: postImage('supporting', 'lich-su-van-mieu'),
+      categoryId: thamQuanCat.id,
+      cityId: hanoi.id,
+      location: 'Văn Miếu Quốc Tử Giám, Hà Nội',
+      published: true,
+      status: 'approved',
+      kind: 'supporting',
+    },
+    update: {
+      supportingUrlSlug: 'lich-su-van-mieu-quoc-tu-giam',
+      kind: 'supporting',
+      published: true,
+      status: 'approved',
+    },
+  });
+
+  const kienTrucL5 = await prisma.post.upsert({
+    where: {
+      categoryId_slug: {
+        categoryId: thamQuanCat.id,
+        slug: 'kien-truc-van-mieu-quoc-tu-giam',
+      },
+    },
+    create: {
+      title: 'Kiến Trúc Văn Miếu Quốc Tử Giám Có Gì Đặc Biệt?',
+      slug: 'kien-truc-van-mieu-quoc-tu-giam',
+      supportingUrlSlug: 'kien-truc-van-mieu-quoc-tu-giam',
+      excerpt: 'Giải thích các lớp không gian, biểu tượng Khuê Văn Các, bia tiến sĩ và khu Thái Học trong Văn Miếu.',
+      content: `<h2>Kiến Trúc Văn Miếu Quốc Tử Giám Có Gì Đặc Biệt?</h2>
+<p>Bài L5 này bổ trợ cho bài L4 Văn Miếu bằng cách phân tích kiến trúc, biểu tượng và các khu vực quan trọng trong di tích.</p>`,
+      thumbnail: postImage('supporting', 'kien-truc-van-mieu'),
+      categoryId: thamQuanCat.id,
+      cityId: hanoi.id,
+      location: 'Văn Miếu Quốc Tử Giám, Hà Nội',
+      published: true,
+      status: 'approved',
+      kind: 'supporting',
+    },
+    update: {
+      supportingUrlSlug: 'kien-truc-van-mieu-quoc-tu-giam',
+      kind: 'supporting',
+      published: true,
+      status: 'approved',
+    },
+  });
+
+  const links = [
+    {
+      mainPostId: vanMieuL4.id,
+      supportPostId: lichSuL5.id,
+      anchorText: 'lịch sử Văn Miếu Quốc Tử Giám',
+      secondaryKeywords: 'Văn Miếu xây năm nào, Quốc Tử Giám thời Lý',
+      sortOrder: 0,
+      isPrimary: true,
+    },
+    {
+      mainPostId: vanMieuL4.id,
+      supportPostId: kienTrucL5.id,
+      anchorText: 'kiến trúc Văn Miếu Quốc Tử Giám',
+      secondaryKeywords: 'Khuê Văn Các, bia tiến sĩ, khu Thái Học',
+      sortOrder: 1,
+      isPrimary: true,
+    },
+    ...(hoGuomL4
+      ? [{
+          mainPostId: hoGuomL4.id,
+          supportPostId: lichSuL5.id,
+          anchorText: 'tìm hiểu lịch sử Văn Miếu khi tham quan Hà Nội',
+          secondaryKeywords: 'di tích Nho học Hà Nội, điểm tham quan lịch sử',
+          sortOrder: 2,
+          isPrimary: false,
+        }]
+      : []),
+  ];
+
+  for (const link of links) {
+    await prisma.supportingArticleLink.upsert({
+      where: {
+        mainPostId_supportPostId: {
+          mainPostId: link.mainPostId,
+          supportPostId: link.supportPostId,
+        },
+      },
+      create: link,
+      update: {
+        anchorText: link.anchorText,
+        secondaryKeywords: link.secondaryKeywords,
+        sortOrder: link.sortOrder,
+        isPrimary: link.isPrimary,
+      },
+    });
+  }
+
+  console.log('✓ L5 supporting article samples upserted');
+}
+
 // ─── Fix thumbnails cho posts cũ không có ảnh ────────────────────────────────
 
 async function fixMissingThumbnails() {
@@ -648,6 +833,7 @@ async function main() {
   console.log(`✓ Sử dụng ${cities.length} cities hiện có trong DB để fill taxonomy`);
   await seedCategories(cities);
   await seedPosts(cities);
+  await seedSupportingArticleSamples();
   await fixMissingThumbnails();
   console.log('\n✅ Xong!');
 }

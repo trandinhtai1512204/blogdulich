@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreatePostDto, SubmitPostDto } from './dto/create-post.dto';
+import { CreatePostDto, SubmitPostDto, SupportLinkDto } from './dto/create-post.dto';
 import { QueryPostsDto } from './dto/query-posts.dto';
 import {
   CATEGORY_WITH_ANCESTORS_SELECT,
@@ -18,6 +18,14 @@ type ReviewSubtype = { slug: string; name: string };
 
 const CITY_SECTION_LIMIT = 6;
 const REVIEW_GROUP_LIMIT = 3;
+const HOME_LIMITS = {
+  destination: 48,
+  itinerary: 16,
+  review: 12,
+  experience: 16,
+} as const;
+const HOME_CACHE_TTL_MS = 10 * 60 * 1000;
+const PUBLIC_CACHE_TTL_MS = 10 * 60 * 1000;
 const REVIEW_SUBTYPES: ReviewSubtype[] = [
   { slug: 'review-tour', name: 'Review Tour' },
   { slug: 'review-khach-san', name: 'Review Khách Sạn' },
@@ -29,6 +37,21 @@ const REVIEW_SUBTYPES: ReviewSubtype[] = [
 
 @Injectable()
 export class PostsService {
+  private homeCache:
+    | { expiresAt: number; data: Awaited<ReturnType<PostsService['buildHome']>> }
+    | null = null;
+  private publicListCache = new Map<
+    string,
+    { expiresAt: number; data: Awaited<ReturnType<PostsService['buildPostList']>> }
+  >();
+  private cityFeaturedCache = new Map<
+    string,
+    {
+      expiresAt: number;
+      data: Awaited<ReturnType<PostsService['buildCityFeatured']>>;
+    }
+  >();
+
   constructor(private prisma: PrismaService) {}
 
   private slugify(value: string) {
@@ -43,7 +66,38 @@ export class PostsService {
       .replace(/^-|-$/g, '');
   }
 
+  private cleanSupportingUrlSlug(value?: string | null) {
+    if (!value) return undefined;
+    const trimmed = value
+      .trim()
+      .replace(/^https?:\/\/[^/]+/i, '')
+      .replace(/^\/+|\/+$/g, '');
+    if (!trimmed) return undefined;
+    return trimmed.split('/').pop() || trimmed;
+  }
+
+  private splitPostPayload(dto: Partial<CreatePostDto>) {
+    const { supportLinks: _supportLinks, ...postData } = dto;
+    return {
+      ...postData,
+      supportingUrlSlug: this.cleanSupportingUrlSlug(dto.supportingUrlSlug),
+    };
+  }
+
   async findAll(query: QueryPostsDto) {
+    const cacheKey = JSON.stringify(query ?? {});
+    const cached = this.publicListCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+    const data = await this.buildPostList(query);
+    this.publicListCache.set(cacheKey, {
+      data,
+      expiresAt: Date.now() + PUBLIC_CACHE_TTL_MS,
+    });
+    return data;
+  }
+
+  private async buildPostList(query: QueryPostsDto) {
     const {
       cityId,
       categoryId,
@@ -51,12 +105,13 @@ export class PostsService {
       page = '1',
       limit = '10',
       type,
+      kind,
       sort,
     } = query;
 
     const pageNumber = parseInt(page);
     const limitNumber = parseInt(limit);
-    const where: Prisma.PostWhereInput = { published: true };
+    const where: Prisma.PostWhereInput = { published: true, kind: kind ?? 'standard' };
 
     if (cityId) where.cityId = cityId;
     if (categoryId) where.categoryId = categoryId;
@@ -110,6 +165,28 @@ export class PostsService {
     };
   }
 
+  async findHome() {
+    const now = Date.now();
+    if (this.homeCache && this.homeCache.expiresAt > now) {
+      return this.homeCache.data;
+    }
+
+    const data = await this.buildHome();
+    this.homeCache = { data, expiresAt: now + HOME_CACHE_TTL_MS };
+    return data;
+  }
+
+  private async buildHome() {
+    const [destination, itinerary, review, experience] = await Promise.all([
+      this.findHomePostsByType('destination', HOME_LIMITS.destination),
+      this.findHomePostsByType('itinerary', HOME_LIMITS.itinerary),
+      this.findHomePostsByType('review', HOME_LIMITS.review),
+      this.findHomePostsByType('experience', HOME_LIMITS.experience),
+    ]);
+
+    return { destination, itinerary, review, experience };
+  }
+
   async findOne(slug: string) {
     const post = await this.prisma.post.findFirst({
       where: { slug, published: true },
@@ -117,6 +194,23 @@ export class PostsService {
         city: true,
         category: true,
         author: { select: { id: true, name: true, avatar: true } },
+        supportLinksFrom: {
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+          include: {
+            supportPost: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                supportingUrlSlug: true,
+                excerpt: true,
+                thumbnail: true,
+                published: true,
+                kind: true,
+              },
+            },
+          },
+        },
       },
     });
     if (!post) throw new NotFoundException('Bài viết không tồn tại');
@@ -124,40 +218,71 @@ export class PostsService {
   }
 
   async findCityFeatured(citySlug: string) {
+    const cached = this.cityFeaturedCache.get(citySlug);
+    if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+    const data = await this.buildCityFeatured(citySlug);
+    this.cityFeaturedCache.set(citySlug, {
+      data,
+      expiresAt: Date.now() + PUBLIC_CACHE_TTL_MS,
+    });
+    return data;
+  }
+
+  private async buildCityFeatured(citySlug: string) {
     const city = await this.prisma.city.findUnique({
       where: { slug: citySlug },
       select: { id: true, name: true, slug: true },
     });
     if (!city) throw new NotFoundException('Tỉnh thành không tồn tại');
 
-    const [destination, itinerary, experience, reviewGroups] =
-      await Promise.all([
-        this.findTopPostsByCityAndType(
-          city.id,
-          'destination',
-          CITY_SECTION_LIMIT,
-        ),
-        this.findTopPostsByCityAndType(
-          city.id,
-          'itinerary',
-          CITY_SECTION_LIMIT,
-        ),
-        this.findTopPostsByCityAndType(
-          city.id,
-          'experience',
-          CITY_SECTION_LIMIT,
-        ),
-        Promise.all(
-          REVIEW_SUBTYPES.map(async (subtype) => ({
-            ...subtype,
-            posts: await this.findTopReviewPostsBySubtype(
-              city.id,
-              subtype.slug,
-              REVIEW_GROUP_LIMIT,
-            ),
-          })),
-        ),
-      ]);
+    const posts = await this.prisma.post.findMany({
+      where: {
+        published: true,
+        kind: 'standard',
+        cityId: city.id,
+        category: {
+          type: { in: ['destination', 'itinerary', 'experience', 'review'] },
+        },
+      },
+      take: 240,
+      orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        excerpt: true,
+        thumbnail: true,
+        viewCount: true,
+        published: true,
+        cityId: true,
+        categoryId: true,
+        createdAt: true,
+        city: { select: { id: true, name: true, slug: true } },
+        category: { select: CATEGORY_WITH_ANCESTORS_SELECT },
+        author: { select: { id: true, name: true, avatar: true } },
+      },
+    });
+
+    const enriched = posts.map((post) => ({
+      ...post,
+      canonicalUrl: computePostCanonicalPath(post as any),
+    }));
+
+    const byType = (type: CitySectionType, limit: number) =>
+      enriched
+        .filter((post) => post.category?.type === type)
+        .slice(0, limit);
+
+    const destination = byType('destination', CITY_SECTION_LIMIT);
+    const itinerary = byType('itinerary', CITY_SECTION_LIMIT);
+    const experience = byType('experience', CITY_SECTION_LIMIT);
+    const reviewGroups = REVIEW_SUBTYPES.map((subtype) => ({
+      ...subtype,
+      posts: enriched
+        .filter((post) => this.postBelongsToCategorySlug(post, subtype.slug))
+        .slice(0, REVIEW_GROUP_LIMIT),
+    }));
 
     return {
       city,
@@ -169,6 +294,18 @@ export class PostsService {
         posts: reviewGroups.flatMap((group) => group.posts),
       },
     };
+  }
+
+  private postBelongsToCategorySlug(
+    post: { category?: { slug: string; parent?: any } | null },
+    slug: string,
+  ) {
+    let category = post.category;
+    while (category) {
+      if (category.slug === slug) return true;
+      category = category.parent ?? null;
+    }
+    return false;
   }
 
   async incrementViewCount(id: string) {
@@ -186,14 +323,21 @@ export class PostsService {
   }
 
   async create(dto: CreatePostDto) {
+    const postData = this.splitPostPayload(dto);
     try {
-      return await this.prisma.post.create({
+      const post = await this.prisma.post.create({
         data: {
-          ...dto,
+          ...postData,
+          kind: postData.kind ?? 'standard',
           published: dto.published ?? false,
           status: dto.published ? 'approved' : (dto.status ?? 'pending'),
-        },
+        } as Prisma.PostUncheckedCreateInput,
       });
+      if (dto.supportLinks) {
+        await this.replaceSupportLinks(post.id, post.kind, dto.supportLinks);
+      }
+      this.clearPublicCaches();
+      return post;
     } catch (e) {
       this.handlePrismaWriteError(e, dto.slug);
       throw e;
@@ -201,7 +345,15 @@ export class PostsService {
   }
 
   async findAllForAdmin(query: QueryPostsDto) {
-    const { cityId, categoryId, search, page = '1', limit = '10' } = query;
+    const {
+      cityId,
+      categoryId,
+      search,
+      page = '1',
+      limit = '10',
+      type,
+      kind,
+    } = query;
 
     const pageNumber = parseInt(page);
     const limitNumber = parseInt(limit);
@@ -209,6 +361,8 @@ export class PostsService {
 
     if (cityId) where.cityId = cityId;
     if (categoryId) where.categoryId = categoryId;
+    if (kind) where.kind = kind;
+    if (type) where.category = { type };
     if (search) {
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
@@ -227,6 +381,42 @@ export class PostsService {
           category: { select: CATEGORY_WITH_ANCESTORS_SELECT },
           author: {
             select: { id: true, name: true, avatar: true, email: true },
+          },
+          supportLinksFrom: {
+            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+            include: {
+              supportPost: {
+                select: {
+                  id: true,
+                  title: true,
+                  slug: true,
+                  supportingUrlSlug: true,
+                  excerpt: true,
+                  published: true,
+                  kind: true,
+                },
+              },
+            },
+          },
+          supportLinksTo: {
+            orderBy: [
+              { isPrimary: 'desc' },
+              { sortOrder: 'asc' },
+              { createdAt: 'asc' },
+            ],
+            include: {
+              mainPost: {
+                select: {
+                  id: true,
+                  title: true,
+                  slug: true,
+                  excerpt: true,
+                  published: true,
+                  kind: true,
+                  category: { select: CATEGORY_WITH_ANCESTORS_SELECT },
+                },
+              },
+            },
           },
         },
       }),
@@ -305,19 +495,77 @@ export class PostsService {
   async update(id: string, dto: Partial<CreatePostDto>) {
     const post = await this.prisma.post.findUnique({ where: { id } });
     if (!post) throw new NotFoundException('Bài viết không tồn tại');
+    const postData = this.splitPostPayload(dto);
     try {
-      return await this.prisma.post.update({
+      const updated = await this.prisma.post.update({
         where: { id },
         data: {
-          ...dto,
+          ...postData,
           ...(dto.published === true && { status: 'approved' as const }),
           ...(dto.status === 'approved' && { published: true }),
           ...(dto.status === 'rejected' && { published: false }),
-        },
+        } as Prisma.PostUncheckedUpdateInput,
       });
+      if (dto.supportLinks) {
+        await this.replaceSupportLinks(id, updated.kind, dto.supportLinks);
+      }
+      this.clearPublicCaches();
+      return updated;
     } catch (e) {
       this.handlePrismaWriteError(e, dto.slug);
       throw e;
+    }
+  }
+
+  private async replaceSupportLinks(
+    postId: string,
+    kind: 'standard' | 'supporting',
+    links: SupportLinkDto[],
+  ) {
+    if (kind === 'supporting') {
+      await this.prisma.supportingArticleLink.deleteMany({
+        where: { supportPostId: postId },
+      });
+      const rows = links
+        .filter((link) => link.mainPostId && link.mainPostId !== postId)
+        .map((link, index) => ({
+          mainPostId: link.mainPostId as string,
+          supportPostId: postId,
+          anchorText: link.anchorText?.trim() || null,
+          secondaryKeywords: link.secondaryKeywords?.trim() || null,
+          sortOrder: link.sortOrder ?? index,
+          isPrimary: Boolean(link.isPrimary),
+        }));
+      if (rows.length > 0 && !rows.some((row) => row.isPrimary)) {
+        rows[0].isPrimary = true;
+      }
+      if (rows.length > 0) {
+        await this.prisma.supportingArticleLink.createMany({
+          data: rows,
+          skipDuplicates: true,
+        });
+      }
+      return;
+    }
+
+    await this.prisma.supportingArticleLink.deleteMany({
+      where: { mainPostId: postId },
+    });
+    const rows = links
+      .filter((link) => link.supportPostId && link.supportPostId !== postId)
+      .map((link, index) => ({
+        mainPostId: postId,
+        supportPostId: link.supportPostId as string,
+        anchorText: link.anchorText?.trim() || null,
+        secondaryKeywords: link.secondaryKeywords?.trim() || null,
+        sortOrder: link.sortOrder ?? index,
+        isPrimary: Boolean(link.isPrimary),
+      }));
+    if (rows.length > 0) {
+      await this.prisma.supportingArticleLink.createMany({
+        data: rows,
+        skipDuplicates: true,
+      });
     }
   }
 
@@ -350,7 +598,15 @@ export class PostsService {
   async remove(id: string) {
     const post = await this.prisma.post.findUnique({ where: { id } });
     if (!post) throw new NotFoundException('Bài viết không tồn tại');
-    return this.prisma.post.delete({ where: { id } });
+    const deleted = await this.prisma.post.delete({ where: { id } });
+    this.clearPublicCaches();
+    return deleted;
+  }
+
+  private clearPublicCaches() {
+    this.homeCache = null;
+    this.publicListCache.clear();
+    this.cityFeaturedCache.clear();
   }
 
   private async findTopPostsByCityAndType(
@@ -363,6 +619,7 @@ export class PostsService {
       FROM "posts" p
       INNER JOIN "categories" c ON c."id" = p."categoryId"
       WHERE p."published" = true
+        AND p."kind"::text = 'standard'
         AND p."cityId" = ${cityId}
         AND c."type"::text = ${type}
       ORDER BY p."viewCount" DESC, p."createdAt" DESC
@@ -384,6 +641,7 @@ export class PostsService {
       LEFT JOIN "categories" parent ON parent."id" = c."parentId"
       LEFT JOIN "categories" grandparent ON grandparent."id" = parent."parentId"
       WHERE p."published" = true
+        AND p."kind"::text = 'standard'
         AND p."cityId" = ${cityId}
         AND c."type"::text = 'review'
         AND (
@@ -404,7 +662,7 @@ export class PostsService {
     const viewCountById = new Map(rows.map((row) => [row.id, row.viewCount]));
     const orderById = new Map(rows.map((row, index) => [row.id, index]));
     const posts = await this.prisma.post.findMany({
-      where: { id: { in: rows.map((row) => row.id) } },
+      where: { id: { in: rows.map((row) => row.id) }, kind: 'standard' },
       select: {
         id: true,
         title: true,
@@ -428,5 +686,31 @@ export class PostsService {
         canonicalUrl: computePostCanonicalPath(post as any),
       }))
       .sort((a, b) => (orderById.get(a.id) ?? 0) - (orderById.get(b.id) ?? 0));
+  }
+
+  private async findHomePostsByType(type: Prisma.EnumCategoryTypeFilter['equals'], limit: number) {
+    const posts = await this.prisma.post.findMany({
+      where: { published: true, kind: 'standard', category: { type } },
+      take: limit,
+      orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        excerpt: true,
+        thumbnail: true,
+        viewCount: true,
+        cityId: true,
+        categoryId: true,
+        createdAt: true,
+        city: { select: { id: true, name: true, slug: true } },
+        category: { select: CATEGORY_WITH_ANCESTORS_SELECT },
+      },
+    });
+
+    return posts.map((post) => ({
+      ...post,
+      canonicalUrl: computePostCanonicalPath(post as any),
+    }));
   }
 }

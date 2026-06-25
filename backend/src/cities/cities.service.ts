@@ -4,9 +4,22 @@ import { CreateCityDto } from './dto/create-city.dto';
 
 @Injectable()
 export class CitiesService {
+  private listCache:
+    | { expiresAt: number; data: Awaited<ReturnType<CitiesService['buildList']>> }
+    | null = null;
+
   constructor(private prisma: PrismaService) {}
 
-  findAll() {
+  async findAll() {
+    if (this.listCache && this.listCache.expiresAt > Date.now()) {
+      return this.listCache.data;
+    }
+    const data = await this.buildList();
+    this.listCache = { data, expiresAt: Date.now() + 10 * 60 * 1000 };
+    return data;
+  }
+
+  private buildList() {
     return this.prisma.city.findMany({
       orderBy: { createdAt: 'desc' },
     });
@@ -35,18 +48,21 @@ export class CitiesService {
   }
 
   create(dto: CreateCityDto) {
+    this.listCache = null;
     return this.prisma.city.create({ data: dto });
   }
 
   async update(id: string, dto: Partial<CreateCityDto>) {
     const city = await this.prisma.city.findUnique({ where: { id } });
     if (!city) throw new NotFoundException('City không tồn tại');
+    this.listCache = null;
     return this.prisma.city.update({ where: { id }, data: dto });
   }
 
   async remove(id: string) {
     const city = await this.prisma.city.findUnique({ where: { id } });
     if (!city) throw new NotFoundException('City không tồn tại');
+    this.listCache = null;
     return this.prisma.city.delete({ where: { id } });
   }
 }

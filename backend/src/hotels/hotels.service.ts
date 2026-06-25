@@ -5,9 +5,24 @@ import { CreateHotelDto } from './dto/create-hotel.dto';
 
 @Injectable()
 export class HotelsService {
+  private listCache = new Map<
+    string,
+    { expiresAt: number; data: Awaited<ReturnType<HotelsService['buildList']>> }
+  >();
+
   constructor(private prisma: PrismaService) {}
 
   async findAll(query: QueryHotelsDto) {
+    const cacheKey = JSON.stringify(query ?? {});
+    const cached = this.listCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+    const data = await this.buildList(query);
+    this.listCache.set(cacheKey, { data, expiresAt: Date.now() + 10 * 60 * 1000 });
+    return data;
+  }
+
+  private async buildList(query: QueryHotelsDto) {
     const {
       cityId,
       search,
@@ -61,18 +76,21 @@ export class HotelsService {
   }
 
   create(dto: CreateHotelDto) {
+    this.listCache.clear();
     return this.prisma.hotel.create({ data: dto });
   }
 
   async update(id: string, dto: Partial<CreateHotelDto>) {
     const hotel = await this.prisma.hotel.findUnique({ where: { id } });
     if (!hotel) throw new NotFoundException('Hotel không tồn tại');
+    this.listCache.clear();
     return this.prisma.hotel.update({ where: { id }, data: dto });
   }
 
   async remove(id: string) {
     const hotel = await this.prisma.hotel.findUnique({ where: { id } });
     if (!hotel) throw new NotFoundException('Hotel không tồn tại');
+    this.listCache.clear();
     return this.prisma.hotel.delete({ where: { id } });
   }
 }

@@ -29,6 +29,14 @@ type CategoryNode = {
 
 @Injectable()
 export class CategoriesService implements OnModuleInit {
+  private listCache = new Map<
+    string,
+    {
+      expiresAt: number;
+      data: Awaited<ReturnType<CategoriesService['buildList']>>;
+    }
+  >();
+
   constructor(private prisma: PrismaService) {}
 
   async onModuleInit() {
@@ -151,6 +159,16 @@ export class CategoriesService implements OnModuleInit {
   }
 
   async findAll(query: QueryCategoriesDto) {
+    const cacheKey = JSON.stringify(query ?? {});
+    const cached = this.listCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+    const data = await this.buildList(query);
+    this.listCache.set(cacheKey, { data, expiresAt: Date.now() + 10 * 60 * 1000 });
+    return data;
+  }
+
+  private buildList(query: QueryCategoriesDto) {
     const { type, cityId, parentId } = query;
     const where: any = {};
     if (type) where.type = type;
@@ -203,13 +221,15 @@ export class CategoriesService implements OnModuleInit {
     this.validateChildLevelByModule(level, parentChain);
 
     try {
-      return await this.prisma.category.create({
+      const created = await this.prisma.category.create({
         data: {
           ...dto,
           type: root.type,
           level,
         } as any,
       });
+      this.listCache.clear();
+      return created;
     } catch (e: any) {
       if (e?.code === 'P2002' && e?.meta?.target?.includes('slug')) {
         throw new BadRequestException(
@@ -252,7 +272,9 @@ export class CategoriesService implements OnModuleInit {
       data.level = level;
     }
 
-    return this.prisma.category.update({ where: { id }, data });
+    const updated = await this.prisma.category.update({ where: { id }, data });
+    this.listCache.clear();
+    return updated;
   }
 
   async remove(id: string) {
@@ -277,11 +299,14 @@ export class CategoriesService implements OnModuleInit {
       );
     }
 
-    return this.prisma.category.delete({ where: { id } });
+    const deleted = await this.prisma.category.delete({ where: { id } });
+    this.listCache.clear();
+    return deleted;
   }
 
   async bootstrapRoots() {
     await this.ensureSystemRoots();
+    this.listCache.clear();
     return this.prisma.category.findMany({
       where: { parentId: null, slug: { in: SYSTEM_ROOTS.map((x) => x.slug) } },
       orderBy: { createdAt: 'asc' },

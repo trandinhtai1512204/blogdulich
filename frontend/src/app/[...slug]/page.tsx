@@ -22,6 +22,48 @@ const CITY_IMAGES: Record<string, string> = {
 };
 const DEFAULT_HERO = 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1200&q=80';
 
+const CITY_LINE_ART_IMAGES: Record<string, string> = {
+  'an-giang': '/city-line-art/an-giang.png',
+  'bac-ninh': '/city-line-art/bac-ninh.png',
+  'ca-mau': '/city-line-art/ca-mau.png',
+  'can-tho': '/city-line-art/can-tho.png',
+  'cao-bang': '/city-line-art/cao-bang.png',
+  'da-nang': '/city-line-art/da-nang.png',
+  'dak-lak': '/city-line-art/dak-lak.png',
+  'dien-bien': '/city-line-art/dien-bien.png',
+  'dong-nai': '/city-line-art/dong-nai.png',
+  'dong-thap': '/city-line-art/dong-thap.png',
+  'gia-lai': '/city-line-art/gia-lai.png',
+  'ha-noi': '/city-line-art/ha-noi.png',
+  'ha-tinh': '/city-line-art/ha-tinh.png',
+  'hai-phong': '/city-line-art/hai-phong.png',
+  'ho-chi-minh': '/city-line-art/ho-chi-minh.png',
+  'hue': '/city-line-art/hue.png',
+  'hung-yen': '/city-line-art/hung-yen.png',
+  'khanh-hoa': '/city-line-art/khanh-hoa.png',
+  'lai-chau': '/city-line-art/lai-chau.png',
+  'lam-dong': '/city-line-art/lam-dong.png',
+  'lang-son': '/city-line-art/lang-son.png',
+  'lao-cai': '/city-line-art/lao-cai.png',
+  'nghe-an': '/city-line-art/nghe-an.png',
+  'ninh-binh': '/city-line-art/ninh-binh.png',
+  'phu-tho': '/city-line-art/phu-tho.png',
+  'quang-ngai': '/city-line-art/quang-ngai.png',
+  'quang-ninh': '/city-line-art/quang-ninh.png',
+  'quang-tri': '/city-line-art/quang-tri.png',
+  'son-la': '/city-line-art/son-la.png',
+  'tay-ninh': '/city-line-art/tay-ninh.png',
+  'thai-nguyen': '/city-line-art/thai-nguyen.png',
+  'thanh-hoa': '/city-line-art/thanh-hoa.png',
+  'tuyen-quang': '/city-line-art/tuyen-quang.png',
+  'vinh-long': '/city-line-art/vinh-long.png',
+  // Legacy/public travel slugs mapped to their current province-level artwork.
+  'sai-gon': '/city-line-art/ho-chi-minh.png',
+  'ha-long': '/city-line-art/quang-ninh.png',
+  'nha-trang': '/city-line-art/khanh-hoa.png',
+  'sa-pa': '/city-line-art/lao-cai.png',
+};
+
 const SITE_ORIGIN = 'https://blogdulich.vn';
 
 // Virtual breadcrumb root mapped from category root type.
@@ -55,6 +97,9 @@ type PostListItem = {
   categoryId?: string | null;
   canonicalUrl?: string;
   viewCount?: number;
+  published?: boolean;
+  kind?: 'standard' | 'supporting';
+  supportingUrlSlug?: string | null;
 };
 
 type PostDetail = PostListItem & {
@@ -62,6 +107,16 @@ type PostDetail = PostListItem & {
   location?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  supportLinksFrom?: Array<{
+    id: string;
+    anchorText?: string | null;
+    secondaryKeywords?: string | null;
+    supportPost: PostListItem;
+  }>;
+  supportingContext?: {
+    mainPost?: { id: string; title: string; canonicalUrl: string } | null;
+    breadcrumbItems?: Array<{ label: string; href: string }>;
+  } | null;
 };
 
 type ResolveResult =
@@ -135,6 +190,35 @@ const publicCategorySegment = (category: Pick<CategoryNode, 'slug' | 'type' | 'l
 
 const publicCategoryLabel = (category: Pick<CategoryNode, 'name' | 'slug'>) =>
   PUBLIC_CATEGORY_LABEL[category.slug] ?? category.name;
+
+const MUNICIPALITY_CITY_SLUGS = new Set([
+  'ha-noi',
+  'hai-phong',
+  'hue',
+  'da-nang',
+  'sai-gon',
+  'ho-chi-minh',
+  'can-tho',
+]);
+
+const keepCityNameTogether = (name: string) =>
+  name
+    .replace(/Hồ Chí Minh/g, 'Hồ\u00A0Chí\u00A0Minh')
+    .replace(/Hải Phòng/g, 'Hải\u00A0Phòng')
+    .replace(/Đà Nẵng/g, 'Đà\u00A0Nẵng')
+    .replace(/Cần Thơ/g, 'Cần\u00A0Thơ')
+    .replace(/Hà Nội/g, 'Hà\u00A0Nội');
+
+const formatCityDisplayName = (city: Pick<CityNode, 'name' | 'slug'>) => {
+  const nameWithoutPrefix = city.name.replace(/^TP\.?\s+/i, '');
+  const displayName = MUNICIPALITY_CITY_SLUGS.has(city.slug)
+    ? `Thành Phố ${nameWithoutPrefix}`
+    : nameWithoutPrefix;
+  return keepCityNameTogether(displayName);
+};
+
+const formatCityPlainName = (city: Pick<CityNode, 'name' | 'slug'>) =>
+  formatCityDisplayName(city).replace(/\u00A0/g, ' ');
 
 const HANOI_INTRO = [
   'Hà Nội là điểm đến mở đầu đầy cảm xúc cho hành trình khám phá miền Bắc, nơi nhịp sống hiện đại đan xen cùng chiều sâu văn hóa nghìn năm. Thành phố hấp dẫn du khách bằng hồ Gươm, phố cổ, Văn Miếu - Quốc Tử Giám, những con phố rợp bóng cây và các khu chợ, quán ăn lưu giữ hương vị rất riêng của đất kinh kỳ.',
@@ -235,7 +319,7 @@ export default function CatchAllPage() {
       resolved.kind === 'post'
         ? resolved.post.title
         : resolved.kind === 'city'
-        ? resolved.city.name
+        ? formatCityPlainName(resolved.city)
         : resolved.category.name;
     document.title = `${name} | BlogDuLich.vn`;
     let meta = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
@@ -256,6 +340,12 @@ export default function CatchAllPage() {
   const fullBreadcrumb = useMemo(() => {
     const home = { label: 'Trang chủ', href: '/' };
     if (!resolved || resolved.kind === 'not_found') return [home];
+    if (
+      resolved.kind === 'post' &&
+      resolved.post.supportingContext?.breadcrumbItems?.length
+    ) {
+      return resolved.post.supportingContext.breadcrumbItems;
+    }
 
     const items: { label: string; href: string }[] = [home];
 
@@ -281,7 +371,7 @@ export default function CatchAllPage() {
       cumulative += '/' + slug;
 
       if (city && slug === city.slug) {
-        items.push({ label: city.name, href: cumulative });
+        items.push({ label: formatCityPlainName(city), href: cumulative });
         continue;
       }
       if (chainIdx < chain.length && slug === publicCategorySegment(chain[chainIdx])) {
@@ -297,6 +387,16 @@ export default function CatchAllPage() {
 
     return items;
   }, [resolved, slugs]);
+
+  const supportingArticleLinks = useMemo(() => {
+    if (!resolved || resolved.kind !== 'post') return [];
+    return (resolved.post.supportLinksFrom ?? [])
+      .filter((link) => link.supportPost?.published)
+      .map((link) => ({
+        ...link,
+        href: `/${link.supportPost.supportingUrlSlug || link.supportPost.slug}`,
+      }));
+  }, [resolved]);
 
   const breadcrumbJsonLd = useMemo(
     () =>
@@ -315,7 +415,7 @@ export default function CatchAllPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-[#F6F3EE]">
         <Navbar />
         <div className="max-w-[1100px] mx-auto px-6 pt-[100px] animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-1/2" />
@@ -330,11 +430,11 @@ export default function CatchAllPage() {
 
   if (!resolved || resolved.kind === 'not_found') {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-[#F6F3EE]">
         <Navbar />
         <div className="max-w-[900px] mx-auto px-6 pt-[100px]">
-          <h1 className="text-2xl font-extrabold text-gray-900">Không tìm thấy trang</h1>
-          <p className="text-gray-500 mt-2">Đường dẫn: <code className="font-mono bg-gray-100 px-1 rounded">/{path}</code></p>
+          <h1 className="text-2xl font-extrabold text-[#0A2D5B]">Không tìm thấy trang</h1>
+          <p className="text-[#0A2D5B]/56 mt-2">Đường dẫn: <code className="font-mono bg-gray-100 px-1 rounded">/{path}</code></p>
           <Link href="/" className="inline-block mt-6 text-violet-600 font-semibold">← Về trang chủ</Link>
         </div>
       </div>
@@ -343,7 +443,7 @@ export default function CatchAllPage() {
 
   if (resolved.kind === 'post') {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-[#F6F3EE]">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
         <Navbar opaque />
         <div className="pt-[72px]">
@@ -362,7 +462,7 @@ export default function CatchAllPage() {
           )}
 
           <div className="max-w-[900px] mx-auto px-6 py-10">
-            <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-6">
+            <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-[#0A2D5B]/56 mb-6">
               {fullBreadcrumb.map((b, idx) => {
                 const isLast = idx === fullBreadcrumb.length - 1;
                 return (
@@ -372,33 +472,33 @@ export default function CatchAllPage() {
                         {b.label}
                       </Link>
                     ) : (
-                      <span className="text-gray-700 font-medium">{b.label}</span>
+                      <span className="text-[#0A2D5B]/72 font-medium">{b.label}</span>
                     )}
-                    {!isLast && <span className="text-gray-300">/</span>}
+                    {!isLast && <span className="text-[#0A2D5B]/32">/</span>}
                   </div>
                 );
               })}
             </nav>
 
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-4 leading-tight" style={{ letterSpacing: '-0.03em' }}>
+            <h1 className="text-3xl font-extrabold text-[#0A2D5B] mb-4 leading-tight" style={{ letterSpacing: '-0.03em' }}>
               {resolved.post.title}
             </h1>
             {resolved.post.excerpt && (
-              <p className="text-lg text-gray-500 mb-8 pb-8 border-b border-gray-100 leading-relaxed">
+              <p className="text-lg text-[#0A2D5B]/56 mb-8 pb-8 border-b border-gray-100 leading-relaxed">
                 {resolved.post.excerpt}
               </p>
             )}
 
             <div
-              className="max-w-none text-gray-700 leading-relaxed
+              className="max-w-none text-[#0A2D5B]/72 leading-relaxed
                 [&_p]:my-4 [&_p]:leading-8
-                [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-gray-900
-                [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-gray-900
+                [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-[#0A2D5B]
+                [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-[#0A2D5B]
                 [&_ul]:my-5 [&_ul]:list-disc [&_ul]:pl-6
                 [&_ol]:my-5 [&_ol]:list-decimal [&_ol]:pl-6
                 [&_li]:my-2
                 [&_a]:text-violet-600 [&_a]:underline-offset-2 hover:[&_a]:underline
-                [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-violet-200 [&_blockquote]:pl-4 [&_blockquote]:text-gray-600
+                [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-violet-200 [&_blockquote]:pl-4 [&_blockquote]:text-[#0A2D5B]/72
                 [&_figure]:my-8
                 [&_img]:my-6 [&_img]:mx-auto [&_img]:block [&_img]:w-full [&_img]:h-auto [&_img]:rounded-2xl
                 [&_table]:w-full [&_table]:my-6 [&_table]:border-collapse
@@ -414,6 +514,43 @@ export default function CatchAllPage() {
               latitude={resolved.post.latitude}
               longitude={resolved.post.longitude}
             />
+
+            {supportingArticleLinks.length > 0 && (
+              <section className="mt-10 border-t border-[#0A2D5B]/10 pt-8">
+                <div className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.16em] text-violet-700">
+                  <Lightbulb size={16} />
+                  Bài viết bổ trợ
+                </div>
+                <div className="grid gap-3">
+                  {supportingArticleLinks.map((link) => (
+                    <Link
+                      key={link.id}
+                      href={link.href}
+                      className="group rounded-xl border border-[#0A2D5B]/10 bg-white p-4 transition-all hover:border-violet-200 hover:shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h2 className="text-base font-extrabold leading-snug text-[#0A2D5B] group-hover:text-violet-700">
+                            {link.anchorText || link.supportPost.title}
+                          </h2>
+                          {link.supportPost.excerpt && (
+                            <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#0A2D5B]/60">
+                              {link.supportPost.excerpt}
+                            </p>
+                          )}
+                          {link.secondaryKeywords && (
+                            <p className="mt-2 text-xs font-semibold text-[#0A2D5B]/42">
+                              Từ khóa phụ: {link.secondaryKeywords}
+                            </p>
+                          )}
+                        </div>
+                        <ArrowUpRight size={18} className="mt-1 shrink-0 text-[#0A2D5B]/36 group-hover:text-violet-700" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <FaqSection
               targetType="post"
@@ -433,7 +570,12 @@ export default function CatchAllPage() {
   const categoryType: string = isCity ? 'destination' : resolved.category.type ?? 'destination';
   const citySlug = isCity ? resolved.city.slug : resolved.city?.slug;
   const heroImage = citySlug ? (CITY_IMAGES[citySlug] ?? DEFAULT_HERO) : DEFAULT_HERO;
-  const heroTitle = isCity ? resolved.city.name : resolved.category.name;
+  const heroTitle = isCity ? formatCityDisplayName(resolved.city) : resolved.category.name;
+  const cityLineArtImage = isCity && citySlug ? CITY_LINE_ART_IMAGES[citySlug] : null;
+  const hasCityLineArtHero = Boolean(cityLineArtImage);
+  const cityHeroSubtitle = citySlug === 'ha-noi'
+    ? 'Phố cổ, hồ nước, mùa thu và những lịch trình vừa đủ chậm để cảm nhận nhịp sống đất kinh kỳ.'
+    : `${heroTitle} qua những biểu tượng, cảnh quan và hành trình đặc trưng trên bản đồ du lịch Việt Nam.`;
 
   const TYPE_CONFIG: Record<string, { badge: string | null; badgeBg: string; badgeText: string; accent: string; postLabel: string }> = {
     destination: { badge: null,          badgeBg: '',                     badgeText: '',              accent: 'violet', postLabel: 'Bài viết' },
@@ -557,18 +699,18 @@ export default function CatchAllPage() {
             <img src={post.thumbnail} alt={post.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
-              <BookOpen size={24} className="text-gray-300" />
+              <BookOpen size={24} className="text-[#0A2D5B]/32" />
             </div>
           )}
         </div>
         <div className="flex min-w-0 flex-col p-4">
-          <p className={`line-clamp-2 text-sm font-bold leading-snug text-gray-900 transition-colors ${accentClass}`}>
+          <p className={`line-clamp-2 text-sm font-bold leading-snug text-[#0A2D5B] transition-colors ${accentClass}`}>
             {post.title}
           </p>
-          {post.excerpt && <p className="mt-2 line-clamp-2 text-xs leading-5 text-gray-500">{post.excerpt}</p>}
-          <div className="mt-auto flex items-center justify-between pt-3 text-xs text-gray-400">
+          {post.excerpt && <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#0A2D5B]/56">{post.excerpt}</p>}
+          <div className="mt-auto flex items-center justify-between pt-3 text-xs text-[#0A2D5B]/42">
             <span className="flex items-center gap-1"><Clock size={11} /> {formatDate(post.createdAt)}</span>
-            <span className="flex items-center gap-1 font-semibold text-gray-500">{post.viewCount ?? 0} lượt xem</span>
+            <span className="flex items-center gap-1 font-semibold text-[#0A2D5B]/56">{post.viewCount ?? 0} lượt xem</span>
           </div>
         </div>
       </Link>
@@ -583,9 +725,9 @@ export default function CatchAllPage() {
   ) => (
     <section className="py-8">
       <div className="mb-5 flex items-center justify-between gap-4">
-        <h2 className="text-2xl font-extrabold tracking-tight text-gray-950">{title}</h2>
+        <h2 className="text-2xl font-extrabold tracking-tight text-[#0A2D5B]">{title}</h2>
         {viewAllHref && (
-          <Link href={viewAllHref} className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-gray-600 transition-colors hover:text-gray-950">
+          <Link href={viewAllHref} className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-[#0A2D5B]/72 transition-colors hover:text-[#0A2D5B]">
             Xem thêm <ArrowUpRight size={14} />
           </Link>
         )}
@@ -599,7 +741,7 @@ export default function CatchAllPage() {
           {items.slice(0, 6).map((post) => renderCityPostCard(post, accent))}
         </div>
       ) : (
-        <div className="rounded-xl border border-gray-100 bg-gray-50 p-6 text-sm font-medium text-gray-500">
+        <div className="rounded-xl border border-gray-100 bg-gray-50 p-6 text-sm font-medium text-[#0A2D5B]/56">
           Chưa có bài viết phù hợp cho mục này.
         </div>
       )}
@@ -607,64 +749,122 @@ export default function CatchAllPage() {
   );
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#F6F3EE]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
-      <Navbar />
+      <Navbar opaque={!isCity && hasCityLineArtHero} logoOnlyUntilScroll={isCity} />
 
-      <div className="bg-white px-3 pt-3 pb-0">
-        <section
-          className="relative w-full flex flex-col justify-end overflow-hidden"
-          style={{ height: '42vh', minHeight: 300, borderRadius: 20 }}
-        >
+      {hasCityLineArtHero ? (
+        <section className="relative isolate overflow-hidden bg-[#F6F3EE]">
           <img
-            src={heroImage}
-            alt={heroTitle}
-            className="absolute inset-0 w-full h-full object-cover"
+            src={cityLineArtImage ?? ''}
+            alt=""
+            className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-center opacity-[0.82] mix-blend-multiply"
+            style={{ filter: 'sepia(0.18) saturate(0.78) contrast(0.96) brightness(1.03)' }}
           />
-          <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/30 to-black/15" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[54%] bg-linear-to-r from-[#F6F3EE]/72 via-[#F6F3EE]/42 to-transparent" />
+          <div className="pointer-events-none absolute left-0 top-16 z-10 h-[62%] w-[52%] bg-[radial-gradient(ellipse_at_34%_45%,rgba(246,243,238,0.84)_0%,rgba(246,243,238,0.58)_38%,rgba(246,243,238,0)_72%)]" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-28 bg-linear-to-t from-[#F6F3EE] to-transparent" />
 
-          <div className="relative z-10 px-6 md:px-10 pb-7">
-            <nav className="flex flex-wrap items-center gap-1.5 text-white/65 text-xs mb-3">
-              {fullBreadcrumb.map((b, idx) => {
-                const isLast = idx === fullBreadcrumb.length - 1;
-                return (
-                  <span key={`${b.href}-${idx}`} className="flex items-center gap-1.5">
-                    {!isLast ? (
-                      <Link href={b.href} className="hover:text-white transition-colors">{b.label}</Link>
-                    ) : (
-                      <span className="text-white/90 font-medium">{b.label}</span>
-                    )}
-                    {!isLast && <ChevronRight size={11} className="text-white/40" />}
-                  </span>
-                );
-              })}
-            </nav>
+          <div className="relative z-20 flex min-h-[580px] items-center px-6 pb-12 pt-28 md:px-10 md:pb-16 md:pt-32 lg:px-14">
+            <div className="max-w-[560px]">
+              <nav className="mb-6 flex flex-wrap items-center gap-1.5 text-xs text-[#0A2D5B]/56">
+                {fullBreadcrumb.map((b, idx) => {
+                  const isLast = idx === fullBreadcrumb.length - 1;
+                  return (
+                    <span key={`${b.href}-${idx}`} className="flex items-center gap-1.5">
+                      {!isLast ? (
+                        <Link href={b.href} className="font-semibold transition-colors hover:text-[#0A2D5B]">{b.label}</Link>
+                      ) : (
+                        <span className="font-bold text-[#0A2D5B]">{b.label}</span>
+                      )}
+                      {!isLast && <ChevronRight size={11} className="text-[#0A2D5B]/32" />}
+                    </span>
+                  );
+                })}
+              </nav>
 
-            {typeCfg.badge && (
-              <span className={`inline-block ${typeCfg.badgeBg} ${typeCfg.badgeText} text-xs font-bold px-3 py-1 rounded-full backdrop-blur-sm mb-2`}>
-                {typeCfg.badge}
-              </span>
-            )}
-            <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-2">
-              {heroTitle}
-            </h1>
-            <div className="flex items-center gap-3 text-white/65 text-xs">
-              {children.length > 0 && (
-                <span className="flex items-center gap-1"><MapPin size={11} /> {children.length} chuyên mục</span>
-              )}
-              {children.length > 0 && posts.length > 0 && <span>•</span>}
-              {posts.length > 0 && (
-                <span className="flex items-center gap-1"><BookOpen size={11} /> {posts.length} bài viết</span>
-              )}
+              <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.22em] text-orange-600">
+                Cẩm nang thành phố
+              </p>
+              <h1 className="text-5xl font-black tracking-tight text-[#0A2D5B] md:text-7xl lg:text-8xl">
+                {heroTitle}
+              </h1>
+              <p className="mt-6 max-w-[520px] text-base font-medium leading-8 text-[#0A2D5B]/72">
+                {cityHeroSubtitle}
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href="#city-content"
+                  className="inline-flex h-12 items-center rounded-full bg-[#0A2D5B] px-6 text-sm font-bold text-white transition-colors hover:bg-[#08264d]"
+                >
+                  Xem bài viết
+                </Link>
+                <Link
+                  href={`/lich-trinh/${citySlug}`}
+                  className="inline-flex h-12 items-center rounded-full bg-white px-6 text-sm font-bold text-[#0A2D5B] shadow-sm ring-1 ring-[#0A2D5B]/12 transition-colors hover:bg-[#0A2D5B]/5"
+                >
+                  Lên lịch trình
+                </Link>
+              </div>
             </div>
           </div>
         </section>
-      </div>
+      ) : (
+        <div className="bg-[#F6F3EE] px-3 pt-3 pb-0">
+          <section
+            className="relative w-full flex flex-col justify-end overflow-hidden"
+            style={{ height: '42vh', minHeight: 300, borderRadius: 20 }}
+          >
+            <img
+              src={heroImage}
+              alt={heroTitle}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/30 to-black/15" />
+
+            <div className="relative z-10 px-6 md:px-10 pb-7">
+              <nav className="flex flex-wrap items-center gap-1.5 text-white/65 text-xs mb-3">
+                {fullBreadcrumb.map((b, idx) => {
+                  const isLast = idx === fullBreadcrumb.length - 1;
+                  return (
+                    <span key={`${b.href}-${idx}`} className="flex items-center gap-1.5">
+                      {!isLast ? (
+                        <Link href={b.href} className="hover:text-white transition-colors">{b.label}</Link>
+                      ) : (
+                        <span className="text-white/90 font-medium">{b.label}</span>
+                      )}
+                      {!isLast && <ChevronRight size={11} className="text-white/40" />}
+                    </span>
+                  );
+                })}
+              </nav>
+
+              {typeCfg.badge && (
+                <span className={`inline-block ${typeCfg.badgeBg} ${typeCfg.badgeText} text-xs font-bold px-3 py-1 rounded-full backdrop-blur-sm mb-2`}>
+                  {typeCfg.badge}
+                </span>
+              )}
+              <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-2">
+                {heroTitle}
+              </h1>
+              <div className="flex items-center gap-3 text-white/65 text-xs">
+                {children.length > 0 && (
+                  <span className="flex items-center gap-1"><MapPin size={11} /> {children.length} chuyên mục</span>
+                )}
+                {children.length > 0 && posts.length > 0 && <span>•</span>}
+                {posts.length > 0 && (
+                  <span className="flex items-center gap-1"><BookOpen size={11} /> {posts.length} bài viết</span>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
 
       <div className="max-w-[1180px] mx-auto px-4 md:px-6">
         {cityPills.length > 0 && (
           <div className="pt-6 pb-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#0A2D5B]/42 mb-3">
               Chọn tỉnh thành
             </p>
             <div className="flex gap-2 overflow-x-auto pb-2"
@@ -673,7 +873,7 @@ export default function CatchAllPage() {
                 <Link
                   key={c.id}
                   href={`/${path}/${c.slug}`}
-                  className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-violet-400 hover:text-violet-600 hover:bg-violet-50 transition-all"
+                  className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-[#0A2D5B]/72 hover:border-violet-400 hover:text-violet-600 hover:bg-violet-50 transition-all"
                 >
                   {c.name}
                 </Link>
@@ -683,7 +883,7 @@ export default function CatchAllPage() {
         )}
         {!isCity && children.length > 0 && (
           <div className="pt-6 pb-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#0A2D5B]/42 mb-3">
               Chuyên mục
             </p>
             {children.length <= 6 ? (
@@ -694,10 +894,10 @@ export default function CatchAllPage() {
                     href={buildChildHref(c)}
                     className="group flex items-center justify-between gap-2 bg-gray-50 hover:bg-violet-50 border border-gray-100 hover:border-violet-200 rounded-xl px-4 py-3 transition-all"
                   >
-                    <span className="font-medium text-gray-800 text-sm group-hover:text-violet-700 transition-colors line-clamp-1">
+                    <span className="font-medium text-[#0A2D5B] text-sm group-hover:text-violet-700 transition-colors line-clamp-1">
                       {c.name}
                     </span>
-                    <ChevronRight size={14} className="text-gray-300 group-hover:text-violet-400 shrink-0 transition-colors" />
+                    <ChevronRight size={14} className="text-[#0A2D5B]/32 group-hover:text-violet-400 shrink-0 transition-colors" />
                   </Link>
                 ))}
               </div>
@@ -709,7 +909,7 @@ export default function CatchAllPage() {
                     <Link
                       key={c.id}
                       href={buildChildHref(c)}
-                      className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-violet-400 hover:text-violet-600 hover:bg-violet-50 transition-all"
+                      className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-medium text-[#0A2D5B]/72 hover:border-violet-400 hover:text-violet-600 hover:bg-violet-50 transition-all"
                     >
                       {c.name}
                     </Link>
@@ -722,15 +922,15 @@ export default function CatchAllPage() {
         )}
 
         {isCity ? (
-          <div className="py-8">
+          <div id="city-content" className="py-8">
             <section className="border-b border-gray-100 pb-8">
               <p className="text-xs font-semibold uppercase tracking-widest text-violet-500 mb-3">
                 Tổng quan điểm đến
               </p>
-              <h2 className="text-2xl md:text-3xl font-extrabold text-gray-950 tracking-tight mb-4">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-[#0A2D5B] tracking-tight mb-4">
                 Du lịch {heroTitle}
               </h2>
-              <p className="max-w-[900px] text-base leading-8 text-gray-600">
+              <p className="max-w-[900px] text-base leading-8 text-[#0A2D5B]/72">
                 {cityIntro}
               </p>
             </section>
@@ -766,10 +966,10 @@ export default function CatchAllPage() {
 
             <section className="py-8">
               <div className="mb-5 flex items-center justify-between gap-4">
-                <h2 className="text-2xl font-extrabold tracking-tight text-gray-950">
+                <h2 className="text-2xl font-extrabold tracking-tight text-[#0A2D5B]">
                   Review Du Lịch {heroTitle}
                 </h2>
-                <Link href="/review" className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-gray-600 transition-colors hover:text-gray-950">
+                <Link href="/review" className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-[#0A2D5B]/72 transition-colors hover:text-[#0A2D5B]">
                   Xem thêm <ArrowUpRight size={14} />
                 </Link>
               </div>
@@ -783,7 +983,7 @@ export default function CatchAllPage() {
                   {(cityFeatured?.review.groups ?? []).map((group) => (
                     <div key={group.slug} className="rounded-xl border border-gray-100 bg-white p-5">
                       <div className="mb-4 flex items-center justify-between gap-3">
-                        <h3 className="text-base font-extrabold text-gray-950">{group.name}</h3>
+                        <h3 className="text-base font-extrabold text-[#0A2D5B]">{group.name}</h3>
                         <Link href={`/review/${REVIEW_PUBLIC_SLUG[group.slug] ?? group.slug}/${citySlug}`} className="text-xs font-semibold text-amber-600 hover:text-amber-700">
                           Xem
                         </Link>
@@ -797,21 +997,21 @@ export default function CatchAllPage() {
                                   <img src={post.thumbnail} alt={post.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                                 ) : (
                                   <div className="flex h-full w-full items-center justify-center">
-                                    <Star size={17} className="text-gray-300" />
+                                    <Star size={17} className="text-[#0A2D5B]/32" />
                                   </div>
                                 )}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="line-clamp-2 text-sm font-bold leading-snug text-gray-900 transition-colors group-hover:text-amber-700">
+                                <p className="line-clamp-2 text-sm font-bold leading-snug text-[#0A2D5B] transition-colors group-hover:text-amber-700">
                                   {post.title}
                                 </p>
-                                <p className="mt-1 text-xs text-gray-400">{post.viewCount ?? 0} lượt xem</p>
+                                <p className="mt-1 text-xs text-[#0A2D5B]/42">{post.viewCount ?? 0} lượt xem</p>
                               </div>
                             </Link>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm font-medium text-gray-500">Chưa có bài viết phù hợp cho hạng mục này.</p>
+                        <p className="text-sm font-medium text-[#0A2D5B]/56">Chưa có bài viết phù hợp cho hạng mục này.</p>
                       )}
                     </div>
                   ))}
@@ -830,14 +1030,14 @@ export default function CatchAllPage() {
         ) : (
         <div className="py-8">
           <div className="flex items-center justify-between mb-5">
-            <p className="text-lg font-extrabold text-gray-900">
+            <p className="text-lg font-extrabold text-[#0A2D5B]">
               {children.length > 0 ? typeCfg.postLabel : 'Bài viết'}
             </p>
           </div>
 
           {posts.length === 0 ? (
             <div className="bg-gray-50 rounded-2xl border border-gray-100 p-10 text-center">
-              <p className="text-gray-600 font-semibold">Chưa có bài viết cho mục này.</p>
+              <p className="text-[#0A2D5B]/72 font-semibold">Chưa có bài viết cho mục này.</p>
               <Link href="/" className="inline-flex mt-4 text-sm font-semibold text-violet-600 hover:text-violet-700">
                 Về trang chủ
               </Link>
@@ -894,10 +1094,10 @@ export default function CatchAllPage() {
                     </div>
                   </div>
                   <div className="p-4">
-                    <p className="font-bold text-gray-900 line-clamp-2 leading-snug mb-2 group-hover:text-sky-700 transition-colors">{p.title}</p>
-                    {p.excerpt && <p className="text-xs text-gray-500 line-clamp-2 mb-3">{p.excerpt}</p>}
+                    <p className="font-bold text-[#0A2D5B] line-clamp-2 leading-snug mb-2 group-hover:text-sky-700 transition-colors">{p.title}</p>
+                    {p.excerpt && <p className="text-xs text-[#0A2D5B]/56 line-clamp-2 mb-3">{p.excerpt}</p>}
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-400 flex items-center gap-1"><Clock size={11} /> {formatDate(p.createdAt)}</span>
+                      <span className="text-[#0A2D5B]/42 flex items-center gap-1"><Clock size={11} /> {formatDate(p.createdAt)}</span>
                       <span className="inline-flex items-center gap-1 text-sky-600 font-semibold">Xem <ArrowUpRight size={12} /></span>
                     </div>
                   </div>
@@ -925,11 +1125,11 @@ export default function CatchAllPage() {
                     <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-semibold mb-1">
                       <Lightbulb size={10} /> Kinh nghiệm
                     </span>
-                    <p className="font-bold text-gray-900 line-clamp-2 leading-snug mb-1 group-hover:text-emerald-700 transition-colors">{p.title}</p>
-                    {p.excerpt && <p className="text-xs text-gray-500 line-clamp-2">{p.excerpt}</p>}
-                    <p className="text-xs text-gray-400 mt-2 flex items-center gap-1"><Clock size={10} /> {formatDate(p.createdAt)}</p>
+                    <p className="font-bold text-[#0A2D5B] line-clamp-2 leading-snug mb-1 group-hover:text-emerald-700 transition-colors">{p.title}</p>
+                    {p.excerpt && <p className="text-xs text-[#0A2D5B]/56 line-clamp-2">{p.excerpt}</p>}
+                    <p className="text-xs text-[#0A2D5B]/42 mt-2 flex items-center gap-1"><Clock size={10} /> {formatDate(p.createdAt)}</p>
                   </div>
-                  <ArrowUpRight size={16} className="text-gray-300 group-hover:text-emerald-500 shrink-0 mt-1 transition-colors" />
+                  <ArrowUpRight size={16} className="text-[#0A2D5B]/32 group-hover:text-emerald-500 shrink-0 mt-1 transition-colors" />
                 </Link>
               ))}
             </div>
@@ -946,15 +1146,15 @@ export default function CatchAllPage() {
                       <img src={p.thumbnail} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <BookOpen size={28} className="text-gray-300" />
+                        <BookOpen size={28} className="text-[#0A2D5B]/32" />
                       </div>
                     )}
                   </div>
                   <div className="p-4">
-                    <p className="font-bold text-gray-900 line-clamp-2 leading-snug mb-2 group-hover:text-violet-700 transition-colors">{p.title}</p>
-                    {p.excerpt && <p className="text-xs text-gray-500 line-clamp-2 mb-3">{p.excerpt}</p>}
+                    <p className="font-bold text-[#0A2D5B] line-clamp-2 leading-snug mb-2 group-hover:text-violet-700 transition-colors">{p.title}</p>
+                    {p.excerpt && <p className="text-xs text-[#0A2D5B]/56 line-clamp-2 mb-3">{p.excerpt}</p>}
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-400 flex items-center gap-1"><Clock size={11} /> {formatDate(p.createdAt)}</span>
+                      <span className="text-[#0A2D5B]/42 flex items-center gap-1"><Clock size={11} /> {formatDate(p.createdAt)}</span>
                       <span className="inline-flex items-center gap-1 text-violet-600 font-semibold">Đọc <ArrowUpRight size={12} /></span>
                     </div>
                   </div>

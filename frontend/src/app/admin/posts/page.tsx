@@ -8,11 +8,15 @@ import api from '@/lib/axios';
 interface Post {
   id: string; title: string; slug: string; content: string;
   excerpt?: string; thumbnail?: string; published: boolean;
+  kind?: 'standard' | 'supporting';
+  supportingUrlSlug?: string;
   status?: 'pending' | 'approved' | 'rejected';
   location?: string; latitude?: number; longitude?: number;
   cityId?: string; categoryId?: string; createdAt: string;
   city?: { id: string; name: string }; category?: { id: string; name: string };
   author?: { id: string; name?: string | null; email?: string | null };
+  supportLinksFrom?: SupportLink[];
+  supportLinksTo?: SupportLink[];
 }
 interface City { id: string; name: string; }
 interface Category {
@@ -23,10 +27,23 @@ interface Category {
   cityId?: string | null;
   parentId?: string | null;
 }
+interface SupportLink {
+  id?: string;
+  mainPostId?: string;
+  supportPostId?: string;
+  anchorText?: string | null;
+  secondaryKeywords?: string | null;
+  sortOrder?: number;
+  isPrimary?: boolean;
+  mainPost?: Pick<Post, 'id' | 'title' | 'slug' | 'kind'>;
+  supportPost?: Pick<Post, 'id' | 'title' | 'slug' | 'kind' | 'supportingUrlSlug'>;
+}
 
 const EMPTY = {
   title: '',
   slug: '',
+  kind: 'standard' as 'standard' | 'supporting',
+  supportingUrlSlug: '',
   content: '',
   excerpt: '',
   thumbnail: '',
@@ -45,9 +62,11 @@ const SYSTEM_MENU = [
   { type: 'experience', label: 'Kinh nghiệm du lịch' },
 ] as const;
 type SystemType = (typeof SYSTEM_MENU)[number]['type'];
+type ContentMode = 'standard' | 'supporting';
 
 export default function AdminPostsPage() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,8 +76,10 @@ export default function AdminPostsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Post | null>(null);
   const [form, setForm] = useState(EMPTY);
+  const [supportLinks, setSupportLinks] = useState<SupportLink[]>([]);
   const [selectedRootId, setSelectedRootId] = useState('');
   const [activeSystemType, setActiveSystemType] = useState<SystemType>('destination');
+  const [contentMode, setContentMode] = useState<ContentMode>('standard');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -67,14 +88,23 @@ export default function AdminPostsPage() {
     setLoading(true);
     try {
       // Admin needs to see unpublished too — using limit high enough
-      const res = await api.get(`/posts/admin?page=${page}&limit=10`);
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: '10',
+        kind: contentMode,
+      });
+      if (contentMode === 'standard') params.set('type', activeSystemType);
+      const res = await api.get(`/posts/admin?${params.toString()}`);
       setPosts(res.data.data);
       setTotal(res.data.meta.total);
       setTotalPages(res.data.meta.totalPages);
     } finally { setLoading(false); }
   }
 
-  useEffect(() => { fetchData(); }, [page]);
+  useEffect(() => { fetchData(); }, [page, activeSystemType, contentMode]);
+  useEffect(() => {
+    api.get('/posts/admin?page=1&limit=500').then((r) => setAllPosts(r.data.data ?? []));
+  }, []);
   useEffect(() => { api.get('/cities').then((r) => setCities(r.data)); }, []);
   useEffect(() => { api.get('/categories').then((r) => setCategories(r.data ?? [])); }, []);
 
@@ -82,12 +112,21 @@ export default function AdminPostsPage() {
     name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd')
       .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
 
-  const openCreate = () => { setEditing(null); setForm(EMPTY); setSelectedRootId(''); setError(''); setShowModal(true); };
+  const openCreate = () => {
+    setEditing(null);
+    setForm(EMPTY);
+    setSupportLinks([]);
+    setSelectedRootId('');
+    setError('');
+    setShowModal(true);
+  };
   const openEdit = (p: Post) => {
     setEditing(p);
     setForm({
       title: p.title,
       slug: p.slug,
+      kind: p.kind || 'standard',
+      supportingUrlSlug: p.supportingUrlSlug || '',
       content: p.content,
       excerpt: p.excerpt || '',
       thumbnail: p.thumbnail || '',
@@ -98,6 +137,16 @@ export default function AdminPostsPage() {
       cityId: p.cityId || p.city?.id || '',
       categoryId: p.categoryId || p.category?.id || '',
     });
+    setSupportLinks(
+      (p.kind === 'supporting' ? p.supportLinksTo : p.supportLinksFrom)?.map((link, index) => ({
+        mainPostId: link.mainPostId || link.mainPost?.id,
+        supportPostId: link.supportPostId || link.supportPost?.id,
+        anchorText: link.anchorText || '',
+        secondaryKeywords: link.secondaryKeywords || '',
+        sortOrder: link.sortOrder ?? index,
+        isPrimary: Boolean(link.isPrimary),
+      })) ?? [],
+    );
     setSelectedRootId('');
     setError(''); setShowModal(true);
   };
@@ -112,6 +161,17 @@ export default function AdminPostsPage() {
     try {
       const payload = {
         ...form,
+        supportLinks: supportLinks
+          .filter((link) => form.kind === 'supporting' ? link.mainPostId : link.supportPostId)
+          .map((link, index) => ({
+            mainPostId: link.mainPostId || undefined,
+            supportPostId: link.supportPostId || undefined,
+            anchorText: link.anchorText || undefined,
+            secondaryKeywords: link.secondaryKeywords || undefined,
+            sortOrder: index,
+            isPrimary: form.kind === 'supporting' ? Boolean(link.isPrimary) : Boolean(link.isPrimary),
+          })),
+        supportingUrlSlug: form.kind === 'supporting' ? (form.supportingUrlSlug || form.slug) : undefined,
         cityId: form.cityId || undefined,
         categoryId: form.categoryId || undefined,
         location: form.location || undefined,
@@ -121,6 +181,7 @@ export default function AdminPostsPage() {
       if (editing) await api.patch(`/posts/${editing.id}`, payload);
       else await api.post('/posts', payload);
       setShowModal(false); fetchData();
+      api.get('/posts/admin?page=1&limit=500').then((r) => setAllPosts(r.data.data ?? []));
     } catch (e: unknown) {
       const message = e && typeof e === 'object' && 'response' in e
         ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
@@ -231,7 +292,16 @@ export default function AdminPostsPage() {
       return !cat.cityId || cat.cityId === form.cityId;
     })
     .sort((a, b) => getCategoryPath(a).localeCompare(getCategoryPath(b), 'vi'));
-  const filteredPosts = posts.filter((post) => getPostSystemType(post) === activeSystemType);
+  const filteredPosts = posts.filter((post) => {
+    if (contentMode === 'supporting') return post.kind === 'supporting';
+    return (post.kind || 'standard') === 'standard' && getPostSystemType(post) === activeSystemType;
+  });
+  const standardPostOptions = allPosts
+    .filter((post) => (post.kind || 'standard') === 'standard')
+    .sort((a, b) => a.title.localeCompare(b.title, 'vi'));
+  const supportingPostOptions = allPosts
+    .filter((post) => post.kind === 'supporting')
+    .sort((a, b) => a.title.localeCompare(b.title, 'vi'));
 
   return (
     <div className="p-8">
@@ -245,12 +315,29 @@ export default function AdminPostsPage() {
         </button>
       </div>
       <div className="mb-6 flex flex-wrap gap-2">
+        <button
+          onClick={() => {
+            setContentMode('supporting');
+            setPage(1);
+          }}
+          className={`px-3 py-2 rounded-xl text-sm font-semibold border transition-colors ${
+            contentMode === 'supporting'
+              ? 'bg-emerald-600 text-white border-emerald-600'
+              : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300'
+          }`}
+        >
+          Bài bổ trợ L5
+        </button>
         {SYSTEM_MENU.map((item) => (
           <button
             key={item.type}
-            onClick={() => setActiveSystemType(item.type)}
+            onClick={() => {
+              setContentMode('standard');
+              setActiveSystemType(item.type);
+              setPage(1);
+            }}
             className={`px-3 py-2 rounded-xl text-sm font-semibold border transition-colors ${
-              activeSystemType === item.type
+              contentMode === 'standard' && activeSystemType === item.type
                 ? 'bg-violet-600 text-white border-violet-600'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300'
             }`}
@@ -260,7 +347,9 @@ export default function AdminPostsPage() {
         ))}
       </div>
       <div className="mb-4 bg-violet-50 border border-violet-100 rounded-xl px-4 py-3 text-sm text-violet-800">
-        {activeRoot
+        {contentMode === 'supporting'
+          ? <>Đang xem bài viết bổ trợ L5. URL có thể là slug độc lập, breadcrumb lấy theo L4 chính.</>
+          : activeRoot
           ? <>Đang xem bài viết thuộc nhóm <span className="font-semibold">{activeRoot.name}</span>.</>
           : <>Chưa có danh mục trụ cột cho nhóm này.</>}
       </div>
@@ -371,6 +460,34 @@ export default function AdminPostsPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Loại bài</label>
+                  <select
+                    value={form.kind}
+                    onChange={(e) => {
+                      const kind = e.target.value as 'standard' | 'supporting';
+                      setForm({ ...form, kind, supportingUrlSlug: kind === 'supporting' ? (form.supportingUrlSlug || form.slug) : '' });
+                      setSupportLinks([]);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                  >
+                    <option value="standard">Bài chính L4 / bài thường</option>
+                    <option value="supporting">Bài bổ trợ L5</option>
+                  </select>
+                </div>
+                {form.kind === 'supporting' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">URL độc lập L5</label>
+                    <input
+                      value={form.supportingUrlSlug}
+                      onChange={(e) => setForm({ ...form, supportingUrlSlug: autoSlug(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 font-mono"
+                      placeholder="lich-su-van-mieu-quoc-tu-giam"
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">Slug *</label>
                   <input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 font-mono"
@@ -433,6 +550,88 @@ export default function AdminPostsPage() {
                 <input value={form.thumbnail} onChange={(e) => setForm({ ...form, thumbnail: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
                   placeholder="https://images.unsplash.com/..." />
+              </div>
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-emerald-900">
+                      {form.kind === 'supporting' ? 'L4 mà bài L5 này bổ trợ' : 'Bài bổ trợ L5 gắn vào bài này'}
+                    </p>
+                    <p className="text-xs text-emerald-700/75">
+                      {form.kind === 'supporting'
+                        ? 'Chọn một L4 làm primary để lấy breadcrumb mặc định.'
+                        : 'Các bài này sẽ hiện trong block link nội bộ của bài L4.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSupportLinks((prev) => [...prev, { sortOrder: prev.length, isPrimary: prev.length === 0 }])}
+                    className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"
+                  >
+                    Thêm link
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {supportLinks.length === 0 ? (
+                    <p className="rounded-lg border border-dashed border-emerald-200 bg-white/70 px-3 py-3 text-xs text-emerald-800">
+                      Chưa gắn bài liên quan.
+                    </p>
+                  ) : supportLinks.map((link, index) => (
+                    <div key={index} className="rounded-lg border border-emerald-100 bg-white p-3">
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto]">
+                        <select
+                          value={form.kind === 'supporting' ? (link.mainPostId || '') : (link.supportPostId || '')}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSupportLinks((prev) => prev.map((item, i) => i === index
+                              ? form.kind === 'supporting'
+                                ? { ...item, mainPostId: value, isPrimary: item.isPrimary ?? index === 0 }
+                                : { ...item, supportPostId: value }
+                              : item));
+                          }}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white"
+                        >
+                          <option value="">{form.kind === 'supporting' ? 'Chọn bài L4' : 'Chọn bài L5'}</option>
+                          {(form.kind === 'supporting' ? standardPostOptions : supportingPostOptions).map((post) => (
+                            <option key={post.id} value={post.id}>{post.title}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setSupportLinks((prev) => prev.filter((_, i) => i !== index))}
+                          className="rounded-lg border border-red-100 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50"
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                      <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                        <input
+                          value={link.anchorText || ''}
+                          onChange={(e) => setSupportLinks((prev) => prev.map((item, i) => i === index ? { ...item, anchorText: e.target.value } : item))}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                          placeholder="Anchor text"
+                        />
+                        <input
+                          value={link.secondaryKeywords || ''}
+                          onChange={(e) => setSupportLinks((prev) => prev.map((item, i) => i === index ? { ...item, secondaryKeywords: e.target.value } : item))}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                          placeholder="Từ khóa phụ"
+                        />
+                      </div>
+                      {form.kind === 'supporting' && (
+                        <label className="mt-2 flex items-center gap-2 text-xs font-semibold text-emerald-800">
+                          <input
+                            type="radio"
+                            checked={Boolean(link.isPrimary)}
+                            onChange={() => setSupportLinks((prev) => prev.map((item, i) => ({ ...item, isPrimary: i === index })))}
+                            className="accent-emerald-600"
+                          />
+                          Dùng L4 này làm breadcrumb chính
+                        </label>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
