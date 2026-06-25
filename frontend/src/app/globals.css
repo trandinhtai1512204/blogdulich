@@ -10,6 +10,11 @@
   --brand-navy: #0A2D5B;
   --brand-orange: #F37021;
   --brand-orange-dark: #d95f18;
+  --site-cream: #F6F3EE;
+  --text-heading: #0A2D5B;
+  --text-body: rgb(10 45 91 / 0.72);
+  --text-muted: rgb(10 45 91 / 0.56);
+  --text-subtle: rgb(10 45 91 / 0.42);
   --card: #ffffff;
   --primary: #030213;
   --primary-foreground: oklch(1 0 0);
@@ -152,9 +157,102 @@
   }
   body {
     font-family: var(--font-be-vietnam-pro), system-ui, -apple-system, sans-serif;
-    background: var(--background);
-    color: var(--foreground);
+    background: var(--site-cream);
+    color: var(--text-body);
   }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: var(--text-heading);
+    letter-spacing: 0;
+  }
+  h1 {
+    line-height: 1.02;
+  }
+  h2,
+  h3 {
+    line-height: 1.12;
+  }
+  p,
+  li {
+    color: var(--text-body);
+  }
+  label,
+  strong,
+  b {
+    color: var(--text-heading);
+  }
+  small,
+  figcaption {
+    color: var(--text-muted);
+  }
+}
+
+/* Site typography palette: neutral utility classes inherit the Blogdulich text system. */
+.text-gray-950,
+.text-gray-900,
+.text-gray-800,
+.text-slate-950,
+.text-slate-900,
+.text-slate-800,
+.text-neutral-950,
+.text-neutral-900,
+.text-neutral-800,
+.hover\:text-gray-950:hover,
+.hover\:text-gray-900:hover,
+.hover\:text-slate-950:hover,
+.hover\:text-slate-900:hover,
+.group:hover .group-hover\:text-gray-950,
+.group:hover .group-hover\:text-gray-900,
+.group:hover .group-hover\:text-slate-950,
+.group:hover .group-hover\:text-slate-900 {
+  color: var(--text-heading) !important;
+}
+
+.text-gray-700,
+.text-gray-600,
+.text-slate-700,
+.text-slate-600,
+.text-neutral-700,
+.text-neutral-600,
+.hover\:text-gray-700:hover,
+.hover\:text-gray-600:hover,
+.hover\:text-slate-700:hover,
+.hover\:text-slate-600:hover,
+.group:hover .group-hover\:text-gray-700,
+.group:hover .group-hover\:text-gray-600,
+.group:hover .group-hover\:text-slate-700,
+.group:hover .group-hover\:text-slate-600 {
+  color: var(--text-body) !important;
+}
+
+.text-gray-500,
+.text-gray-400,
+.text-slate-500,
+.text-slate-400,
+.text-neutral-500,
+.text-neutral-400,
+.placeholder\:text-gray-400::placeholder,
+.placeholder\:text-gray-500::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.text-gray-300,
+.text-slate-300,
+.text-neutral-300 {
+  color: var(--text-subtle) !important;
+}
+
+.text-orange-500,
+.text-orange-600,
+.text-orange-700,
+.hover\:text-orange-500:hover,
+.hover\:text-orange-600:hover,
+.hover\:text-orange-700:hover {
+  color: var(--brand-orange) !important;
 }
 
 /* Tiptap editor content styles */
@@ -176,25 +274,6 @@
 .tiptap hr { border: none; border-top: 1px solid #e5e7eb; margin: 1rem 0; }
 .tiptap a { color: var(--brand-orange); text-decoration: underline; }
 .tiptap img { max-width: 100%; border-radius: 0.75rem; margin: 0.75rem auto; display: block; }
-
-/* Homepage scroll-reveal. Static (no motion) under reduced-motion. */
-.reveal {
-  opacity: 1;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .reveal {
-    opacity: 0;
-    transform: translateY(18px);
-    transition:
-      opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-    will-change: opacity, transform;
-  }
-  .reveal[data-shown='true'] {
-    opacity: 1;
-    transform: none;
-  }
-}
 
 @layer utilities {
   .scrollbar-hide {

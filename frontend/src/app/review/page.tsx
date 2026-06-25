@@ -95,11 +95,11 @@ export default function ReviewIndexPage() {
     new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#F6F3EE]">
       <Navbar />
 
       {/* ── HERO ── */}
-      <div className="bg-white px-3 pt-3 pb-0">
+      <div className="bg-[#F6F3EE] px-3 pt-3 pb-0">
         <section
           className="relative w-full flex flex-col items-center justify-center"
           style={{ height: '70vh', minHeight: 480, borderRadius: 24 }}

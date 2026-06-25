@@ -23,7 +23,7 @@ export default function PostDetailPage() {
   }, [slug]);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#F6F3EE]">
       <Navbar />
       <div className="flex items-center justify-center pt-40 text-sm text-gray-400">
         Đang chuyển hướng...

@@ -72,11 +72,11 @@ export default function PostsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F6F3EE]">
       <Navbar />
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 pt-[72px]">
+      <div className="bg-[#F6F3EE] border-b border-[#0A2D5B]/10 pt-[72px]">
         <div className="max-w-[1280px] mx-auto px-6 py-10 text-center">
           <p className="text-violet-600 text-sm font-bold uppercase tracking-wider mb-2">Blog du lịch</p>
           <h1 className="text-3xl font-extrabold text-gray-900 mb-3" style={{ letterSpacing: '-0.03em' }}>

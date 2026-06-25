@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Patch,
   Post,
@@ -29,6 +30,12 @@ export class PostsController {
   @Get()
   findAll(@Query() query: QueryPostsDto) {
     return this.postsService.findAll(query);
+  }
+
+  @Get('home')
+  @Header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300')
+  findHome() {
+    return this.postsService.findHome();
   }
 
   @Get('city-featured/:citySlug')

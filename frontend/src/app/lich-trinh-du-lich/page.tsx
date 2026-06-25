@@ -96,7 +96,7 @@ export default function ItinerariesIndexPage() {
     new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   return (
-    <div className="relative isolate min-h-screen overflow-hidden bg-white text-[#0A2D5B]">
+    <div className="relative isolate min-h-screen overflow-hidden bg-[#F6F3EE] text-[#0A2D5B]">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 bg-[url('/blogdulich-bg-linework-1440.png')] bg-[length:100%_auto] bg-top bg-repeat-y opacity-[0.4]"
@@ -109,7 +109,7 @@ export default function ItinerariesIndexPage() {
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_86%_20%,rgba(255,255,255,0.66)_0%,rgba(255,255,255,0.38)_18%,rgba(255,255,255,0)_38%),radial-gradient(ellipse_at_88%_30%,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.46)_24%,rgba(255,255,255,0)_48%),radial-gradient(ellipse_at_86%_55%,rgba(255,255,255,0.64)_0%,rgba(255,255,255,0.34)_22%,rgba(255,255,255,0)_46%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_86%_20%,rgba(246,243,238,0.66)_0%,rgba(246,243,238,0.38)_18%,rgba(246,243,238,0)_38%),radial-gradient(ellipse_at_88%_30%,rgba(246,243,238,0.72)_0%,rgba(246,243,238,0.46)_24%,rgba(246,243,238,0)_48%),radial-gradient(ellipse_at_86%_55%,rgba(246,243,238,0.64)_0%,rgba(246,243,238,0.34)_22%,rgba(246,243,238,0)_46%)]"
         style={{ zIndex: -9 }}
       />
       <Navbar logoOnlyUntilScroll />
@@ -118,7 +118,7 @@ export default function ItinerariesIndexPage() {
           <section className="relative z-10 overflow-hidden">
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute left-[30%] top-1/2 z-0 h-[76%] w-[72%] max-w-[1080px] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.58)_0%,rgba(255,255,255,0.30)_48%,rgba(255,255,255,0)_76%)]"
+              className="pointer-events-none absolute left-[30%] top-1/2 z-0 h-[76%] w-[72%] max-w-[1080px] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(ellipse_at_center,rgba(246,243,238,0.58)_0%,rgba(246,243,238,0.30)_48%,rgba(246,243,238,0)_76%)]"
             />
 
             <div className="relative z-10 mx-auto grid min-h-[720px] max-w-[1440px] grid-cols-1 items-stretch lg:h-[min(860px,calc(100vh-74px))] lg:grid-cols-[60%_40%]">

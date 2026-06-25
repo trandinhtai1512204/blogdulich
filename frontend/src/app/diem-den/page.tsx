@@ -113,7 +113,6 @@ export default function DestinationsPage() {
 
   const showDropdown = focused && (filtered.length > 0 || query.trim() === '');
   const activeMapSlugs = new Set(cities.map((c) => c.slug));
-
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const term = query.trim().toLowerCase();
@@ -142,7 +141,7 @@ export default function DestinationsPage() {
     dateStr ? new Date(dateStr).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
 
   return (
-    <div className="relative isolate min-h-screen overflow-hidden bg-white text-[#0A2D5B]">
+    <div className="relative isolate min-h-screen overflow-hidden bg-[#F6F3EE] text-[#0A2D5B]">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 bg-[url('/blogdulich-bg-linework-1440.png')] bg-[length:100%_auto] bg-top bg-repeat-y opacity-[0.4]"
@@ -155,7 +154,7 @@ export default function DestinationsPage() {
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_86%_20%,rgba(255,255,255,0.66)_0%,rgba(255,255,255,0.38)_18%,rgba(255,255,255,0)_38%),radial-gradient(ellipse_at_88%_30%,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.46)_24%,rgba(255,255,255,0)_48%),radial-gradient(ellipse_at_86%_55%,rgba(255,255,255,0.64)_0%,rgba(255,255,255,0.34)_22%,rgba(255,255,255,0)_46%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_86%_20%,rgba(246,243,238,0.66)_0%,rgba(246,243,238,0.38)_18%,rgba(246,243,238,0)_38%),radial-gradient(ellipse_at_88%_30%,rgba(246,243,238,0.72)_0%,rgba(246,243,238,0.46)_24%,rgba(246,243,238,0)_48%),radial-gradient(ellipse_at_86%_55%,rgba(246,243,238,0.64)_0%,rgba(246,243,238,0.34)_22%,rgba(246,243,238,0)_46%)]"
         style={{ zIndex: -9 }}
       />
       <Navbar logoOnlyUntilScroll />
@@ -164,32 +163,33 @@ export default function DestinationsPage() {
       <section className="relative z-10 overflow-hidden">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute left-[30%] top-1/2 z-0 h-[76%] w-[72%] max-w-[1080px] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.58)_0%,rgba(255,255,255,0.30)_48%,rgba(255,255,255,0)_76%)]"
+          className="pointer-events-none absolute left-[30%] top-1/2 z-0 h-[76%] w-[72%] max-w-[1080px] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(ellipse_at_center,rgba(246,243,238,0.58)_0%,rgba(246,243,238,0.30)_48%,rgba(246,243,238,0)_76%)]"
         />
-        <div className="relative z-10 mx-auto grid min-h-[680px] max-w-[1440px] grid-cols-1 items-stretch lg:h-[min(790px,calc(100vh-74px))] lg:grid-cols-[58%_42%]">
-          <div className="relative flex min-h-[540px] flex-col justify-center overflow-hidden px-5 py-16 sm:px-8 lg:min-h-[680px] lg:px-14 xl:px-20">
-            <div className="relative z-10 max-w-xl">
-              <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-2 text-sm font-bold text-[#0A2D5B]/70">
-                <Link href="/" className="transition-colors hover:text-[#F37021]">
-                  Trang chủ
-                </Link>
-                <span className="text-[#0A2D5B]/35">/</span>
-                <span className="text-[#0A2D5B]">Điểm đến</span>
-              </nav>
 
-              <div className="relative">
-                <p className="mb-4 text-xs font-extrabold uppercase tracking-[0.22em] text-[#F37021]">Atlas du lịch Việt Nam</p>
-                <h1 className="max-w-xl text-5xl font-extrabold leading-[1.02] tracking-normal text-[#0A2D5B] sm:text-6xl lg:text-7xl">
-                  Khám phá điểm đến Việt Nam
-                </h1>
-                <p className="mt-5 max-w-md text-base font-semibold leading-7 text-[#0A2D5B]/72">
-                  Tìm nhanh tỉnh thành bạn đã có trong đầu, hoặc rê trên bản đồ để mở một hành trình mới.
-                </p>
-              </div>
+        <div className="relative z-10 mx-auto grid min-h-[720px] max-w-[1440px] grid-cols-1 items-stretch lg:h-[min(860px,calc(100vh-74px))] lg:grid-cols-[60%_40%]">
+          <div className="relative flex min-h-[560px] flex-col justify-center overflow-visible px-5 py-16 sm:px-8 lg:min-h-[720px] lg:px-14 xl:px-20">
+          <div className="relative z-10 w-full max-w-xl">
+            <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-2 text-sm font-bold text-[#0A2D5B]/70">
+              <Link href="/" className="transition-colors hover:text-[#F37021]">
+                Trang chủ
+              </Link>
+              <span className="text-[#0A2D5B]/35">/</span>
+              <span className="text-[#0A2D5B]">Điểm đến</span>
+            </nav>
 
-              <form onSubmit={handleSearch} className="relative mt-8 w-full max-w-xl">
-                <div className="flex items-center overflow-visible rounded-full bg-white/94 shadow-[0_18px_60px_rgba(10,45,91,0.14)] ring-1 ring-[#0A2D5B]/10 backdrop-blur-sm">
-                  <Search size={19} className="ml-5 shrink-0 text-[#0A2D5B]/42" />
+            <div className="relative">
+              <p className="mb-4 text-xs font-extrabold uppercase tracking-[0.22em] text-[#F37021]">Atlas du lịch Việt Nam</p>
+              <h1 className="max-w-xl text-5xl font-extrabold leading-[1.02] tracking-normal text-[#0A2D5B] sm:text-6xl lg:text-7xl">
+                Khám phá điểm đến Việt Nam
+              </h1>
+              <p className="mt-5 max-w-md text-base font-semibold leading-7 text-[#0A2D5B]/72">
+                Tìm nhanh tỉnh thành bạn đã có trong đầu, hoặc rê trên bản đồ để mở một hành trình mới.
+              </p>
+            </div>
+
+            <form onSubmit={handleSearch} className="relative mt-8 w-full max-w-xl">
+              <div className="flex items-center overflow-visible rounded-full bg-white/94 shadow-[0_18px_60px_rgba(10,45,91,0.14)] ring-1 ring-[#0A2D5B]/10 backdrop-blur-sm">
+                <Search size={19} className="ml-5 shrink-0 text-[#0A2D5B]/42" />
                 <input
                   ref={inputRef}
                   value={query}
@@ -232,7 +232,7 @@ export default function DestinationsPage() {
                   ) : filtered.length === 0 ? (
                     <div className="p-5 text-center text-sm font-semibold text-[#0A2D5B]">Không tìm thấy tỉnh thành phù hợp.</div>
                   ) : (
-                    <ul className="py-2 max-h-72 overflow-y-auto">
+                    <ul className="max-h-72 overflow-y-auto py-2">
                       {filtered.map((c) => (
                         <li key={c.id}>
                           <Link href={`/diem-den/${c.slug}`} onClick={() => setFocused(false)}
@@ -254,31 +254,30 @@ export default function DestinationsPage() {
                   )}
                 </div>
               )}
-              </form>
+            </form>
 
-              <div className="relative mt-5 flex flex-wrap gap-2">
-                {POPULAR.slice(0, 5).map((item) => {
-                  const city = cities.find((c) => c.slug === item.slug);
-                  return (
-                    <Link
-                      key={`quick-${item.name}`}
-                      href={city ? `/diem-den/${city.slug}` : `/diem-den/${item.slug}`}
-                      className="rounded-full bg-white/75 px-3 py-1.5 text-sm font-bold text-[#0A2D5B] shadow-[0_8px_24px_rgba(10,45,91,0.08)] backdrop-blur transition-colors hover:text-[#F37021]"
-                    >
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
+            <div className="relative mt-5 flex flex-wrap gap-2">
+              {POPULAR.slice(0, 5).map((item) => {
+                const city = cities.find((c) => c.slug === item.slug);
+                return (
+                  <Link
+                    key={`quick-${item.name}`}
+                    href={city ? `/diem-den/${city.slug}` : `/diem-den/${item.slug}`}
+                    className="rounded-full bg-white/75 px-3 py-1.5 text-sm font-bold text-[#0A2D5B] shadow-[0_8px_24px_rgba(10,45,91,0.08)] backdrop-blur transition-colors hover:text-[#F37021]"
+                  >
+                    {item.name}
+                  </Link>
+                );
+              })}
             </div>
           </div>
+          </div>
 
-          <div className="relative min-h-[620px] overflow-hidden bg-transparent lg:min-h-[680px]">
+          <div className="relative min-h-[640px] overflow-hidden bg-transparent lg:min-h-[720px]">
             <InteractiveVietnamMap
               activeSlugs={activeMapSlugs}
               hrefForSlug={(slug) => `/diem-den/${slug}`}
-              shapeShield
-              className="relative z-10 mx-auto h-full min-h-[620px] w-full select-none overflow-hidden bg-transparent lg:min-h-[680px] [&_svg]:object-contain"
+              className="relative mx-auto h-full min-h-[640px] w-full select-none overflow-hidden bg-transparent lg:min-h-[720px] [&_svg]:object-contain"
             />
           </div>
         </div>

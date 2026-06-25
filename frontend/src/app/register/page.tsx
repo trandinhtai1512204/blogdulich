@@ -70,7 +70,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Right — form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-gray-50">
+      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-[#F6F3EE]">
         <div className="w-full max-w-md">
           <Link href="/" className="flex items-center gap-2 mb-8 lg:hidden">
             <div className="w-8 h-8 rounded-full bg-linear-to-br from-violet-500 to-purple-700 flex items-center justify-center">
