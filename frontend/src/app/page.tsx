@@ -84,23 +84,39 @@ export default function HomePage() {
   });
 
   useEffect(() => {
+    const applyHomeData = (grouped: Record<CategoryType, Post[]>) => {
+      setRegionalPosts(grouped.destination);
+      setPostsByType(grouped);
+    };
+
+    const fetchLegacyHomePosts = async () => {
+      const results = await Promise.allSettled(
+        TYPE_ORDER.map((type) =>
+          api.get(`/posts?type=${type}&limit=${type === 'destination' || type === 'review' ? 48 : type === 'itinerary' || type === 'experience' ? 16 : 10}`),
+        ),
+      );
+
+      const grouped = {} as Record<CategoryType, Post[]>;
+      TYPE_ORDER.forEach((type, index) => {
+        const result = results[index];
+        grouped[type] = result.status === 'fulfilled'
+          ? sortPostsByHotness(result.value.data?.data ?? [])
+          : [];
+      });
+      applyHomeData(grouped);
+    };
+
     api.get('/posts/home')
       .then((res) => {
         const data = res.data ?? {};
-        const grouped = {
+        applyHomeData({
           destination: sortPostsByHotness(data.destination ?? []),
           itinerary: sortPostsByHotness(data.itinerary ?? []),
           review: sortPostsByHotness(data.review ?? []),
           experience: sortPostsByHotness(data.experience ?? []),
-        } satisfies Record<CategoryType, Post[]>;
-
-        setRegionalPosts(grouped.destination);
-        setPostsByType(grouped);
+        });
       })
-      .catch(() => {
-        setRegionalPosts([]);
-        setPostsByType({ destination: [], itinerary: [], review: [], experience: [] });
-      })
+      .catch(fetchLegacyHomePosts)
       .finally(() => setLoading(false));
   }, []);
 
